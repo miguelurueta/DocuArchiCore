@@ -1,0 +1,37 @@
+/* Imports */
+@import url('./base/_reset.css');
+@import url('./base/_variables.css');
+@import url('./base/_mixins.css');
+@import url('./base/_globals.css');
+@import url('./layout/_header.css');
+@import url('./layout/_footer.css');
+@import url('./layout/_sidebar.css');
+@import url('./layout/_grid.css');
+@import url('./components/_buttons.css');
+@import url('./components/_tables.css');
+@import url('./components/_forms.css');
+@import url('./components/_modals.css');
+@import url('components/_SpinnerManager.css');
+@import url('components/_notifier.css');
+@import url('./pages/home.css');
+@import url('./pages/profile.css');
+@import url('./themes/light.css');
+@import url('./components/General.css');
+@import url('components/botonsactive.css');
+@import url('main.css');
+@import url('components/botonscapdocumentos.css');
+@import url('components/botonsdeneg.css');
+@import url('components/botonsforms.css');
+@import url('components/botonspase.css');
+@import url('components/botonstabs.css');
+@import url('components/capdocumentos.css');
+@import url('components/contenidodash.css');
+@import url('components/Formulario.css');
+@import url('components/inputs.css');
+@import url('components/Mcapturadocumentos.css');
+@import url('components/modalpendiente.css');
+@import url('components/responsive.css');
+@import url('components/TompSelectCSS.css');
+@import url('components/TableManager.css');
+@import url('components/ModalTable.css');
+

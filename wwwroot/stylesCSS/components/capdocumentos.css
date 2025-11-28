@@ -1,0 +1,140 @@
+/* Barra superior fija */
+.barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 10px 20px;
+}
+
+.barra-superior {
+  background: rgba(255, 255, 255, 0.75); /* fondo semitransparente */
+  backdrop-filter: blur(10px); /* efecto glass moderno */
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.7rem;
+  transition: all 0.3s ease;
+}
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  .barra-superior {
+   padding: 0.20rem 0.75rem;
+  }
+
+  .barra-superior i {
+  font-size: 0.8rem;
+  margin-right: 1px;
+}
+}
+
+
+.barra-secundaria {
+  background: rgba(255, 255, 255, 0.75); /* fondo semitransparente */
+  backdrop-filter: blur(10px); /* efecto glass moderno */
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.7rem;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+
+
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  .barra-secundaria {
+    display: flex;
+    padding: 0.20rem 1rem;
+    margin-top: -18px; /* sube el bloque */
+  }
+
+  .barra-secundaria i {
+  font-size: 0.8rem;
+  margin-right: 0px;
+}
+}
+
+
+/* Contenedor principal */
+.contenido-principal {
+ padding: 20px 10px;
+}
+
+/* Paneles */
+.panel-detalle {
+ padding: 24px;
+ background: #ffffff;
+ border-right: 1px solid #dee2e6;
+}
+
+.panel-detalle {
+  max-height: 58vh;      /* límite de altura: 70% del alto de la ventana */
+  overflow-y: auto;      /* activa scroll vertical si pasa del límite */
+  overflow-x: hidden;    /* oculta scroll horizontal innecesario */
+  padding-right: 6px;    /* espacio para que no tape el scroll */
+}
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  .panel-detalle {
+   height: 47vh; /* ocupa toda la altura visible */
+  }
+
+  .sidebar-collapsed ~ .barra-secundaria {
+  height: 50vh; /* más alta cuando el sidebar está colapsado */
+ }
+  
+}
+
+.panel-detalle-1 {
+ padding: 24px;
+ background: #ffffff;
+ border-right: 1px solid #dee2e6;
+ width: 40vh;
+}
+
+.panel-detalle-1 {
+  max-height: 59vh;      /* límite de altura: 70% del alto de la ventana */
+  overflow-y: auto;      /* activa scroll vertical si pasa del límite */
+  overflow-x: hidden;    /* oculta scroll horizontal innecesario */
+  padding-right: 6px;    /* espacio para que no tape el scroll */
+}
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  .panel-detalle-1 {
+   height: 47vh; /* ocupa toda la altura visible */
+  }
+  
+}
+
+#ex1-tabs-3 {
+  height: 78vh; /* 80% del alto visible de la ventana */
+  
+}
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  #ex1-tabs-3 {
+   height: 67vh;
+  }
+}
+
+
+/* Sombra suave para destacar el contenido */
+.panel-detalle,
+.panel-detalle-1,
+.panel-tabla {
+ box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+ border-radius: 10px;
+}
+
+
+.pan-left {
+  width: 20vh;
+}

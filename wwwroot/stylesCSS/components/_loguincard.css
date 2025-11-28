@@ -1,0 +1,253 @@
+/* Estilos Generales */
+* {
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: url('Images/fondo.png') no-repeat center center / cover;
+    padding: 20px;
+}
+html, body {
+    height: 100%;
+}
+main.vw-100 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh; /* Asegura centrado vertical dentro del layout */
+    background: url('Images/fondo.png') no-repeat center center / cover;
+}
+
+
+.contenedor_ {
+    max-width: 350px;
+    background: rgba(255, 255, 255, 0.1); /* fondo semi-transparente */
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Sombra uniforme en todos los bordes */
+    box-shadow: 0 0 15px 3px rgba(0, 0, 0, 0.5);
+    /* transición suave al hover */
+    transition: all 0.3s ease;
+}
+   
+
+    /* Título */
+    .contenedor_ h2 {
+        font-size: 2rem;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+/* Input contenedor */
+.input-contenedor {
+    position: relative;
+    margin-bottom: 25px;
+    width: 100%;
+    border-bottom: 2px solid black;
+}
+
+    .input-contenedor label {
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        transform: translateY(-50%);
+        font-weight: bold;
+        font-size: 1rem;
+        color: black;
+        pointer-events: none;
+        transition: 0.3s ease;
+    }
+
+    .input-contenedor input:focus ~ label,
+    .input-contenedor input:not(:placeholder-shown) ~ label {
+        top: 0;
+        font-size: 0.8rem;
+        color: gray;
+    }
+
+    .input-contenedor input {
+        width: 100%;
+        padding: 0.6em 2.5em 0.6em 0.6em;
+        border: none;
+        background: transparent;
+        color: black;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .input-contenedor i {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        font-size: 1.4rem;
+        color: black;
+    }
+
+/* Select personalizado */
+.custom-select {
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+    .custom-select .selected {
+        padding: 10px;
+        border-bottom: 2px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+
+        .custom-select .selected i {
+            transition: transform 0.3s ease;
+        }
+
+    .custom-select.open .selected i {
+        transform: rotate(180deg);
+    }
+
+    .custom-select .options {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        z-index: 10;
+    }
+
+    .custom-select.open .options {
+        max-height: none;
+    }
+
+    .custom-select .options li {
+        padding: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+        .custom-select .options li:hover {
+            background: #346bc342;
+        }
+    .custom-select .options {
+        list-style: none; /* 👈 Quita los puntos de la lista */
+        padding-left: 0; /* Elimina la indentación */
+        margin: 0; /* Elimina márgenes extra */
+    }
+/* Switch */
+.switch-contenedor {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+}
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 20px;
+    transition: 0.4s;
+}
+
+    .slider:before {
+        content: "";
+        position: absolute;
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.4s;
+    }
+
+.switch input:checked + .slider {
+    background-color: black;
+}
+
+    .switch input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+
+/* Botón */
+.aaa button {
+    width: 100%;
+    padding: 10px;
+    background: black;
+    color: white;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 15px;
+    transition: background 0.3s;
+}
+
+    .aaa button:hover {
+        background: #346CC3;
+    }
+
+/* Enlace olvidar contraseña */
+.www p {
+    text-align: center;
+    margin-top: 10px;
+}
+
+    .www p a {
+        color: black;
+        font-size: 0.9rem;
+        text-decoration: none;
+    }
+
+        .www p a:hover {
+            text-decoration: underline;
+        }
+
+/* Responsive */
+@media (max-width: 480px) {
+    .contenedor {
+        padding: 20px;
+    }
+
+        .contenedor h2 {
+            font-size: 1.8rem;
+        }
+
+    .input-contenedor input {
+        font-size: 0.95rem;
+    }
+
+    .aaa button {
+        font-size: 1rem;
+    }
+}

@@ -1,0 +1,64 @@
+/* === BOTONES TAB === */
+.nav-tabs {
+  border: none !important;
+  justify-content: start;
+  gap: 1rem;
+}
+
+.nav-tabs .nav-item {
+  margin-bottom: 0;
+}
+
+.nav-tabs .nav-link {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  font-weight: 600;
+  padding: 18px 24px; /* 🔹 ← aquí se ajustó el tamaño */
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s ease;
+}
+
+/* Efecto hover */
+.nav-tabs .nav-link:hover {
+  color: #0d6efd;
+  background-color: #f3f7ff;
+  transform: translateY(-2px);
+}
+
+/* Tab activo */
+.nav-tabs .nav-link.active {
+  color: #0d6efd !important;
+  background-color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 -2px 10px rgba(13, 110, 253, 0.15);
+}
+
+/* Línea animada inferior del tab activo */
+.nav-tabs .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
+  width: 60%;
+  height: 3px;
+  background: linear-gradient(90deg, #0d6efd, #0b5ed7);
+  border-radius: 10px;
+  transition: transform 0.3s ease;
+}
+
+/* Activa la línea */
+.nav-tabs .nav-link.active::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* Contenedor del contenido de tabs */
+.tab-content {
+  border-top: 2px solid #e9ecef;
+  border-radius: 0 0 12px 12px;
+  background: #fff;
+  transition: all 0.3s ease;
+}

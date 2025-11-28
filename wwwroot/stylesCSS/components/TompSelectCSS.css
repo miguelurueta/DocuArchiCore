@@ -1,0 +1,154 @@
+﻿/* 🔹 General: tokens ocupan todo el ancho en modo SINGLE */
+/* ==========================
+   🧩 TomSelect Custom Styles
+   ========================== */
+
+/* General */
+/* ==========================
+   🧩 TomSelect Custom Styles (Funcional)
+   ========================== */
+
+.ts-wrapper {
+    width: 100%;
+    display: block;
+    font-family: inherit;
+}
+    .ts-wrapper .item .active_show_lista_document_actos {
+        pointer-events: auto;
+        cursor: pointer;
+    }
+
+    .ts-wrapper .item {
+        pointer-events: auto;
+    }
+
+    .ts-wrapper .ts-control {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        border: 1px solid #ffffff;
+        border-radius: .25rem; /* igual a form-control */
+        padding: .375rem .75rem; /* igual a form-control */
+        height: calc(2.25rem + 2px); /* igual a form-control */
+        background-color: #fff;
+        font-size: 1rem;
+        line-height: 1.5;
+        box-sizing: border-box;
+    }
+
+    /* Item en modo single ocupa todo el ancho */
+    .ts-wrapper:not(.ts-compact-items) .ts-control .item {
+        flex: 1;
+        width:auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: transparent; /* deja el fondo blanco */
+        font-size: 1rem;
+        font-weight: 400;
+        color: #212529;
+    }
+
+    /* Chips en modo multi */
+    .ts-wrapper.ts-compact-items .ts-control .item {
+        display: inline-flex;
+        align-items: center;
+        margin: 3px 6px 3px 0;
+        padding: 4px 8px;
+        border-radius: 12px;
+        background-color: #e9ecef;
+        font-size: 0.875rem;
+        color: #495057;
+        line-height: 1.2;
+    }
+
+    /* Ocultar input interno cuando ya hay selección en modo single */
+    .ts-wrapper.single.has-items .ts-control input {
+        
+    }
+
+/* 🔽 Dropdown estilo Bootstrap */
+.ts-dropdown {
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: .25rem; /* igual a dropdown-menu */
+    background-color: #fff;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.175); /* sombra Bootstrap */
+    margin-top: .125rem;
+    padding: .25rem 0;
+    font-size: 1rem;
+    z-index: 1000; /* asegurar que quede encima */
+}
+
+    /* Opciones dentro del dropdown */
+    .ts-dropdown .option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .25rem 1rem;
+        color: #212529;
+        cursor: pointer;
+    }
+
+        .ts-dropdown .option:hover {
+            background-color: #f8f9fa; /* hover igual a dropdown-item */
+        }
+
+        /* Opción activa/seleccionada */
+        .ts-dropdown .option.active {
+            background-color: #e9ecef;
+            font-weight: 500;
+        }
+/* TomSelect solo selección — SIN INPUT */
+.ts-wrapper.ts-no-typing .ts-control input {
+    display: none !important;
+}
+
+/* Cursor tipo "abrir lista" */
+.ts-wrapper.ts-no-typing .ts-control {
+    cursor: pointer !important;
+}
+
+/* Evitar que parezca editable */
+.ts-wrapper.ts-no-typing.single .ts-control {
+    background-color: white;
+}
+
+/*Opcione tipo select*/
+/* ==========================
+   🟦 TomSelect — Modo SELECT REAL
+   ========================== */
+
+.ts-wrapper.ts-no-typing .ts-control {
+    min-height: calc(2.25rem + 2px) !important;
+    padding: .375rem .75rem !important;
+    cursor: pointer !important;
+    position: relative;
+}
+
+    /* 🔽 Flecha de SELECT */
+    .ts-wrapper.ts-no-typing .ts-control::after {
+        content: "▾";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: .85rem;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* Ocultar input interno completamente */
+    .ts-wrapper.ts-no-typing .ts-control input {
+        display: none !important;
+    }
+
+/* El item seleccionado se comporta como texto de SELECT */
+.ts-wrapper.ts-no-typing.single .ts-control .item {
+    flex: 1;
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 1rem !important;
+    color: #212529 !important;
+    pointer-events: none; /* evita edición accidental */
+}

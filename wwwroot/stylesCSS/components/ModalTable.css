@@ -1,0 +1,34 @@
+﻿/* ======================================== */
+/* 🔥 AJUSTES DEL MODAL (ALTO FIJO)         */
+/* ======================================== */
+.modal-dialog {
+    height: 90vh;
+    max-height: 90vh;
+}
+
+.modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body {
+    flex: 1;
+    overflow: hidden; /* Evita scroll del modal */
+}
+
+/* Scroll interno si Bootstrap lo requiere */
+.modal-dialog-scrollable .modal-body {
+    padding: 0 !important;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+/* === FIX GLOBAL PARA DROPDOWNS EN MODALES === */
+.modal.show .dropdown-menu {
+    z-index: 9999999 !important; /* Asegura que el dropdown está por encima de otros elementos */
+    position: absolute !important; /* Asegura que el dropdown no se quede atrapado dentro del modal */
+    top: 100% !important; /* Asegura que el dropdown se posicione debajo del botón */
+    left: 0;
+    right: 0;
+}

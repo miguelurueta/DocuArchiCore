@@ -1,0 +1,149 @@
+﻿/* ====================================== */
+/* 🔥 CONTENEDOR PRINCIPAL DE TABLEMANAGER */
+/* ====================================== */
+.tm-container {
+    width: 100%;
+    height: calc(100vh - 250px); /* Ajustable: altura fija interna del modal */
+    display: flex;
+    flex-direction: column;
+}
+
+    /* =========================== */
+    /* 🔥 TABLA Y ESTRUCTURA BÁSICA */
+    /* =========================== */
+    .tm-container table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        /* THEAD FIJO */
+        .tm-container table thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+        }
+
+            .tm-container table thead th {
+                background: #f8f9fa;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+
+        /* ======================================== */
+        /* 🔥 TBODY AUTO-AJUSTADO (CON PAGINACIÓN)  */
+        /* ======================================== */
+        .tm-container table tbody {
+            display: block;
+            overflow-y: auto;
+            overflow-x: hidden;
+            /*
+        Nueva fórmula:
+        Altura total del contenedor
+        − altura del thead (48px)
+        − altura de la paginación (60px)
+    */
+            height: calc(100% - 48px - 60px);
+        }
+
+            .tm-container table tbody tr {
+                display: table;
+                width: 100%;
+                table-layout: fixed;
+            }
+
+/* ======================================== */
+/* 🔥 PAGINACIÓN FIJA BAJO LA TABLA         */
+/* ======================================== */
+/* ====================================== */
+/* 🔥 CONTENEDOR PRINCIPAL DE PAGINACIÓN  */
+/* ====================================== */
+.tm-pagination-area {
+    height: 60px; /* ← IMPORTANTE para el cálculo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 8px;
+    flex-shrink: 0;
+    z-index: 1; /* Colocamos la paginación detrás del dropdown */
+}
+
+    .tm-pagination-area .page-item .page-link:hover {
+        background-color: #0d6efd;
+        color: #fff;
+    }
+
+    .tm-pagination-area .page-item.active .page-link {
+        background-color: #0d6efd !important;
+        color: #fff !important;
+    }
+
+/* ====================================== */
+/* 🔥 DESPLEGABLES EN TABLA (dropdown)    */
+/* ====================================== */
+.tm-body-scroll {
+    position: relative;
+    overflow: auto;
+}
+
+    /* Aseguramos que el dropdown de la tabla no se vea afectado por los elementos de la tabla */
+    .tm-body-scroll .dropdown-menu {
+        position: absolute !important; /* El dropdown debe estar fuera del flujo del tbody */
+        z-index: 99999999 !important; /* Asegura que esté por encima de otros elementos */
+        top: 100% !important; /* Lo posicionamos debajo del botón */
+        left: 0;
+        right: 0;
+    }
+        .tm-body-scroll .dropdown-menu.show {
+            position: fixed !important; /* Hace que el dropdown se posicione fuera del flujo */
+            z-index: 999999999 !important; /* Asegura que el dropdown esté por encima de otros elementos */
+            top: 0 !important; /* Para probar que se mueva al principio de la página */
+            left: 0;
+            right: 0;
+        }
+/* Aseguramos que la tabla no bloquee el dropdown */
+.tm-container table td,
+.tm-container table th,
+.tm-container table tr {
+    position: relative !important; /* No interferirá con la visibilidad del dropdown */
+    z-index: 1 !important;
+    overflow: visible !important;
+}
+
+/* ====================================== */
+/* 🔥 ELEMENTOS INTERNOS DEL MODAL       */
+/* ====================================== */
+.modal-content {
+    position: relative;
+    z-index: 10; /* Asegura que el modal no tapará el dropdown */
+}
+
+/* ====================================== */
+/* 🔥 FIX PARA EL DROPDOWN DE TABLEMANAGER */
+/* ====================================== */
+.tm-dropdown-fix {
+    position: relative;
+    z-index: 99999999 !important; /* Asegura que el dropdown está por encima de otros elementos */
+}
+
+/* ================================ */
+/* 🔥 OPCIONES EN TABLA (checkbox, button) */
+/* ================================ */
+.tm-option-check {
+    position: relative;
+    z-index: 10;
+}
+
+/* Forzar que la tabla no oculte el dropdown */
+.tm-container table td,
+.tm-container table th,
+.tm-container table tr {
+    position: relative !important;
+    z-index: 1 !important; /* Asegura que las celdas no bloqueen el dropdown */
+    overflow: visible !important;
+}

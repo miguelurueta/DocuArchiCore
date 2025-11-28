@@ -1,0 +1,62 @@
+﻿/* --- Spinner circular pequeño (para botones) --- */
+.spinner-circle {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #62aeff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+    .spinner-circle.small {
+        width: 16px;
+        height: 16px;
+        border-width: 2px;
+    }
+
+/* --- Spinner circular grande (global) --- */
+.spinner-circle-general {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #62aeff;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+/* --- Spinner estilo "carga de archivo" --- */
+.spinner-file {
+    border: 6px solid #eee;
+    border-top: 6px solid #62aeff;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+}
+
+/* --- Contenedor del spinner global con texto --- */
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.spinner-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #444;
+}
+
+/* --- Animación de rotación --- */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+

@@ -1,0 +1,369 @@
+:root {
+    --sidebar-width: 240px;
+}
+
+/* Sidebar visible on lg and up */
+.sidebar-lg-show {
+    width: var(--sidebar-width);
+    transition: width .2s ease;
+}
+
+.offcanvas-lg,
+.offcanvas-lg .offcanvas-body {
+    border-radius: 0 !important;
+}
+
+
+@media (min-width: 992px) {
+    body {
+        transition: padding-left 0.3s ease;
+        padding-left: var(--sidebar-width);
+    }
+
+    .offcanvas-lg.offcanvas-start {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-width);
+        border-right: 1px solid rgba(0, 0, 0, .05);
+        transition: transform 0.3s ease;
+        transform: translateX(0);
+        visibility: visible !important;
+    }
+
+    body.sidebar-hidden {
+        padding-left: 0 !important;
+    }
+
+        body.sidebar-hidden .offcanvas-lg.offcanvas-start {
+            transform: translateX(-100%) !important;
+        }
+}
+
+/* Make the main content flow nicely */
+main .card + .card {
+    margin-top: 1rem;
+}
+
+/* Small aesthetic tweaks */
+.sidebar-brand {
+    font-weight: 600;
+    letter-spacing: .4px;
+}
+
+.nav-link {
+    color: #333;
+}
+
+/* .nav-link.active {
+        background: rgba(52, 107, 195, 0.08);
+        border-radius: .375rem;
+    } */
+/* Subítem activo */
+#sidebar .nav-link.active {
+    background: linear-gradient(145deg, #2563eb, #3b82f6) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* Ítem padre de subítem activo */
+#sidebar .nav-link.active-parent {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: #1e40af !important;
+    font-weight: 600;
+}
+
+#sidebar .offcanvas-body {
+    overflow: hidden;
+}
+
+#sidebarScrollArea {
+    overflow-y: auto;
+    height: calc(100vh - 80px); /* Ajustar según la altura del header del sidebar */
+}
+.parent-link[aria-expanded="true"] i.fa-chevron-down {
+    transform: rotate(180deg);
+    transition: .2s;
+}
+
+.nav-link:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+/* Ensure offcanvas scrolls when tall */
+.offcanvas-lg .offcanvas-body {
+}
+
+/* Content area spacing */
+.content-area {
+    padding: 1.5rem;
+}
+
+/* === SIDEBAR SOFISTICADO === */
+#sidebar {
+    --sidebar-width: 245px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 250, 0.95));
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+    width: var(--sidebar-width);
+    transition: all 0.35s ease;
+    border-radius: 0 18px 18px 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Cuando se oculta en escritorio */
+body.sidebar-hidden #sidebar {
+    box-shadow: none;
+}
+
+/* Logo superior */
+.sidebar-brand-img {
+    max-height: 65px;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
+    transition: transform 0.3s ease;
+}
+
+    .sidebar-brand-img:hover {
+        transform: scale(1.05);
+    }
+
+/* Contenedor del menú scrollable */
+#sidebarMenu {
+    flex-grow: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding-right: 0.5rem;
+    margin-top: 0.3rem;
+}
+
+    /* Scrollbar personalizado */
+    #sidebarMenu::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #sidebarMenu::-webkit-scrollbar-thumb {
+        background-color: rgba(59, 130, 246, 0.5);
+        border-radius: 3px;
+    }
+
+    #sidebarMenu::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+/* ==== NAVEGACIÓN ==== */
+#sidebar .nav-link {
+    color: #334155;
+    font-weight: 500;
+    border-radius: 8px;
+    margin: 1px 6px;
+    /*padding: 6px 10px;*/
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1px;
+    font-size: 0.95rem;
+}
+
+    #sidebar .nav-link i {
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    #sidebar .nav-link:hover {
+        background: rgba(59, 130, 246, 0.08);
+        color: #2563eb;
+    }
+
+    /* ==== ITEM ACTIVO ==== */
+    #sidebar .nav-link.active {
+        background: linear-gradient(145deg, #2563eb, #3b82f6) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    }
+
+        #sidebar .nav-link.active i {
+            color: #fff !important;
+        }
+
+    /* Ícono de colapso (chevron) */
+    #sidebar .nav-link .fa-chevron-down {
+        margin-left: auto;
+        font-size: 0.8rem;
+        opacity: 0.6;
+        transition: transform 0.3s ease, opacity 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    #sidebar .nav-link[aria-expanded="true"] .fa-chevron-down {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+
+/* ==== SUBMENÚS ==== */
+#sidebar .collapse {
+    border-left: 2px solid rgba(59, 130, 246, 0.08);
+    margin-left: 0.8rem;
+    padding-left: 0.4rem;
+}
+
+    #sidebar .collapse .nav-link {
+        font-size: 0.9rem;
+        border-radius: 6px;
+        margin: 1px 4px;
+        padding: 5px 14px 5px 1.8rem;
+        background: rgba(59, 130, 246, 0.015);
+        justify-content: flex-start;
+        text-align: left;
+        gap: 8px;
+    }
+
+        #sidebar .collapse .nav-link:hover {
+            background: rgba(59, 130, 246, 0.08);
+            color: #2563eb;
+        }
+
+/* ==== EFECTOS EN MÓVIL ==== */
+@media (max-width: 991.98px) {
+    #sidebar {
+        border-radius: 0;
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* === HEADER ELEGANTE === */
+header.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    border-radius: 16px;
+    margin: 10px;
+    margin-top: 0px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 247, 250, 0.95));
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.08);
+    transition: all 0.35s ease;
+}
+
+    header.navbar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.12);
+    }
+
+/* ==== TARJETAS ==== */
+.card-dashboard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 130px;
+    min-height: 110px;
+    max-height: 130px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    cursor:pointer
+
+}
+
+.gradient-card {
+    background: linear-gradient(135deg, #ffffff, #f8faff);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.08);
+}
+
+    .gradient-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.12);
+    }
+
+/* 📝 Contenido interno de las tarjetas */
+.card-dashboard .card-body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+}
+.card-title {
+    font-size:12px;
+}
+/* 🟢 Iconos circulares */
+.icon-circle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+}
+
+/* 📱 Responsive para móviles */
+@media (max-width: 768px) {
+    .card-dashboard {
+        height: auto;
+        min-height: 140px;
+    }
+
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* === FIX SUAVE: evitar parpadeo del scroll sin mantenerlo siempre visible === */
+
+/* Reserva el espacio del scrollbar sin mostrarlo cuando no es necesario */
+#sidebar {
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Previene pequeños saltos horizontales */
+#sidebarMenu,
+#sidebarMenu ul,
+#sidebarMenu li {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Suaviza la apertura y cierre de submenús */
+#sidebar .collapse {
+    transition: height 0.25s ease, opacity 0.25s ease;
+    will-change: height, opacity;
+}
+
+/* Estilo de la barra (solo visible si hay overflow) */
+#sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.45);
+    border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+
+
+

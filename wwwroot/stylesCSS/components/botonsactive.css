@@ -1,0 +1,32 @@
+/* === BOTONES PENDIENTE === */
+.btn-active {
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7); /* azul Bootstrap */
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+  transition: all 0.3s ease;
+}
+
+.btn-active i {
+  font-size: 1rem;
+}
+
+/* Hover */
+.btn-active:hover {
+  background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+  box-shadow: 0 6px 14px rgba(13, 110, 253, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Active (clic) */
+.btn-active:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(13, 110, 253, 0.2);
+}

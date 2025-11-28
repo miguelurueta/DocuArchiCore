@@ -1,0 +1,1 @@
+.sidebar{width:200px;min-height:100vh;background:var(--color-light);border-right:1px solid #ddd;} .sidebar .nav-link{display:block;padding:0.5rem 1rem;color:var(--color-dark);} .sidebar .nav-link:hover{background:#e9ecef;border-radius:var(--radius);}

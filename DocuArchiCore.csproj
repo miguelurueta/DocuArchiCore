@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DTOsBck\**" />
+    <Compile Remove="ModelsBck\**" />
+    <Compile Remove="RepositorioBCK\**" />
+    <Content Remove="DTOsBck\**" />
+    <Content Remove="ModelsBck\**" />
+    <Content Remove="RepositorioBCK\**" />
+    <EmbeddedResource Remove="DTOsBck\**" />
+    <EmbeddedResource Remove="ModelsBck\**" />
+    <EmbeddedResource Remove="RepositorioBCK\**" />
+    <None Remove="DTOsBck\**" />
+    <None Remove="ModelsBck\**" />
+    <None Remove="RepositorioBCK\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.3" />
+    <PackageReference Include="MySql.Data" Version="9.5.0" />
+    <PackageReference Include="Npgsql" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MiApp.DTOs\MiApp.DTOs.csproj" />
+    <ProjectReference Include="..\MiApp.Models\MiApp.Models.csproj" />
+    <ProjectReference Include="..\MiApp.Repository\MiApp.Repository.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,137 @@
+/* === BOTÓN MODERNO === */
+.btn-dropdown-modern {
+  background: rgba(240, 242, 245, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #4a4a4a;
+  font-size: 16px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(6px);
+}
+.btn-dropdown-modern:hover {
+  background: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(13, 110, 253, 0.15);
+}
+.btn-dropdown-modern:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* === MENÚ DESPLEGABLE MODERNO LI UL=== */
+.dropdown-modern {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: fadeSlide 0.25s ease;
+  padding: 4px;
+  min-width: 180px;
+}
+.dropdown-modern .dropdown-item {
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+.dropdown-modern .dropdown-item:hover {
+  background: rgba(13, 110, 253, 0.08);
+  color: #0d6efd;
+  transform: translateX(2px);
+}
+.dropdown-modern .dropdown-divider {
+  border-color: rgba(0, 0, 0, 0.1);
+  margin: 6px 0;
+}
+
+/* === ANIMACIÓN SUAVE === */
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+
+
+
+
+
+/* --- ESTILO BASE DE TODOS LOS ICONOS --- */
+.icon-certificado {
+  font-size: 18px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(245, 246, 248, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+/* Efecto hover general */
+.icon-certificado:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* Colores según estado */
+.icon-certificado.firmado {
+  color: #198754;
+  background: rgba(25, 135, 84, 0.1);
+}
+.icon-certificado.firmado:hover {
+  background: rgba(25, 135, 84, 0.2);
+}
+
+.icon-certificado.pendiente {
+  color: #6c757d;
+  background: rgba(108, 117, 125, 0.1);
+}
+.icon-certificado.pendiente:hover {
+  background: rgba(108, 117, 125, 0.2);
+}
+
+
+
+/* Panel de detalle (izquierda) */
+.panel-detalle {
+  flex: 1; /* ocupa el espacio restante */
+  margin-right: 1rem;
+}
+
+.panel-tabla {
+  position: sticky;
+  top: 70px; /* ajusta según la altura de tu barra secundaria */
+  float: right; /* se alinea a la derecha sin superponer */
+  width: 24%; /* puedes cambiar a 25%, 35%, etc. */
+  height: 68vh; /* ocupa toda la altura visible */
+  overflow-y: auto; /* permite scroll interno */
+  background: #fff;
+  border-left: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  margin-left: 1rem; /* separa del contenido si lo hay */
+}
+
+
+/* === 💻 AJUSTES PARA PORTÁTILES (768px a 1632px) === */
+@media (min-width: 768px) and (max-width: 1632px) {
+  .panel-tabla {
+   height: 56vh; /* ocupa toda la altura visible */
+   width: 50vh;
+  }
+
+}
