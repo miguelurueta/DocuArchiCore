@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiApp.Repository", "..\MiAp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiApp.Models", "..\MiApp.Models\MiApp.Models.csproj", "{4E670819-646E-4099-9B6F-6AE94FD68F2B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuArchiCore.Abstractions", "..\DocuArchiCore.Abstractions\DocuArchiCore.Abstractions.csproj", "{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{4E670819-646E-4099-9B6F-6AE94FD68F2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E670819-646E-4099-9B6F-6AE94FD68F2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E670819-646E-4099-9B6F-6AE94FD68F2B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

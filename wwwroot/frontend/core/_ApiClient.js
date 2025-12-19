@@ -145,12 +145,19 @@ class ApiClientService {
         //console.log(url);
         try {
             const payload = typeof parameters === "object" ? parameters : { value: String(parameters) };
+            // ----------------------------
+            // ✔ Determinar GET o POST
+            // ----------------------------
+            const isEmptyPayload =
+                parameters == null ||
+                (typeof parameters === "object" && Object.keys(parameters).length === 0);
 
+            const fetchMethod = isEmptyPayload ? "GET" : "POST";
             if (this.validator) this.validator.clearBackendErrors();
             //console.log(JSON.stringify(payload));
             const response = await fetch(url, {
                 method: "POST",
-                credentials: mergedOptions.useCredentials ? "include" : "same-origin",
+                credentials: "include",
                 headers: ApiConfig.get("headers") || { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });

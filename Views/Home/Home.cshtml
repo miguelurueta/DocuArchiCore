@@ -1,0 +1,135 @@
+﻿@using static System.Collections.Specialized.BitVector32
+
+@{
+    ViewData["Title"] = "Login Page";
+   
+}
+@section styles {
+    <link href="~/stylesCSS/components/dashboard.css" rel="stylesheet" />
+    <style>
+
+    </style>
+}
+<!-- Sidebar -->
+<div class="offcanvas offcanvas-start offcanvas-lg" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+    <div class="offcanvas-header d-lg-none">
+        <h5 class="offcanvas-title" id="sidebarLabel"></h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+
+    <div class="offcanvas-body p-0 h-100 sidebar-menu d-flex flex-column">
+        <div class="logo-container px-2 py-2 d-flex justify-content-center align-items-center border-bottom flex-shrink-0">
+            <img src="~/stylesCSS/Images/contasoft.png" alt="DOCUARCHI"
+                 class="sidebar-brand-img img-fluid" style="max-width: 240px; height: auto;">
+        </div>
+
+        <nav class="navbar-light w-100 flex-grow-1 overflow-auto" id="sidebarScrollArea">
+            <ul id="sidebarMenu" class="nav flex-column mt-1 px-1">
+                <!-- Menú dinámico -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Top navbar -->
+<header class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+    <div class="container-fluid">
+        <button id="toggleSidebar" aria-label="Abrir menú lateral"
+                class="btn btn-outline-primary me-2 d-none d-lg-inline-flex" type="button">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <button class="btn btn-outline-primary d-lg-none me-3" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="me-3 d-none d-md-block">
+            <span class="text-muted"></span>
+            <span id="lblNameModulo" class="Title-Person"></span>
+        </div>
+
+        <a class="navbar-brand me-auto" href="#"></a>
+
+        <div class="d-flex align-items-center" title="Volver al inicio">
+            <button class="btn btn-outline-primary me-2" id="btnInicio" aria-label="Volver al inicio" type="button">
+                <i class="fa-solid fa-house"></i>
+            </button>
+
+            <div class="d-flex align-items-center gap-2">
+                <!-- Tiempo transcurrido -->
+                <span class="text-muted">⏱️</span>
+                <span id="lblTiempoSesion" class="Title-Person">--:--</span>
+
+                <!-- Tiempo restante -->
+                <!-- 🔵 Barra de tiempo restante (ubicación ideal) -->
+                <div class="session-progress-container mt-1  ml-2">
+                    <div class="session-progress-bar" id="sessionProgressBar"></div>
+                </div>
+                <span id="lblTiempoSesionRestante" class="Title-Person">--:--</span>
+            </div>
+
+            <div class="dropdown">
+                <a class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                   href="#"
+                   id="userMenu"
+                   role="button"
+                   data-bs-toggle="dropdown"
+                   aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=Miguel&background=0D8ABC&color=fff"
+                         alt="avatar" width="36" height="36" class="rounded-circle me-2">
+                    <strong class="Title-Person">Miguel</strong>
+                </a>
+
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                    <li>
+                        <a class="dropdown-item" data-page="dashboard" data-scope="boton"
+                           data-action="refrescar" href="#">Perfil</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" data-page="dashboard" data-scope="boton"
+                           data-action="abrirSoporte" href="#">Ajustes</a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    <li><a class="dropdown-item" id="btnCerrarSesion" href="#">Salir</a></li>
+                </ul>
+            </div>
+           
+        </div>
+    </div>
+</header>
+
+<!-- Contenido principal -->
+<main id="mainContent_" class="container-fluid px-3 py-1 content-area">
+    <div class="row g-3" id="contenedorCards"></div>
+    <iframe id="legacyFrame" style="display: none; width: 100%; height: calc(100vh - 100px); border: none; overflow: hidden;"></iframe>
+
+    <div id="mainContent" style="display: none; width: 100%; height: calc(100vh - 100px); border: none; overflow: hidden;"></div>
+    <div id="ContenMain"></div>
+</main>
+
+@section scripts {
+    <script src="~/frontend/modules/Home/dashboard.js"></script>
+    <script src="~/frontend/components/DynamicMenu.js"></script>
+    <script src="~/frontend/core/sessionmanager.js"></script>
+    <script src="~/frontend/core/dynamicloader.js"></script>
+}
+<style>
+    .session-progress-container {
+        width: 40px;
+        height: 8px;
+        background: #e5e5e5;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    .session-progress-bar {
+        width: 100%;
+        height: 100%;
+        background: #007bff; /* inicial azul */
+        transition: width 0.3s linear, background-color 0.3s ease;
+    }
+</style>
