@@ -67,18 +67,20 @@ const ValidaUserAplicacion = async () => {
         const IdModulo = PluginControles.getSelectedValue("selectModulos")?.value || "0";
 
         // 4️⃣ Llamada al API
+        const payload = {
+            IdEmpresa: IdEmpresa,
+            IdModulo: IdModulo,
+            User: ValueUsuario,
+            Pasword: ValuePassword
+        };
+
         const Rest = await ApiClient
             .use("EstruEmpresa")
-            .call("ValidaUserAplicacion", {
-                IdEmpresa: IdEmpresa,
-                IdModulo: IdModulo,
-                User: ValueUsuario,
-                Pasword: ValuePassword
-            });
+            .call("ValidaUserAplicacion", payload);
 
         // 5️⃣ Validar respuesta del backend
         if (!Rest || Rest.error) {
-            const msg = Rest?.message || Rest?.data?.Message || "Error en la solicitud.";
+            const msg = Rest?.data?.Message || Rest?.message || "Error en la solicitud.";
             NotifierInstance.show(`⚠️ ${msg}`, "info");
             await Spinner.hideGlobal(); // liberar spinner respetando minGlobalTime
             return;
@@ -89,7 +91,8 @@ const ValidaUserAplicacion = async () => {
 
         // 6️⃣ Navegación a la página destino
         // 🔹 No liberamos el spinner aquí, bloquea la página hasta que cargue
-        window.location.replace('../Home/Home/');
+        window.location.replace('/Home/Home');
+
         //window.location.replace('@Url.Action("Home", "Home")');
 
     } catch (err) {

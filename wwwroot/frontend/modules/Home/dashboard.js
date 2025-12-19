@@ -47,7 +47,7 @@ class AppDashboard {
      * ----------------------------------------------------- */
     async initActionManager() {
         try {
-            console.log("🟦 AppDashboard → initActionManager()");
+            //console.log("🟦 AppDashboard → initActionManager()");
 
             // ⚠ NO instanciamos nuevamente el ActionsManager
             // ya existe como window.ActionsManagerApp
@@ -229,9 +229,10 @@ class AppDashboard {
     // -----------------------------
     async solicitaEstructuraMenuPrincipal() {
         try {
+            const payload = {};
             const Rest = await this.ApiClient
                 .use("Home")
-                .call("ServiceSolicitaEstructuraMenuPrincipal", {});
+                .call("ServiceSolicitaEstructuraMenuPrincipal", payload);
 
             if (!Rest || Rest.error || Rest.data?.Success === false) {
                 const msg = Rest?.message || Rest?.data?.Message || "Error obteniendo menú.";
