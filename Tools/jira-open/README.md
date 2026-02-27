@@ -2,6 +2,9 @@
 
 This folder exposes PowerShell-based integration commands for OpenSpec + Jira.
 
+Guia recomendada de operacion multi-repo:
+- `Docs/Guia_Opsxj_MultiRepo.md`
+
 ## Prerequisites
 
 - `openspec.cmd` available in PATH
