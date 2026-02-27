@@ -1,0 +1,37 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+context: |
+  Multi-repo policy:
+  - Before creating or updating cross-repo changes, regenerate openspec/context/multi-repo-context.md.
+  - Cross-repo changes are those affecting two or more repositories.
+  - Cross-repo proposals and designs must explicitly reference openspec/context/multi-repo-context.md.
+  - For SCRUM-23, this repository acts as coordinator only for OpenSpec context and tracking.
+  - SCRUM-23 does not imply direct source-code implementation in this repository.
+
+rules:
+  proposal:
+    - For cross-repo changes, include an explicit reference to `openspec/context/multi-repo-context.md`.
+    - Include a short bullet list of affected repositories in the Impact section.
+    - If the change is context-only, state explicitly "No code changes in executor repositories".
+  design:
+    - For cross-repo changes, include a section named `## Context Reference`.
+    - In that section, reference `openspec/context/multi-repo-context.md` and summarize cross-repo dependencies.
+    - For context-only changes, include scope boundaries and exclusions.

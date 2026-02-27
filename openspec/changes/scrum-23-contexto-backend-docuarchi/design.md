@@ -1,15 +1,34 @@
 ## Context
 
-- Jira issue key: SCRUM-23
-- Jira summary: CONTEXTO-BACKEND-DOCUARCHI
-- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-23
+El issue SCRUM-23 en este cambio se limita a ampliar el contexto OpenSpec para trabajo multi-repo. `DocuArchiCore` actua como coordinador de especificacion y trazabilidad.
 
-## Problem Statement
+## Context Reference
 
-El proyecto backend DocuArchiCore.Front se desarrolla con OpenSpec. Es necesario ampliar el contexto de la aplicación para OpenSpec y definir lineamientos arquitectónicos claros. Requerimientos de repositorio: Revisar el repositorio DocuArchi.Api y tomar su estructura como patrón para futuros desarrollos. Respetar la forma en que se organizan los Controllers. Preguntar la ruta antes de crear nuevos Controllers. Revisar el repositorio MiApp.DTOs y tomar su estructura como patrón para futuros DTOs. Preguntar la ruta antes de crear nuevos DTOs. Revisar el repositorio MiApp.Models y tomar su estructura como patrón para futuros Modelos. Preguntar la ruta antes de crear nuevos Modelos. Solicitar la estructura de la tabla dentro del requerimiento antes de crear un nuevo modelo. Revisar el repositorio MiApp.Repository y tomar su estructura como patrón para futuros repositorios. Preguntar la ruta antes de crear nuevas funciones. Todas las funciones deben tener una interfaz para facilitar pruebas unitarias. Revisar el repositorio MiApp.Services y tomar su estructura como patrón para futuros servicios. Preguntar la ruta antes de crear nuevas funciones. Todas las funciones deben tener una interfaz para facilitar pruebas unitarias. Requerimientos generales: Todas las funciones con interfaz deben registrarse en Program.cs del repositorio DocuArchi.Api. Los servicios debajo del comentario // Services (L) . Los repositorios debajo del comentario // Repositories (R) . Las interfaces deben quedar en el mismo archivo de la clase, siguiendo el patrón actual: namespace MiApp.Services.Service.Usuario { public interface IRemitDestInternoL { Task<AppResponse<RemitDestInterno>> ValidaUsuarioGestion(string user, string password, string defaultDbAlias); Task<AppResponse<RemitDestInterno>> ValidaLoginUsuarioGestion(string user, string defaultDbAlias); } public class RemitDestInternoL : IRemitDestInternoL {} } Nuevos desarrollos de APIs deben seguir la estructura: ApiController + Servicio + AutoMapper + Repositorio . Usar la clase AutoMapperProfile para registrar mapeos, tomando como referencia la estructura de EmpresasMapping . Las APIs deben retornar siempre envueltas en la clase AppResponses . Todas las funciones deben estar envueltas en try/catch . Implementar principios de arquitectura: Separación de responsabilidades (SoC). Bajo acoplamiento. Alta cohesión. Principios SOLID. Requerimientos de test: Generar pruebas automáticas para backend .NET con Dapper + MySQL siguiendo la arquitectura real (Controller → Service → Repo). Tipos de pruebas: Unit Tests (mock de interfaces, NO mockear Dapper). Integration Tests (MySQL real con Testcontainers/Docker, incluir schema.sql y seed.sql mínimos). Contract Tests (OpenSpec). Validar siempre el contrato de respuesta ( Success/message/errorMessage/data ). Si Docker no está disponible, marcar las pruebas como skipped con mensaje. Mantener interfaces en el mismo archivo que la clase. Casos mínimos: Service (Unit): Repo Success=false o Data=null → Service Success=false + Data vacía. Repo Success=true → Service Success=true + Message="OK" + Data mapeada. Repo throw → Service Success=false + ErrorMessage ex.Message + Data vacía. Repo (Integration): Sin restricción y ValueAuto coincide → devuelve lista <=10 y texValue concatenado. fecha_limite_acceso pasada → usuario omitido. fecha_limite_acceso futura → usuario incluido. sin resultados → devuelve [{idValue:-1, texValue:""}] con Success=true. Contract: Endpoints de TramiteController deben validar el shape de respuesta según AppResponses<T>. Validar comportamiento cuando no existe claim 'defaulalias'. Entregables: tests/...UnitTests/*.cs tests/...IntegrationTests/*.cs tests/.../Database/schema.sql y seed.sql Fixture de MySQL Testcontainers dotnet test debe pasar exitosamente
+Este cambio usa como referencia `openspec/context/multi-repo-context.md` para inventario de repositorios y dependencias cruzadas.
+Dependencias cross-repo clave:
+- `DocuArchi.Api`, `MiApp.Services`, `MiApp.Repository`, `MiApp.DTOs`, `MiApp.Models` se mantienen como repos ejecutores.
+- El coordinador solo documenta inventario, dependencias y estado en OpenSpec.
 
-## Approach
+## Goals / Non-Goals
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-23-contexto-backend-docuarchi.
+**Goals:**
+- Definir reglas claras en `openspec/config.yaml` para cambios cross-repo.
+- Mantener referencia obligatoria a `openspec/context/multi-repo-context.md`.
+- Alinear trazabilidad de PR/estado en un tablero central (`sync.md`).
+
+**Non-Goals:**
+- No implementar cambios funcionales en API/Services/Repository/DTOs/Models como parte de este cambio.
+- No modificar contratos, DI, pruebas o logica de negocio en repos ejecutores.
+- No consolidar repositorios en un monorepo.
+
+## Decisions
+
+- `DocuArchiCore` centraliza contexto y seguimiento; no aplica cambios de codigo ejecutor.
+- `openspec/config.yaml` define reglas obligatorias para propuestas y disenos cross-repo.
+- `sync.md` centraliza estado por repo (PR/en progreso/bloqueos/evidencia).
+- Las implementaciones de codigo se gestionan en cambios separados por repositorio ejecutor.
+
+## Risks / Trade-offs
+
+- [Confusion de alcance entre contexto y codigo] -> Mitigacion: declarar en proposal/spec/tasks que este cambio es context-only.
+- [Desalineacion documental entre repos] -> Mitigacion: referencia obligatoria al contexto multi-repo y tablero `sync.md`.
