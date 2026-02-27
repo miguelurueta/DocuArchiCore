@@ -9,6 +9,7 @@ using MiApp.Services.Service.SessionHelper;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Globalization;
+using System.Text.Json;
 [ApiController]
 [Route("[controller]/[action]")]
 public class HomeController : Controller
@@ -36,65 +37,17 @@ public class HomeController : Controller
     {
         return View();
     }
-
-    //[HttpPost]
-    //public async Task<IActionResult> ServiceIsSessionTimedOut()
-    //{
-    //    try
-    //    {
-    //        var result = await sessionHelperService.IsSessionTimedOut();
-
-    //        return Json(new AppResponse<object>
-    //        {
-    //            Success = result.Success,
-    //            Message = result.Message,
-    //            ErrorMessage = result.Message,
-    //            Data = result.Data,
-    //            Meta = result.Meta
-    //        });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return Json(new AppResponse<object>
-    //        {
-    //            Success = false,
-    //            Message = "Excepción: " + ex.Message,
-    //            Errors = new List<string> { ex.Message },
-    //            ErrorMessage = "Inconsistencia general ServiceIsSessionTimedOut " + ex.Message
-    //        });
-    //    }
-    //}
-
-    //[HttpPost]
-    //public async Task<IActionResult> ServiceCerrarSesion()
-    //{
-    //    try
-    //    {
-    //        var result = await sessionHelperService.CerrarSesion();
-
-    //        return Json(new AppResponse<object>
-    //        {
-    //            Success = result.Success,
-    //            Message = result.Message,
-    //            ErrorMessage = result.Message,
-    //            Data = result.Data,
-    //            Meta = result.Meta
-    //        });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return Json(new AppResponse<object>
-    //        {
-    //            Success = false,
-    //            Message = "Excepción: " + ex.Message,
-    //            Errors = new List<string> { ex.Message },
-    //            ErrorMessage = "Inconsistencia general ServiceCerrarSesion " + ex.Message
-    //        });
-    //    }
-    //}
-
-    [HttpPost]
-    public async Task<IActionResult> ServiceSolicitaEstructuraMenuPrincipal()
+    // 🔑 AQUÍ VA, NO DENTRO DEL MÉTODO
+    private static JsonSerializerOptions GetPascalCaseJsonOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = null,
+            DictionaryKeyPolicy = null
+        };
+    }
+    [HttpGet]
+    public async Task<IActionResult> ServiceSolicitaEstructuraMenuPrincipals()
     {
         try
         {
@@ -106,46 +59,57 @@ public class HomeController : Controller
                 _ => ""
             };
 
-            var result = await _menuR.SolicitaEstructuraMenuPrincipal(tipo, _sesionActual.DefaultDbAlias);
+            var result = await _menuR.SolicitaEstructuraMenuPrincipal(
+                tipo,
+                _sesionActual.DefaultDbAlias
+            );
 
-            // Validación segura
             if (result == null || result.Success != true || result.Data == null)
             {
-                return Json(new AppResponse<object>
+                var errorResponse = new AppResponse<object>
                 {
                     Success = false,
                     Message = result?.Message ?? "No se pudo obtener la estructura del menú principal.",
                     ErrorMessage = result?.ErrorMessage ?? result?.Message ?? "DATA_NULL",
                     Data = null
-                });
-            }
+                };
 
+                return new JsonResult(errorResponse, GetPascalCaseJsonOptions());
+            }
 
             var restMenu = await menuL.FiltraEstructuraPermisosMenuPrincipal(
                 _sesionActual.TIPOMODULO,
+                0,
                 result.Data,
-               _sesionActual.DefaultDbAlias);
+                _sesionActual.DefaultDbAlias
+            );
 
-            return Json(new AppResponse<object>
+            var response = new AppResponse<object>
             {
                 Success = restMenu.Success,
                 Message = restMenu.Message,
                 ErrorMessage = restMenu.Message,
                 Data = restMenu.Data,
                 Meta = restMenu.Meta
-            });
+            };
+
+            return new JsonResult(response, GetPascalCaseJsonOptions());
         }
         catch (Exception ex)
         {
-            return Json(new AppResponse<object>
+            var errorResponse = new AppResponse<object>
             {
                 Success = false,
                 Message = "Excepción: " + ex.Message,
-                Errors = new List<string> { ex.Message },
+                Errors = new List<object> { ex.Message },
                 ErrorMessage = "Inconsistencia general SolicitaEstructuraEmpresa " + ex.Message
-            });
+            };
+
+            return new JsonResult(errorResponse, GetPascalCaseJsonOptions());
         }
     }
+
+    
 
     [HttpPost]
     public async Task<IActionResult> ServiceSolicitaCaraterizacionUsuarioLogueado()
@@ -187,7 +151,7 @@ public class HomeController : Controller
                 Success = false,
                 Message = "Excepción: " + ex.Message,
                 ErrorMessage = "Inconsistencia general ServiceSolicitaCaraterizacionUsuarioLogueado " + ex.Message,
-                Errors = new List<string> { ex.Message }
+                Errors = new List<object> { ex.Message }
             });
         }
     }
@@ -267,87 +231,4 @@ public class HomeController : Controller
         return Json(result);
     }
 }
-    //[HttpPost]
-    //public IActionResult KeepAlive()
-    //{
 
-    //    //HttpContext.Session.SetString("ForceRefresh", DateTime.UtcNow.Ticks.ToString());
-    //    //HttpContext.Session.CommitAsync().GetAwaiter().GetResult();
-    //    int counter = HttpContext.Session.GetInt32("SessionCounter") ?? 0;
-    //    counter++;
-    //    HttpContext.Session.SetInt32("SessionCounter", counter);
-
-    //    return Json(new
-    //    {
-    //        success = true,
-    //        counter,
-    //        sessionId = HttpContext.Session.Id,
-    //        lastAccess = DateTime.UtcNow.ToString("O")
-    //    });
-    //    //return Ok(new { success = true });
-        
-    //}
-    //[HttpPost]
-    //public IActionResult TiempoRestante()
-    //{
-    //    var str = HttpContext.Session.GetString("Sesion_UltimoAcceso");
-
-    //    if (string.IsNullOrEmpty(str))
-    //        return Json(new { restanteSegundos = 0 });
-
-    //    var last = DateTime.Parse(str, null, System.Globalization.DateTimeStyles.RoundtripKind);
-    //    // last.kind = Utc
-
-    //    var elapsed = (DateTime.UtcNow - last).TotalSeconds;
-
-    //    var restante = (_sessionConfig.IdleTimeoutMinutes * 60) - elapsed;
-
-    //    if (restante < 0) restante = 0;
-
-    //    return Json(new { restanteSegundos = (int)restante });
-    //    //var str = HttpContext.Session.GetString("Sesion_UltimoAcceso");
-
-    //    //if (str == null)
-    //    //    return Json(new { restanteSegundos = 0 });
-
-    //    //var last = DateTime.Parse(str);
-    //    //var elapsed = (DateTime.UtcNow - last).TotalSeconds;
-
-    //    //var restante = (_sessionConfig.IdleTimeoutMinutes * 60) - elapsed;
-
-    //    //return Json(new { restanteSegundos = Math.Max((int)restante, 0) });
-    //}
-
-    //[HttpPost]
-    //public IActionResult KeepAlive()
-    //{
-    //    return StatusCode(200);
-    //}
-    //[HttpPost]
-    //public IActionResult TiempoRestante()
-    //{
-    //    var segundos = sessionHelperService.GetRemainingSeconds();
-    //    return Json(new { restanteSegundos = segundos });
-    //}
-    //[HttpPost]
-    //public async Task<IActionResult> TiempoRestante()
-    //{
-    //    try
-    //    {
-    //        // Validar existencia de datos en GlobalStore
-    //        if (_sessionConfig.IdleTimeoutMinutes == null || _sessionConfig.IdleTimeoutMinutes==0)
-    //        {
-    //            return Json(new { restanteSegundos = 0 });
-    //        }
-
-    //        return Json(new { restanteSegundos = 5 });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        // Manejo seguro de excepciones
-    //        return Json(new { restanteSegundos = 0, errorMsg = ex.Message });
-    //    }
-    //}
-
-
-//}

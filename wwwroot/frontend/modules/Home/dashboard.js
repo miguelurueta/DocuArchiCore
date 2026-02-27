@@ -232,7 +232,7 @@ class AppDashboard {
             const payload = {};
             const Rest = await this.ApiClient
                 .use("Home")
-                .call("ServiceSolicitaEstructuraMenuPrincipal", payload);
+                .call("ServiceSolicitaEstructuraMenuPrincipals", payload);
 
             if (!Rest || Rest.error || Rest.data?.Success === false) {
                 const msg = Rest?.message || Rest?.data?.Message || "Error obteniendo menú.";

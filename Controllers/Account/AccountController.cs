@@ -40,24 +40,36 @@ namespace DocuArchiCore.Controllers.Account
 
                 if (result != null)
                 {
-                    return Json(new AppResponse<object>
+                    return new JsonResult(new AppResponse<object>
                     {
                         Success = result.Success,
                         Message = result.Message,
                         ErrorMessage = result.Message,
                         Data = result.Data,
                         Meta = result.Meta
+                    },
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = null,
+                        DictionaryKeyPolicy = null
                     });
                 }
                 else
                 {
-                    return Json(new AppResponse<object>
+                    return new JsonResult(new AppResponse<object>
                     {
                         Success = false,
                         Message = "Error inesperado al consultar usuario",
                         Data = null
+                    },
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = null,
+                        DictionaryKeyPolicy = null
                     });
                 }
+
+
             }
             catch (Exception ex)
             {
@@ -65,7 +77,7 @@ namespace DocuArchiCore.Controllers.Account
                 {
                     Success = false,
                     Message = "Excepción: " + ex.Message,
-                    Errors = new List<string> { ex.Message },
+                    Errors = new List<object> { ex.Message },
                     ErrorMessage = "Inconsistencia general SolicitaEstructuraEmpresa " + ex.Message
                 });
             }
