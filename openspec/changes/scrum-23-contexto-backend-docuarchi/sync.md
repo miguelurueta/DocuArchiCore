@@ -14,7 +14,7 @@ Scope: `context-only` (sin cambios de codigo en repos ejecutores dentro de este 
 | MiApp.Repository | n/a | n/a | tracked | n/a | Fuera de alcance en este change (context-only) |
 | MiApp.DTOs | n/a | n/a | tracked | n/a | Fuera de alcance en este change (context-only) |
 | MiApp.Models | n/a | n/a | tracked | n/a | Fuera de alcance en este change (context-only) |
-| DocuArchiCore (coordinador) | `scrum-23-contexto-openspec` | pending | in_progress | openspec validate | Cambio aplicado en `openspec/config.yaml` y artefactos |
+| DocuArchiCore (coordinador) | `scrum-23-contexto-backend-docuarchi` | https://github.com/miguelurueta/DocuArchiCore/pull/1 | review | openspec validate (pass) | Cambio aplicado en `openspec/config.yaml` y artefactos |
 
 ## Status Legend
 
@@ -27,5 +27,5 @@ Scope: `context-only` (sin cambios de codigo en repos ejecutores dentro de este 
 
 ## Evidence
 
-- Add PR links per repository once opened.
-- Add test command + result per repository once executed.
+- Coordinator PR: https://github.com/miguelurueta/DocuArchiCore/pull/1
+- Validation: `openspec.cmd validate scrum-23-contexto-backend-docuarchi` -> pass
