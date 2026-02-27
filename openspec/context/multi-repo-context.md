@@ -13,7 +13,7 @@
 - Branch: main
 - Last commit: f401a05 | 2026-02-27 | primer comit
 - Remotes:
-  - origin	https://github.com/miguelurueta/DocuArchiCore.Front.git
+  - origin	https://github.com/miguelurueta/DocuArchiCore.git
 - Build artifacts:
   - .sln: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\DocuArchiCore.sln
   - .csproj count: 8
