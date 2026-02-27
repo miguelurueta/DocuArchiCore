@@ -18,5 +18,5 @@
 ## 4. Integracion y cierre
 
 - [x] 4.1 Crear PR del repositorio coordinador con cambios de contexto OpenSpec.
-- [ ] 4.2 Confirmar aprobacion/merge y registrar enlace final en `sync.md`.
+- [x] 4.2 Confirmar aprobacion/merge y registrar enlace final en `sync.md`.
 - [x] 4.4 Ejecutar validacion OpenSpec final y preparar archive.
