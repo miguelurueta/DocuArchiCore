@@ -7,6 +7,7 @@ param(
     [string]$IssueOrChange,
 
     [switch]$SkipJira,
+    [switch]$SelectRepos,
     [switch]$Yes,
     [switch]$SkipSpecs,
     [switch]$NoValidate
@@ -98,6 +99,98 @@ function Get-IssueKeyFromChangeName {
 
 function Get-RepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
+}
+
+function Get-ImpactRepoCatalog {
+    return @(
+        "DocuArchi.Api",
+        "DocuArchiCore",
+        "DocuArchiCore.Abstractions",
+        "DocuArchiCore.Web",
+        "MiApp.DTOs",
+        "MiApp.Services",
+        "MiApp.Repository",
+        "MiApp.Models"
+    )
+}
+
+function Prompt-SelectImpactRepos {
+    param(
+        [string]$IssueKey,
+        [string[]]$RepoCatalog
+    )
+
+    Write-Output "Select impacted repositories for $IssueKey."
+    Write-Output "Use comma-separated numbers (example: 1,3,6). Type 'all' for all repositories."
+    for ($i = 0; $i -lt $RepoCatalog.Count; $i++) {
+        Write-Output ("[{0}] {1}" -f ($i + 1), $RepoCatalog[$i])
+    }
+
+    $inputValue = Read-Host "Impacted repos"
+    if ([string]::IsNullOrWhiteSpace($inputValue)) {
+        return @()
+    }
+
+    $trimmed = $inputValue.Trim()
+    if ($trimmed.ToLowerInvariant() -eq "all") {
+        return $RepoCatalog
+    }
+
+    $selected = New-Object System.Collections.Generic.List[string]
+    $tokens = $trimmed -split ","
+    foreach ($token in $tokens) {
+        $candidate = $token.Trim()
+        if (-not $candidate) { continue }
+        if ($candidate -notmatch "^\d+$") {
+            throw "Invalid selection '$candidate'. Use only numbers separated by commas, or 'all'."
+        }
+        $index = [int]$candidate
+        if ($index -lt 1 -or $index -gt $RepoCatalog.Count) {
+            throw "Selection '$candidate' is out of range (1-$($RepoCatalog.Count))."
+        }
+        $repoName = $RepoCatalog[$index - 1]
+        if (-not $selected.Contains($repoName)) {
+            $selected.Add($repoName)
+        }
+    }
+
+    return @($selected)
+}
+
+function Apply-ImpactSelectionToSync {
+    param(
+        [string]$SyncText,
+        [string[]]$SelectedRepos
+    )
+
+    if ($null -eq $SelectedRepos) {
+        return $SyncText
+    }
+
+    $selectedSet = @{}
+    foreach ($repo in $SelectedRepos) {
+        if (-not [string]::IsNullOrWhiteSpace($repo)) {
+            $selectedSet[$repo.ToLowerInvariant()] = $true
+        }
+    }
+
+    $lines = $SyncText -split "`r?`n"
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        if ($line -match "^\|\s*`(?<repo>[^`]+)`\s*\|") {
+            $repo = [string]$Matches["repo"]
+            $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant())
+            $impact = if ($isImpacted) { "yes" } else { "no" }
+            $motivo = if ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
+            $opsNew = if ($isImpacted) { "pending" } else { "n/a" }
+            $pr = if ($isImpacted) { "pending" } else { "n/a" }
+            $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
+            $status = if ($isImpacted) { "todo" } else { "n_a" }
+            $lines[$i] = "| `$repo` | `$impact` | `$motivo` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
+        }
+    }
+
+    return ($lines -join "`n")
 }
 
 function To-KebabCase {
@@ -694,7 +787,8 @@ function Write-ChangeArtifacts {
     param(
         [string]$RepoRoot,
         [string]$ChangeName,
-        [hashtable]$Issue
+        [hashtable]$Issue,
+        [string[]]$SelectedRepos
     )
 
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$ChangeName"
@@ -815,6 +909,7 @@ function Write-ChangeArtifacts {
             "- Run `opsxj:archive $($Issue.key)` only after PR is merged in that repo."
         ) -join "`n"
     }
+    $sync = Apply-ImpactSelectionToSync -SyncText $sync -SelectedRepos $SelectedRepos
 
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($proposalPath, $proposal, $utf8NoBom)
@@ -849,7 +944,8 @@ function Invoke-New {
     param(
         [string]$RepoRoot,
         [string]$IssueKey,
-        [switch]$SkipJira
+        [switch]$SkipJira,
+        [switch]$SelectRepos
     )
 
     if ($IssueKey -notmatch "^[A-Za-z]+-\d+$") {
@@ -874,6 +970,10 @@ function Invoke-New {
 
     $changeName = ((To-KebabCase $issue.key) + "-" + $summarySlug).Trim("-")
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$changeName"
+    $selectedRepos = $null
+    if ($SelectRepos) {
+        $selectedRepos = Prompt-SelectImpactRepos -IssueKey $issue.key -RepoCatalog (Get-ImpactRepoCatalog)
+    }
 
     if (-not (Test-Path $changeRoot)) {
         New-Item -ItemType Directory -Path $changeRoot -Force | Out-Null
@@ -888,7 +988,7 @@ function Invoke-New {
         }
     }
 
-    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue
+    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
 
     try {
@@ -961,7 +1061,7 @@ function Invoke-Archive {
 $repoRoot = Get-RepoRoot
 
 if ($Command -eq "new") {
-    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SkipJira:$SkipJira
+    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SkipJira:$SkipJira -SelectRepos:$SelectRepos
 }
 elseif ($Command -eq "archive") {
     Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
