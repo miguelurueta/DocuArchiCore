@@ -1,6 +1,6 @@
 # Multi-Repo Context
 
-- Generated: 2026-02-28 07:21:23 -05:00
+- Generated: 2026-02-28 07:36:34 -05:00
 - OpenSpec root: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\openspec
 - Scan root: D:\imagenesda\GestorDocumental\DocuArchiCore
 - Repositories found: 7
@@ -24,7 +24,7 @@
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore
 - Branch: opsxj-777-issue-opsxj-777
-- Last commit: 5690f9d | 2026-02-27
+- Last commit: 4ffe2a4 | 2026-02-28
 - Remotes:
   - origin	https://github.com/miguelurueta/DocuArchiCore.git
 - Build artifacts:

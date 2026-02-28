@@ -79,6 +79,25 @@ try {
             [string]$Body
         )
 
+        if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+            return @{
+                fields = @{
+                    summary = "Archive test issue"
+                    description = @{
+                        type = "doc"
+                        content = @(
+                            @{
+                                type = "paragraph"
+                                content = @(
+                                    @{ type = "text"; text = "Test description" }
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
             return @{
                 transitions = @(

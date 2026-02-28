@@ -23,15 +23,18 @@ context: |
   - Before creating or updating cross-repo changes, regenerate openspec/context/multi-repo-context.md.
   - Cross-repo changes are those affecting two or more repositories.
   - Cross-repo proposals and designs must explicitly reference openspec/context/multi-repo-context.md.
+  - For opsxj:new backend updates, apply openspec/context/OPSXJ_BACKEND_RULES.md.
   - For SCRUM-23, this repository acts as coordinator only for OpenSpec context and tracking.
   - SCRUM-23 does not imply direct source-code implementation in this repository.
 
 rules:
   proposal:
     - For cross-repo changes, include an explicit reference to `openspec/context/multi-repo-context.md`.
+    - For backend update requests, include an explicit reference to `openspec/context/OPSXJ_BACKEND_RULES.md`.
     - Include a short bullet list of affected repositories in the Impact section.
     - If the change is context-only, state explicitly "No code changes in executor repositories".
   design:
     - For cross-repo changes, include a section named `## Context Reference`.
     - In that section, reference `openspec/context/multi-repo-context.md` and summarize cross-repo dependencies.
+    - For backend update requests, list repository, architecture, and testing constraints from `openspec/context/OPSXJ_BACKEND_RULES.md`.
     - For context-only changes, include scope boundaries and exclusions.
