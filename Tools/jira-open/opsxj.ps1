@@ -824,7 +824,8 @@ function Write-ChangeArtifacts {
         "## Impact",
         "",
         "- Jira issue: $($Issue.url)",
-        "- OpenSpec change path: openspec/changes/$ChangeName/"
+        "- OpenSpec change path: openspec/changes/$ChangeName/",
+        "- Backend rules reference: openspec/context/OPSXJ_BACKEND_RULES.md"
     ) -join "`n"
 
     $design = @(
@@ -834,6 +835,11 @@ function Write-ChangeArtifacts {
         "- Jira summary: $($Issue.summary)",
         "- Jira URL: $($Issue.url)",
         "",
+        "## Context Reference",
+        "",
+        "- openspec/context/multi-repo-context.md",
+        "- openspec/context/OPSXJ_BACKEND_RULES.md",
+        "",
         "## Problem Statement",
         "",
         $Issue.description,
@@ -841,6 +847,7 @@ function Write-ChangeArtifacts {
         "## Approach",
         "",
         "- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.",
+        "- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.",
         "- Definir alcance y no-alcance antes de implementar.",
         "- Validar con openspec.cmd validate $ChangeName."
     ) -join "`n"
@@ -849,18 +856,22 @@ function Write-ChangeArtifacts {
         "## 1. Discovery",
         "",
         "- [ ] 1.1 Revisar el issue Jira $($Issue.key) y confirmar alcance.",
-        "- [ ] 1.2 Ajustar propuesta con reglas de negocio faltantes.",
+        "- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.",
+        "- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.",
         "",
         "## 2. Specs",
         "",
         "- [ ] 2.1 Completar specs/$capability/spec.md con requisitos finales.",
-        "- [ ] 2.2 Verificar escenarios testables por requisito.",
+        "- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.",
+        "- [ ] 2.3 Verificar escenarios testables por requisito.",
         "",
         "## 3. Execution",
         "",
-        "- [ ] 3.1 Implementar el cambio en codigo.",
-        "- [ ] 3.2 Ejecutar pruebas y documentar evidencia.",
-        "- [ ] 3.3 Validar y archivar con OpenSpec."
+        "- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.",
+        "- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).",
+        "- [ ] 3.3 Implementar Unit/Integration/Contract tests y documentar evidencia.",
+        "- [ ] 3.4 Ejecutar dotnet test (o skipped explicito si Docker no disponible).",
+        "- [ ] 3.5 Validar y archivar con OpenSpec."
     ) -join "`n"
 
     $spec = @(
@@ -871,7 +882,14 @@ function Write-ChangeArtifacts {
         "",
         "#### Scenario: Change references Jira issue",
         "- **WHEN** a reviewer opens the change artifacts",
-        "- **THEN** proposal and design identify Jira issue $($Issue.key)"
+        "- **THEN** proposal and design identify Jira issue $($Issue.key)",
+        "",
+        "### Requirement: Backend update rules baseline",
+        "Backend update requests MUST follow repository, architecture and testing constraints defined in openspec/context/OPSXJ_BACKEND_RULES.md.",
+        "",
+        "#### Scenario: Missing implementation constraints",
+        "- **WHEN** proposal/design/tasks are reviewed",
+        "- **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements"
     ) -join "`n"
 
     $templatePath = Join-Path $RepoRoot "openspec\\context\\REPO_IMPACT_TEMPLATE.md"
