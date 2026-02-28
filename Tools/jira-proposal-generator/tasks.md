@@ -17,6 +17,33 @@
 
 - [x] 4.1 Implementar `scripts/generate-proposal-from-jira.js`
 - [x] 4.2 Agregar tests de `proposalGenerator`
+
+## 5. Deteccion de repositorio por IA
+
+- [ ] 5.1 Implementar deteccion automatica del repositorio objetivo usando la logica del requerimiento
+- [ ] 5.2 Implementar fallback para solicitar repo o plantilla cuando no exista suficiente confianza
+- [ ] 5.3 Incluir el contexto de clasificacion de repos (`DocuArchi.Api`, `DocuArchiCore`, `MiApp.DTOs`, `MiApp.Models`, `MiApp.Repository`, `MiApp.Services`) en la generacion
+- [ ] 5.4 Agregar pruebas unitarias y de integracion para clasificacion + fallback
+
+## 6. Flujo archive multi-repo
+
+- [ ] 6.1 Detectar repos impactados y generar/verificar PR por repo
+- [ ] 6.2 Bloquear archive cuando exista al menos un PR sin merge
+- [ ] 6.3 Ejecutar archive local solo cuando todos los PR esten mergeados
+- [ ] 6.4 Hacer push del archive en repositorio orquestador `DocuArchiCore`
+- [ ] 6.5 Cambiar estado del ticket en Jira tras archive/push exitosos
+
+## 7. Validaciones y trazabilidad
+
+- [ ] 7.1 Bloquear flujo cuando ticket no tenga texto (summary/description vacios)
+- [ ] 7.2 Registrar logs por etapa: deteccion, PR, merge, archive, push, Jira
+- [ ] 7.3 Mostrar mensajes de error claros y accionables
+
+## 8. Pruebas
+
+- [ ] 8.1 Unit tests por modulo (Repository, LocalArchive, OrchestratorPush, Jira, Logging)
+- [ ] 8.2 Integration tests del flujo completo multi-repo + Jira
+- [ ] 8.3 Contract tests para transicion Jira y formato de PR
 ## Test Evidence
 
 Run: 2026-02-24 local

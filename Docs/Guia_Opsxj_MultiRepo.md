@@ -44,6 +44,23 @@ Notas:
    - `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123`
 5. Actualizar coordinador con links PR y estado final.
 
+## Flujo objetivo reforzado
+
+1. `opsxj:new` consulta Jira y valida texto del ticket (`summary` o `description`).
+2. IA detecta repos impactados por logica:
+   - Si no hay confianza: solicita repo o plantilla de cambios.
+3. El cambio OpenSpec debe quedar completo hasta `Application` y `Test`.
+4. Se generan PRs por repo impactado.
+5. `opsxj:archive` valida que todos los PRs impactados esten mergeados.
+6. Solo con merge total:
+   - archive local,
+   - push del archive en `DocuArchiCore`,
+   - cambio de estado en Jira.
+
+Reglas de bloqueo:
+- Si falta texto del ticket: no archiva.
+- Si algun PR no esta mergeado: no archiva.
+
 ## Como saber en que repos correr opsxj:new
 
 Usar plantilla:
@@ -81,3 +98,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:archive -- SCRUM-23
   - Repo/branch remoto incorrecto o `GITHUBREPO` apuntando a otro repo.
 - Jira no cambia a terminado:
   - Verificar transiciones disponibles del workflow Jira del proyecto.
+- `No se pudo detectar el repositorio, especifique la plantilla de cambios.`:
+  - Completar seleccion manual de repo (o plantilla) y reintentar.
+- `El ticket no tiene texto, no puede archivarse.`:
+  - Completar `summary` o `description` en Jira antes de ejecutar archive.

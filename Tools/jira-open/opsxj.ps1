@@ -177,8 +177,8 @@ function Apply-ImpactSelectionToSync {
     $lines = $SyncText -split "`r?`n"
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
-        if ($line -match "^\|\s*`(?<repo>[^`]+)`\s*\|") {
-            $repo = [string]$Matches["repo"]
+        if ($line -match '^\|\s*(?<repo>[^|]+)\|') {
+            $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
             $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant())
             $impact = if ($isImpacted) { "yes" } else { "no" }
             $motivo = if ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
@@ -191,6 +191,104 @@ function Apply-ImpactSelectionToSync {
     }
 
     return ($lines -join "`n")
+}
+
+function Write-OpsxjLog {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey,
+        [string]$Step,
+        [string]$Status,
+        [string]$Message,
+        [hashtable]$Data
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RepoRoot)) { return }
+    if ([string]::IsNullOrWhiteSpace($IssueKey)) { $IssueKey = "unknown" }
+    if ([string]::IsNullOrWhiteSpace($Step)) { $Step = "unknown" }
+    if ([string]::IsNullOrWhiteSpace($Status)) { $Status = "unknown" }
+    if ($null -eq $Data) { $Data = @{} }
+
+    $logsDir = Join-Path $RepoRoot "openspec\\logs"
+    New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    $logPath = Join-Path $logsDir "$($IssueKey.ToUpperInvariant()).log.jsonl"
+
+    $entry = @{
+        timestampUtc = (Get-Date).ToUniversalTime().ToString("o")
+        issueKey = $IssueKey.ToUpperInvariant()
+        step = $Step
+        status = $Status
+        message = $Message
+        data = $Data
+    } | ConvertTo-Json -Depth 8 -Compress
+
+    Add-Content -Path $logPath -Value $entry
+}
+
+function Get-DetectedImpactRepos {
+    param(
+        [hashtable]$Issue,
+        [string[]]$RepoCatalog
+    )
+
+    $text = ("{0} {1}" -f ([string]$Issue.summary), ([string]$Issue.description)).ToLowerInvariant()
+    $keywords = @{
+        "DocuArchi.Api" = @("api", "controller", "endpoint", "swagger", "program.cs")
+        "DocuArchiCore" = @("openspec", "orquestador", "orchestrator", "sync.md", "contexto", "jira")
+        "MiApp.DTOs" = @("dto", "dtos", "contract", "contrato", "request", "response")
+        "MiApp.Models" = @("model", "modelo", "dapper", "tabla", "entity", "mapeo")
+        "MiApp.Repository" = @("repository", "repositorio", "query", "consulta", "sql", "mysql", "insert", "update", "delete")
+        "MiApp.Services" = @("service", "servicio", "automapper", "mapping", "business logic")
+        "DocuArchiCore.Abstractions" = @("abstraction", "abstraccion", "interface contract", "shared interface")
+        "DocuArchiCore.Web" = @("web", "frontend", "ui", "razor", "view")
+    }
+
+    $selected = New-Object System.Collections.Generic.List[string]
+    foreach ($repo in $RepoCatalog) {
+        $repoWords = $keywords[$repo]
+        if ($null -eq $repoWords) { continue }
+        foreach ($kw in $repoWords) {
+            if ($text.Contains($kw.ToLowerInvariant())) {
+                if (-not $selected.Contains($repo)) {
+                    $selected.Add($repo)
+                }
+                break
+            }
+        }
+    }
+
+    $confidence = if ($selected.Count -gt 0) { "high" } else { "low" }
+    return @{
+        repos = @($selected)
+        confidence = $confidence
+    }
+}
+
+function Resolve-ImpactReposForIssue {
+    param(
+        [hashtable]$Issue,
+        [string[]]$RepoCatalog,
+        [switch]$SelectRepos
+    )
+
+    if ($SelectRepos) {
+        return @(Prompt-SelectImpactRepos -IssueKey $Issue.key -RepoCatalog $RepoCatalog)
+    }
+
+    $detected = Get-DetectedImpactRepos -Issue $Issue -RepoCatalog $RepoCatalog
+    $repos = @($detected.repos)
+    if ($repos.Count -gt 0) {
+        Write-Output ("Auto-detected impacted repos: {0}" -f ($repos -join ", "))
+        return $repos
+    }
+
+    Write-Output "No se pudo detectar automaticamente el repositorio. Se requiere seleccion manual."
+    $manual = @(Prompt-SelectImpactRepos -IssueKey $Issue.key -RepoCatalog $RepoCatalog)
+    if ($manual.Count -eq 0) {
+        throw "No se pudo detectar el repositorio, especifique la plantilla de cambios."
+    }
+
+    return $manual
 }
 
 function To-KebabCase {
@@ -770,16 +868,161 @@ function Get-JiraIssueData {
     }
 
     $summary = [string]$response.fields.summary
-    if (-not $summary) { $summary = "Issue $IssueKey" }
+    if (-not $summary) { $summary = "" }
 
     $description = Read-AdfNodeText -Node $response.fields.description
-    if (-not $description) { $description = "(No description provided by Jira)" }
+    if (-not $description) { $description = "" }
 
     return @{
         key         = $IssueKey
         summary     = $summary.Trim()
         description = $description.Trim()
         url         = "$baseUrl/browse/$IssueKey"
+    }
+}
+
+function Assert-IssueHasText {
+    param([hashtable]$Issue)
+
+    $summary = [string]$Issue.summary
+    $description = [string]$Issue.description
+    if ([string]::IsNullOrWhiteSpace($summary) -and [string]::IsNullOrWhiteSpace($description)) {
+        throw "El ticket no tiene texto, no puede archivarse."
+    }
+}
+
+function Get-SyncImpactEntries {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $syncPath = Join-Path $RepoRoot "openspec\\changes\\$ChangeName\\sync.md"
+    if (-not (Test-Path $syncPath)) {
+        return @()
+    }
+
+    $entries = New-Object System.Collections.Generic.List[object]
+    $lines = Get-Content -Path $syncPath
+    foreach ($line in $lines) {
+        if ($line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<motivo>[^|]*)\|\s*(?<opsnew>[^|]*)\|\s*(?<pr>[^|]*)\|\s*(?<opsarchive>[^|]*)\|\s*(?<status>[^|]*)\|') {
+            $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
+            if ($repo -eq "Repo") { continue }
+            $entries.Add([pscustomobject]@{
+                    repo = $repo.Trim()
+                    impact = ([string]$Matches["impact"]).Trim().Replace([string][char]96, "").ToLowerInvariant()
+                    pr = ([string]$Matches["pr"]).Trim().Replace([string][char]96, "")
+                    status = ([string]$Matches["status"]).Trim().Replace([string][char]96, "")
+                })
+        }
+    }
+
+    return @($entries)
+}
+
+function Get-PullRequestMergeStatus {
+    param(
+        [string]$PrReference,
+        [string]$Repo
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PrReference)) {
+        return @{
+            merged = $false
+            state = "missing"
+            url = ""
+        }
+    }
+
+    $trimmed = $PrReference.Trim()
+    if ($trimmed -in @("pending", "n/a", "na", "-", "")) {
+        return @{
+            merged = $false
+            state = $trimmed
+            url = $trimmed
+        }
+    }
+
+    $args = @("pr", "view", $trimmed, "--json", "state,mergedAt,url")
+    if (-not [string]::IsNullOrWhiteSpace($Repo)) {
+        $args += @("--repo", $Repo)
+    }
+    $json = Invoke-Gh -CliArgs $args
+    $obj = $json | ConvertFrom-Json
+    $isMerged = (-not [string]::IsNullOrWhiteSpace([string]$obj.mergedAt)) -or ([string]$obj.state -eq "MERGED")
+    return @{
+        merged = [bool]$isMerged
+        state = [string]$obj.state
+        url = [string]$obj.url
+    }
+}
+
+function Assert-AllImpactedPullRequestsMerged {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $entries = @(Get-SyncImpactEntries -RepoRoot $RepoRoot -ChangeName $ChangeName)
+    if ($entries.Count -eq 0) {
+        return @()
+    }
+
+    $pending = New-Object System.Collections.Generic.List[string]
+    foreach ($entry in $entries) {
+        if ($entry.impact -ne "yes") { continue }
+        $status = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo ""
+        if (-not $status.merged) {
+            $pending.Add("$($entry.repo): $($entry.pr) [$($status.state)]")
+        }
+    }
+
+    if ($pending.Count -gt 0) {
+        throw "No se puede archivar: existen PRs sin merge. $($pending -join '; ')"
+    }
+
+    return $entries
+}
+
+function Push-OrchestratorArchive {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $repoName = Split-Path $RepoRoot -Leaf
+    if ($repoName -ne "DocuArchiCore") {
+        return @{
+            pushed = $false
+            reason = "not-orchestrator"
+        }
+    }
+
+    Push-Location $RepoRoot
+    try {
+        Invoke-Git -CliArgs @("add", "--", "openspec/changes") | Out-Null
+        $staged = Invoke-Git -CliArgs @("diff", "--cached", "--name-only", "--", "openspec/changes")
+        if ([string]::IsNullOrWhiteSpace($staged)) {
+            return @{
+                pushed = $false
+                reason = "no-changes"
+            }
+        }
+
+        Invoke-Git -CliArgs @("commit", "-m", "opsxj: archive $ChangeName") | Out-Null
+        $branch = Invoke-Git -CliArgs @("rev-parse", "--abbrev-ref", "HEAD")
+        $toolConfig = Get-ToolConfig
+        $remoteName = $toolConfig.gitRemoteName
+        if ([string]::IsNullOrWhiteSpace($remoteName)) { $remoteName = "origin" }
+        Invoke-Git -CliArgs @("push", $remoteName, $branch) | Out-Null
+        return @{
+            pushed = $true
+            branch = $branch
+            remote = $remoteName
+        }
+    }
+    finally {
+        Pop-Location
     }
 }
 
@@ -865,13 +1108,17 @@ function Write-ChangeArtifacts {
         "- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.",
         "- [ ] 2.3 Verificar escenarios testables por requisito.",
         "",
-        "## 3. Execution",
+        "## 3. Application",
         "",
         "- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.",
         "- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).",
-        "- [ ] 3.3 Implementar Unit/Integration/Contract tests y documentar evidencia.",
-        "- [ ] 3.4 Ejecutar dotnet test (o skipped explicito si Docker no disponible).",
-        "- [ ] 3.5 Validar y archivar con OpenSpec."
+        "- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.",
+        "",
+        "## 4. Test",
+        "",
+        "- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.",
+        "- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).",
+        "- [ ] 4.3 Validar y archivar con OpenSpec."
     ) -join "`n"
 
     $spec = @(
@@ -981,6 +1228,7 @@ function Invoke-New {
     else {
         $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
     }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = [bool]$SkipJira }
 
     $summarySlug = To-KebabCase $issue.summary
     if (-not $summarySlug) { $summarySlug = "change" }
@@ -988,10 +1236,8 @@ function Invoke-New {
 
     $changeName = ((To-KebabCase $issue.key) + "-" + $summarySlug).Trim("-")
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$changeName"
-    $selectedRepos = $null
-    if ($SelectRepos) {
-        $selectedRepos = Prompt-SelectImpactRepos -IssueKey $issue.key -RepoCatalog (Get-ImpactRepoCatalog)
-    }
+    $selectedRepos = Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog (Get-ImpactRepoCatalog) -SelectRepos:$SelectRepos
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) }
 
     if (-not (Test-Path $changeRoot)) {
         New-Item -ItemType Directory -Path $changeRoot -Force | Out-Null
@@ -1007,14 +1253,18 @@ function Invoke-New {
     }
 
     Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_artifacts" -Status "ok" -Message "OpenSpec artifacts generated." -Data @{ change = $changeName }
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName }
 
     try {
         $pr = Ensure-GitHubPullRequest -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue
     }
     catch {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "error" -Message "GitHub PR creation failed." -Data @{ error = $_.Exception.Message; change = $changeName }
         throw "OpenSpec artifacts were created, but GitHub PR creation failed. $($_.Exception.Message)"
     }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "ok" -Message "PR ensured for change." -Data @{ url = $pr.url; branch = $pr.branch; created = [bool]$pr.created }
 
     Write-Output "Created/updated OpenSpec change: $changeName"
     Write-Output "Path: openspec/changes/$changeName"
@@ -1037,14 +1287,29 @@ function Invoke-Archive {
         [switch]$SkipJira
     )
 
+    $issueKey = if ($IssueOrChange -match "^[A-Za-z]+-\d+$") { $IssueOrChange.ToUpperInvariant() } else { $null }
     $changeName = $IssueOrChange
     if ($IssueOrChange -match "^[A-Za-z]+-\d+$") {
         $changeName = Resolve-ChangeNameFromIssueKey -RepoRoot $RepoRoot -IssueKey $IssueOrChange.ToUpperInvariant()
     }
+    if (-not $issueKey) {
+        $issueKey = Get-IssueKeyFromChangeName -ChangeName $changeName
+    }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira }
 
     if (-not $NoValidate) {
         $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
         Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
+    }
+
+    try {
+        $impactEntries = Assert-AllImpactedPullRequestsMerged -RepoRoot $RepoRoot -ChangeName $changeName
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "ok" -Message "Impacted PRs merged validation passed." -Data @{ change = $changeName; entries = @($impactEntries) }
+    }
+    catch {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "error" -Message "Impacted PR merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message }
+        throw
     }
 
     $args = @("archive", $changeName)
@@ -1054,11 +1319,20 @@ function Invoke-Archive {
 
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
     Write-Output "Archived change: $changeName"
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
 
-    $issueKey = if ($IssueOrChange -match "^[A-Za-z]+-\d+$") { $IssueOrChange.ToUpperInvariant() } else { Get-IssueKeyFromChangeName -ChangeName $changeName }
+    $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
+    if ($pushResult.pushed) {
+        Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
+    }
+    else {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
+    }
 
     if ($SkipJira) {
         Write-Output "Skipped Jira transition by flag."
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "skipped" -Message "Jira transition skipped by flag." -Data @{}
         return
     }
 
@@ -1066,14 +1340,20 @@ function Invoke-Archive {
         throw "Archive completed but Jira issue key could not be resolved from '$IssueOrChange'."
     }
 
+    $issue = Get-JiraIssueData -IssueKey $issueKey
+    Assert-IssueHasText -Issue $issue
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_text_validation" -Status "ok" -Message "Jira ticket text validation passed." -Data @{}
+
     try {
         $doneState = Set-JiraIssueToDone -IssueKey $issueKey
     }
     catch {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "error" -Message "Jira transition failed." -Data @{ error = $_.Exception.Message }
         throw "Archive completed but Jira status update failed for '$issueKey'. $($_.Exception.Message)"
     }
 
     Write-Output "Jira issue transitioned: $issueKey -> $doneState"
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState }
 }
 
 $repoRoot = Get-RepoRoot
