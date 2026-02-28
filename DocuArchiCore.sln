@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36408.4
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11408.102 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuArchiCore", "DocuArchiCore.csproj", "{9E132F20-BD1A-4417-88EE-8723FA96F29A}"
 EndProject
@@ -14,6 +14,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiApp.Models", "..\MiApp.Models\MiApp.Models.csproj", "{4E670819-646E-4099-9B6F-6AE94FD68F2B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuArchiCore.Abstractions", "..\DocuArchiCore.Abstractions\DocuArchiCore.Abstractions.csproj", "{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuArchiCore.Web", "..\DocuArchiCore.Web\DocuArchiCore.Web.csproj", "{84B2779E-1F06-4661-894C-05213699C490}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocuArchi.Api", "..\DocuArchi.Api\DocuArchi.Api.csproj", "{42737C28-5B3D-4CAE-B91D-96027DA7F596}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +49,14 @@ Global
 		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0982D9F-4C9C-440F-8CA3-0194CFA2CBC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84B2779E-1F06-4661-894C-05213699C490}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84B2779E-1F06-4661-894C-05213699C490}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84B2779E-1F06-4661-894C-05213699C490}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84B2779E-1F06-4661-894C-05213699C490}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42737C28-5B3D-4CAE-B91D-96027DA7F596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42737C28-5B3D-4CAE-B91D-96027DA7F596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42737C28-5B3D-4CAE-B91D-96027DA7F596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42737C28-5B3D-4CAE-B91D-96027DA7F596}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

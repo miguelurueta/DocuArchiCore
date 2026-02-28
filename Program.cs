@@ -25,12 +25,14 @@ using MiApp.Services.Service.Docuarchi.Usuario;
 using MiApp.Services.Service.General;
 using MiApp.Services.Service.GestorDocumental.Inicio;
 using MiApp.Services.Service.Home.Menu;
+using MiApp.Services.Service.Mapping;
 using MiApp.Services.Service.Radicacion.Inicio;
 using MiApp.Services.Service.Radicacion.PlantillaRadicado;
 using MiApp.Services.Service.SessionHelper;
 using MiApp.Services.Service.Usuario;
 using MiApp.Services.Service.Workflow.Inicio;
 using MiApp.Services.Service.Workflow.Usuario;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -86,6 +88,12 @@ builder.Services.AddScoped<IRaRestriRelacionTramiteR, RaRestriRelacionTramiteR>(
 builder.Services.AddScoped<ITipoDocEntranteR, TipoDocEntranteR>();
 builder.Services.AddScoped<ISystemPlantillaRadicadoR, SystemPlantillaRadicadoR>();
 builder.Services.AddScoped<IPlantillaRadicacionL, PlantillaRadicacionL>();
+// 👇 REGISTRO DE AUTOMAPPER
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<AutoMapperProfile>());
+
+// tus otros servicios
+builder.Services.AddScoped<IInicioSesionL, InicioSesionL>();
+
 // Sesión   
 // ===========================================================
 // SESIÓN — REGISTRO DE TODAS LAS INTERFACES
@@ -113,6 +121,7 @@ builder.Services.AddScoped<ISesionRadicacion>(sp =>
 
 builder.Services.AddScoped<ISesionWorkflow>(sp =>
     sp.GetRequiredService<SesionActual>());
+
 
 // ===========================================================
 // SESSION
@@ -151,18 +160,7 @@ builder.Services.AddSession(options =>
 //});
 
 // Configurar JSON para mantener PascalCase en lugar de camelCase
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Esto mantiene PascalCase
-    });
-if (args.Contains("--generate-jsdoc") || args.Contains("generate-jsdoc"))
-{
-    var output = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "js", "dtos.js");
-    DocuArchiCore.Tools.DtoJsDocGenerator.DtoJsDocGenerator.Generate(output);
-    Console.WriteLine("DTO JSDoc generado en: " + output);
-    return;
-}
+
 
 
 var app = builder.Build();
@@ -174,7 +172,6 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseSession();          // <-- ✔ Lugar correcto para que funcione
@@ -186,7 +183,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}")
+    pattern: "{controller=Account}/{action=login}/{id?}")
     .WithStaticAssets();
 
 

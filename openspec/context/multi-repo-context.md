@@ -1,38 +1,17 @@
 # Multi-Repo Context
 
-- Generated: 2026-02-27 07:50:53 -05:00
+- Generated: 2026-02-28 07:21:23 -05:00
 - OpenSpec root: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\openspec
 - Scan root: D:\imagenesda\GestorDocumental\DocuArchiCore
-- Repositories found: 8
+- Repositories found: 7
 
 ## Repository Inventory
-
-### DocuArchiCore
-
-- Path: D:\imagenesda\GestorDocumental\DocuArchiCore
-- Branch: main
-- Last commit: f401a05 | 2026-02-27 | primer comit
-- Remotes:
-  - origin	https://github.com/miguelurueta/DocuArchiCore.Front.git
-- Build artifacts:
-  - .sln: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\DocuArchiCore.sln
-  - .csproj count: 8
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchi.Api\DocuArchi.Api.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\DocuArchiCore.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore.Abstractions\DocuArchiCore.Abstractions.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore.Web\DocuArchiCore.Web.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.DTOs\MiApp.DTOs.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Models\MiApp.Models.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Repository\MiApp.Repository.csproj
-    - D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Services\MiApp.Services.csproj
-  - package.json: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\wwwroot\MDBLibrary\package.json
-  - package.json: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore.Web\wwwroot\MDBLibrary\package.json
 
 ### DocuArchi.Api
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchi.Api
 - Branch: master
-- Last commit: ed79711 | 2026-02-12 | Primer commit: subida inicial
+- Last commit: ed79711 | 2026-02-12
 - Remotes:
   - origin	https://github.com/miguelurueta/DocuArchi.Api.git
 - Build artifacts:
@@ -44,21 +23,22 @@
 ### DocuArchiCore
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore
-- Branch: main
-- Last commit: 9626651 | 2025-12-19 | Merge remote-tracking branch 'origin/main'
+- Branch: opsxj-777-issue-opsxj-777
+- Last commit: 5690f9d | 2026-02-27
 - Remotes:
   - origin	https://github.com/miguelurueta/DocuArchiCore.git
 - Build artifacts:
   - .sln: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\DocuArchiCore.sln
   - .csproj count: 1
     - D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\DocuArchiCore.csproj
+  - package.json: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Tools\jira-open\package.json
   - package.json: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\wwwroot\MDBLibrary\package.json
 
 ### DocuArchiCore.Abstractions
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore.Abstractions\DocuArchiCore.Abstractions
 - Branch: main
-- Last commit: 1f03275 | 2025-12-19 | Initial commit
+- Last commit: 1f03275 | 2025-12-19
 - Remotes:
   - origin	https://github.com/miguelurueta/DocuArchiCore.Abstractions.git
 - Build artifacts:
@@ -70,7 +50,7 @@
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.DTOs
 - Branch: main
-- Last commit: 7aad171 | 2025-11-28 | Initial commit - DTOs
+- Last commit: 7aad171 | 2025-11-28
 - Remotes:
   - origin	https://github.com/miguelurueta/MiApp.DTOs.git
 - Build artifacts:
@@ -83,7 +63,7 @@
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Models
 - Branch: main
-- Last commit: d075372 | 2025-12-19 | segundo commit 2025-12-19
+- Last commit: d075372 | 2025-12-19
 - Remotes:
   - origin	https://github.com/miguelurueta/MiApp.Models.git
 - Build artifacts:
@@ -96,7 +76,7 @@
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Repository
 - Branch: main
-- Last commit: 201aefb | 2025-12-19 | Segundo commit 2025-12-19 kraken
+- Last commit: 201aefb | 2025-12-19
 - Remotes:
   - origin	https://github.com/miguelurueta/MiApp.Repository.git
 - Build artifacts:
@@ -109,7 +89,7 @@
 
 - Path: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Services
 - Branch: main
-- Last commit: 129653f | 2025-12-19 | Segundo commit kraken 2025-12-19
+- Last commit: 129653f | 2025-12-19
 - Remotes:
   - origin	https://github.com/miguelurueta/MiApp.Services.git
 - Build artifacts:

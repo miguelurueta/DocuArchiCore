@@ -19,6 +19,7 @@ class DynamicMenu {
     }
 
     async buildMenu(menuData) {
+        console.log("Building menu with data:", menuData);
         const normalized = this.normalizeData(menuData);
         this.ulRoot.innerHTML = await this.renderMenu(normalized, 0);
         this.initCollapses();
@@ -89,6 +90,7 @@ class DynamicMenu {
 
         return html;
     }
+    
 
     normalizeData(data) {
         if (!Array.isArray(data)) return [];

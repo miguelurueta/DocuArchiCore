@@ -119,8 +119,8 @@ const JLoadFormInicioSesion = async () => {
             return;
         }
         console.log("Estructura de empresa obtenida:", rest.data);
-        IdEmpresa = rest.data.ID_EMPRESA;
-        NombreEmpresa = rest.data.RAZON_SOCIAL_EMPRESA;
+        IdEmpresa = rest.data[0].ID_EMPRESA;
+        NombreEmpresa = rest.data[0].RAZON_SOCIAL_EMPRESA;
         let restMOD = await JSolicitaModulosEmpresa(IdEmpresa, "selectModulos");
         if (restMOD.mensaje !== "OK") {
             NotifierInstance.show(restMOD.mensaje, "danger");
@@ -181,13 +181,13 @@ async function JSolicitaModulosEmpresa(idEmpresa, selectId) {
         if (!Rest || Rest.error || Rest.data?.Success === false) {
             return { mensaje: Rest?.message || "Error al solicitar módulos", data: Rest?.data ?? null };
         }
-
+        
         await ApiClient.fillCustomSelectKeyValue_(
             Rest.data,
             selectId,
             payload,
-            "ID_MODULO",
-            "NOMBRE_MODULO"
+            "IdModulo",
+            "NombreModulo"
         );
 
         return { mensaje: "OK", data: Rest.data };
