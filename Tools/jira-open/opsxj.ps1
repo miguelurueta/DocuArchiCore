@@ -186,7 +186,7 @@ function Apply-ImpactSelectionToSync {
             $pr = if ($isImpacted) { "pending" } else { "n/a" }
             $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
             $status = if ($isImpacted) { "todo" } else { "n_a" }
-            $lines[$i] = "| `$repo` | `$impact` | `$motivo` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
+            $lines[$i] = "| `$($repo)` | `$($impact)` | `$($motivo)` | `$($opsNew)` | `$($pr)` | `$($opsArchive)` | `$($status)` |"
         }
     }
 
@@ -902,13 +902,13 @@ function Get-SyncImpactEntries {
         return @()
     }
 
-    $entries = New-Object System.Collections.Generic.List[object]
+    $entries = New-Object System.Collections.ArrayList
     $lines = Get-Content -Path $syncPath
     foreach ($line in $lines) {
         if ($line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<motivo>[^|]*)\|\s*(?<opsnew>[^|]*)\|\s*(?<pr>[^|]*)\|\s*(?<opsarchive>[^|]*)\|\s*(?<status>[^|]*)\|') {
             $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
             if ($repo -eq "Repo") { continue }
-            $entries.Add([pscustomobject]@{
+            [void]$entries.Add([pscustomobject]@{
                     repo = $repo.Trim()
                     impact = ([string]$Matches["impact"]).Trim().Replace([string][char]96, "").ToLowerInvariant()
                     pr = ([string]$Matches["pr"]).Trim().Replace([string][char]96, "")
@@ -917,7 +917,7 @@ function Get-SyncImpactEntries {
         }
     }
 
-    return @($entries)
+    return @($entries.ToArray())
 }
 
 function Get-PullRequestMergeStatus {
