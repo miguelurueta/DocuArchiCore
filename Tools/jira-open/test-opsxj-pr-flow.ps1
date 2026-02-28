@@ -62,19 +62,57 @@ try {
     $env:OPSXJ_TEST_SKIP_GIT_PUSH = "1"
     $env:OPSXJ_TEST_FAKE_PR_URL = "https://github.com/example/repo/pull/123"
 
+    function global:Invoke-RestMethod {
+        param(
+            [string]$Method,
+            [string]$Uri,
+            [hashtable]$Headers,
+            [string]$Body
+        )
+
+        if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+            return @{
+                fields = @{
+                    summary = "OPSXJ-999 mock issue"
+                    description = @{
+                        type = "doc"
+                        content = @(
+                            @{
+                                type = "paragraph"
+                                content = @(
+                                    @{ type = "text"; text = "Mock description" }
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        throw "Unexpected Invoke-RestMethod call: $Method $Uri"
+    }
+
     try {
         $scriptPath = Join-Path $toolDir "opsxj.ps1"
         Push-Location $repoRoot
         try {
-            $firstRun = (& $scriptPath new OPSXJ-999 -SkipJira 2>&1 | Out-String)
+            $firstRun = (& $scriptPath new OPSXJ-999 2>&1 | Out-String)
             Assert-Contains -Value $firstRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
 
-            $proposalPath = Join-Path $repoRoot "openspec/changes/opsxj-999-issue-opsxj-999/proposal.md"
+            $changeName = $null
+            if ($firstRun -match "Created/updated OpenSpec change:\s*(?<name>[A-Za-z0-9-]+)") {
+                $changeName = $Matches["name"]
+            }
+            if (-not $changeName) {
+                throw "Could not resolve change name from output. Actual: $firstRun"
+            }
+
+            $proposalPath = Join-Path $repoRoot "openspec/changes/$changeName/proposal.md"
             if (-not (Test-Path $proposalPath)) {
                 throw "Expected proposal file not found: $proposalPath"
             }
 
-            $secondRun = (& $scriptPath new OPSXJ-999 -SkipJira 2>&1 | Out-String)
+            $secondRun = (& $scriptPath new OPSXJ-999 2>&1 | Out-String)
             Assert-Contains -Value $secondRun -Expected "Pull request already exists: https://github.com/example/repo/pull/123"
         }
         finally {
@@ -82,6 +120,7 @@ try {
         }
     }
     finally {
+        Remove-Item Function:\Invoke-RestMethod -ErrorAction SilentlyContinue
         $env:PATH = $previousPath
         Remove-Item Env:OPSXJ_TEST_SKIP_GIT_PUSH -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_FAKE_PR_URL -ErrorAction SilentlyContinue

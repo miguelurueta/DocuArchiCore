@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet("new", "archive")]
+    [ValidateSet("new", "archive", "jira-done")]
     [string]$Command,
 
     [Parameter(Mandatory = $true, Position = 1)]
@@ -1346,7 +1346,6 @@ function Invoke-New {
     param(
         [string]$RepoRoot,
         [string]$IssueKey,
-        [switch]$SkipJira,
         [switch]$SelectRepos
     )
 
@@ -1354,18 +1353,8 @@ function Invoke-New {
         throw "Issue key must match format ABC-123."
     }
 
-    if ($SkipJira) {
-        $issue = @{
-            key         = $IssueKey.ToUpperInvariant()
-            summary     = "Issue $IssueKey"
-            description = "Jira lookup skipped. Complete this content manually."
-            url         = ""
-        }
-    }
-    else {
-        $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
-    }
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = [bool]$SkipJira }
+    $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = $false }
 
     $summarySlug = To-KebabCase $issue.summary
     if (-not $summarySlug) { $summarySlug = "change" }
@@ -1434,11 +1423,17 @@ function Invoke-Archive {
     }
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira }
 
-    if (-not $NoValidate) {
-        $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
-        Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
+    if ($NoValidate) {
+        throw "Policy enforced: -NoValidate is not allowed in opsxj:archive."
     }
+
+    if ($SkipJira) {
+        throw "Policy enforced: -SkipJira is not allowed in opsxj:archive."
+    }
+
+    $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
+    Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
 
     try {
         $impactEntries = Assert-AllImpactedPullRequestsMerged -RepoRoot $RepoRoot -ChangeName $changeName
@@ -1449,32 +1444,8 @@ function Invoke-Archive {
         throw
     }
 
-    $args = @("archive", $changeName)
-    if ($Yes) { $args += "-y" }
-    if ($SkipSpecs) { $args += "--skip-specs" }
-    if ($NoValidate) { $args += "--no-validate" }
-
-    Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
-    Write-Output "Archived change: $changeName"
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
-
-    $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
-    if ($pushResult.pushed) {
-        Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
-    }
-    else {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
-    }
-
-    if ($SkipJira) {
-        Write-Output "Skipped Jira transition by flag."
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "skipped" -Message "Jira transition skipped by flag." -Data @{}
-        return
-    }
-
     if (-not $issueKey) {
-        throw "Archive completed but Jira issue key could not be resolved from '$IssueOrChange'."
+        throw "Cannot archive: Jira issue key could not be resolved from '$IssueOrChange'."
     }
 
     $issue = Get-JiraIssueData -IssueKey $issueKey
@@ -1491,13 +1462,53 @@ function Invoke-Archive {
 
     Write-Output "Jira issue transitioned: $issueKey -> $doneState"
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState }
+
+    $args = @("archive", $changeName)
+    if ($Yes) { $args += "-y" }
+    if ($SkipSpecs) { $args += "--skip-specs" }
+
+    Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
+    Write-Output "Archived change: $changeName"
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
+
+    $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
+    if ($pushResult.pushed) {
+        Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
+    }
+    else {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
+    }
+}
+
+function Invoke-JiraDone {
+    param(
+        [string]$IssueKey
+    )
+
+    if ($IssueKey -notmatch "^[A-Za-z]+-\d+$") {
+        throw "Issue key must match format ABC-123."
+    }
+
+    $normalized = $IssueKey.ToUpperInvariant()
+    $issue = Get-JiraIssueData -IssueKey $normalized
+    Assert-IssueHasText -Issue $issue
+
+    $doneState = Set-JiraIssueToDone -IssueKey $normalized
+    Write-Output "Jira issue transitioned: $normalized -> $doneState"
 }
 
 $repoRoot = Get-RepoRoot
 
 if ($Command -eq "new") {
-    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SkipJira:$SkipJira -SelectRepos:$SelectRepos
+    if ($SkipJira) {
+        throw "Policy enforced: -SkipJira is not allowed in opsxj:new."
+    }
+    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos
 }
 elseif ($Command -eq "archive") {
     Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
+}
+elseif ($Command -eq "jira-done") {
+    Invoke-JiraDone -IssueKey $IssueOrChange
 }

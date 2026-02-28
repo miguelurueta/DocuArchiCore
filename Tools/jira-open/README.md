@@ -33,7 +33,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:test-jira
 Then create a change:
 
 ```powershell
-npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> [-SkipJira]
+npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY>
 ```
 
 Repository target mode:
@@ -53,7 +53,6 @@ npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> -SelectRepos
 Examples:
 
 ```powershell
-npm.cmd --prefix Tools/jira-open run opsxj:new -- OPSXJ-200 -SkipJira
 npm.cmd --prefix Tools/jira-open run opsxj:new -- OPSXJ-200
 npm.cmd --prefix Tools/jira-open run opsxj:new -- OPSXJ-200 -SelectRepos
 ```
@@ -73,7 +72,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:test-archive
 Archive by issue key (or explicit change name):
 
 ```powershell
-npm.cmd --prefix Tools/jira-open run opsxj:archive -- <ISSUE-KEY|CHANGE-NAME> [-Yes] [-SkipSpecs] [-NoValidate]
+npm.cmd --prefix Tools/jira-open run opsxj:archive -- <ISSUE-KEY|CHANGE-NAME> [-Yes] [-SkipSpecs]
 ```
 
 Example:
@@ -82,15 +81,22 @@ Example:
 npm.cmd --prefix Tools/jira-open run opsxj:archive -- OPSXJ-200 -Yes -SkipSpecs
 ```
 
+Transition Jira issue to done state (without local archive operations):
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:jira-done -- <ISSUE-KEY>
+```
+
 ## Notes
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, creates/pushes a branch, and opens a GitHub PR.
+- `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:new -SelectRepos` asks interactively which repositories are impacted and pre-fills `sync.md` (`yes/no`, `pending/n/a`).
 - `opsxj:new` now includes backend update baseline rules in generated artifacts via `openspec/context/OPSXJ_BACKEND_RULES.md`.
 - PR title is based on Jira ticket `summary`.
 - GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
 - If a PR already exists for the change branch, `opsxj:new` reports that PR instead of creating a duplicate.
-- `opsxj:archive` validates that the change branch is merged into base branch (`GIT_BASE_BRANCH` or auto-detected) before archiving.
-- After successful archive, `opsxj:archive` transitions Jira issue to a done state (e.g. `Done`, `Terminado`, `Closed`).
-- `-SkipJira` allows offline flow when Jira credentials are not configured.
+- `opsxj:archive` enforces merge validations and Jira transition; policy blocks `-NoValidate` and `-SkipJira`.
+- `opsxj:archive` transitions Jira to done before local archive to avoid local/Jira drift.
+- `opsxj:jira-done` is available for explicit Jira-only transition.
 - In this environment, running via `npm --prefix Tools/jira-open` from repo root is more reliable than running from `Tools/jira-open` directly.
