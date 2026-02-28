@@ -10,15 +10,19 @@
     <Compile Remove="DTOsBck\**" />
     <Compile Remove="ModelsBck\**" />
     <Compile Remove="RepositorioBCK\**" />
+    <Compile Remove="tests\**" />
     <Content Remove="DTOsBck\**" />
     <Content Remove="ModelsBck\**" />
     <Content Remove="RepositorioBCK\**" />
+    <Content Remove="tests\**" />
     <EmbeddedResource Remove="DTOsBck\**" />
     <EmbeddedResource Remove="ModelsBck\**" />
     <EmbeddedResource Remove="RepositorioBCK\**" />
+    <EmbeddedResource Remove="tests\**" />
     <None Remove="DTOsBck\**" />
     <None Remove="ModelsBck\**" />
     <None Remove="RepositorioBCK\**" />
+    <None Remove="tests\**" />
   </ItemGroup>
 
   <ItemGroup>
