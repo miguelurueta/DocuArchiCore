@@ -15,6 +15,81 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+[Net.ServicePointManager]::SecurityProtocol = `
+    [Net.ServicePointManager]::SecurityProtocol -bor `
+    [Net.SecurityProtocolType]::Tls12
+
+function Get-HttpStatusCodeFromException {
+    param([object]$Exception)
+
+    try {
+        if ($Exception -and $Exception.Response -and $Exception.Response.StatusCode) {
+            return [int]$Exception.Response.StatusCode
+        }
+    }
+    catch {
+        return $null
+    }
+
+    return $null
+}
+
+function Test-IsTransientNetworkFailure {
+    param(
+        [int]$StatusCode,
+        [string]$Message
+    )
+
+    if ($StatusCode -eq 408 -or $StatusCode -eq 429) { return $true }
+    if ($StatusCode -ge 500 -and $StatusCode -lt 600) { return $true }
+    if ($StatusCode -eq 0) { return $true }
+
+    $text = ([string]$Message).ToLowerInvariant()
+    if ($text -match "no es posible conectar") { return $true }
+    if ($text -match "timed out|timeout") { return $true }
+    if ($text -match "name or service not known") { return $true }
+    if ($text -match "temporary|temporarily|temporarily unavailable") { return $true }
+    if ($text -match "unable to connect|connection reset|connection refused") { return $true }
+    if ($text -match "remote server") { return $true }
+
+    return $false
+}
+
+function Invoke-JiraRestMethod {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [hashtable]$Headers,
+        [string]$Body,
+        [int]$MaxAttempts = 4
+    )
+
+    $attempt = 1
+    while ($attempt -le $MaxAttempts) {
+        try {
+            if ([string]::IsNullOrWhiteSpace($Body)) {
+                return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers
+            }
+
+            return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -Body $Body
+        }
+        catch {
+            $statusCode = Get-HttpStatusCodeFromException -Exception $_.Exception
+            if ($null -eq $statusCode) { $statusCode = 0 }
+            $message = $_.Exception.Message
+            $isTransient = Test-IsTransientNetworkFailure -StatusCode $statusCode -Message $message
+            $isLastAttempt = $attempt -ge $MaxAttempts
+            if (-not $isTransient -or $isLastAttempt) {
+                throw
+            }
+
+            $delayMs = [int](500 * [math]::Pow(2, $attempt - 1))
+            Start-Sleep -Milliseconds $delayMs
+            $attempt++
+        }
+    }
+}
+
 function Get-JiraConfigValue {
     param(
         [string]$Key,
@@ -878,7 +953,7 @@ function Set-JiraIssueToDone {
     $transitionsUri = "$($ctx.baseUrl)/rest/api/3/issue/$IssueKey/transitions"
 
     try {
-        $transitionsResponse = Invoke-RestMethod -Method Get -Uri $transitionsUri -Headers $ctx.headers
+        $transitionsResponse = Invoke-JiraRestMethod -Method "Get" -Uri $transitionsUri -Headers $ctx.headers -Body ""
     }
     catch {
         throw "Jira transitions query failed for '$IssueKey'. $($_.Exception.Message)"
@@ -902,7 +977,7 @@ function Set-JiraIssueToDone {
     } | ConvertTo-Json -Depth 5
 
     try {
-        Invoke-RestMethod -Method Post -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
+        Invoke-JiraRestMethod -Method "Post" -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
     }
     catch {
         throw "Jira transition to Done failed for '$IssueKey'. $($_.Exception.Message)"
@@ -963,7 +1038,7 @@ function Get-JiraIssueData {
     }
 
     try {
-        $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+        $response = Invoke-JiraRestMethod -Method "Get" -Uri $uri -Headers $headers -Body ""
     }
     catch {
         $statusCode = ""
