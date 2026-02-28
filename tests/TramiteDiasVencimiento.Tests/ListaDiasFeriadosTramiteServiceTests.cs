@@ -75,4 +75,21 @@ public class ListaDiasFeriadosTramiteServiceTests
             result.errors!.Cast<AppError>(),
             e => e.Field == "IdTipoTramite" && e.Message.Contains("fallo simulado"));
     }
+
+    [Fact]
+    public async Task ServiceSolicitaListaDiasFeriados_CuandoDefaultDbAliasEsNulo_RetornaErrorControlado()
+    {
+        var repoMock = new Mock<IListaDiasFeriadosTramiteRepository>();
+        var service = new ListaDiasFeriadosTramiteService(repoMock.Object);
+
+        var result = await service.ServiceSolicitaListaDiasFeriados(null!);
+
+        Assert.False(result.success);
+        Assert.Equal("DefaultDbAlias requerido", result.message);
+        Assert.Empty(result.data);
+        Assert.NotNull(result.errors);
+        Assert.Contains(
+            result.errors!.Cast<AppError>(),
+            e => e.Field == "defaultDbAlias" && e.Message == "DefaultDbAlias requerido");
+    }
 }
