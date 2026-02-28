@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet("new", "archive")]
+    [ValidateSet("new", "archive", "jira-done")]
     [string]$Command,
 
     [Parameter(Mandatory = $true, Position = 1)]
@@ -14,6 +14,81 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+[Net.ServicePointManager]::SecurityProtocol = `
+    [Net.ServicePointManager]::SecurityProtocol -bor `
+    [Net.SecurityProtocolType]::Tls12
+
+function Get-HttpStatusCodeFromException {
+    param([object]$Exception)
+
+    try {
+        if ($Exception -and $Exception.Response -and $Exception.Response.StatusCode) {
+            return [int]$Exception.Response.StatusCode
+        }
+    }
+    catch {
+        return $null
+    }
+
+    return $null
+}
+
+function Test-IsTransientNetworkFailure {
+    param(
+        [int]$StatusCode,
+        [string]$Message
+    )
+
+    if ($StatusCode -eq 408 -or $StatusCode -eq 429) { return $true }
+    if ($StatusCode -ge 500 -and $StatusCode -lt 600) { return $true }
+    if ($StatusCode -eq 0) { return $true }
+
+    $text = ([string]$Message).ToLowerInvariant()
+    if ($text -match "no es posible conectar") { return $true }
+    if ($text -match "timed out|timeout") { return $true }
+    if ($text -match "name or service not known") { return $true }
+    if ($text -match "temporary|temporarily|temporarily unavailable") { return $true }
+    if ($text -match "unable to connect|connection reset|connection refused") { return $true }
+    if ($text -match "remote server") { return $true }
+
+    return $false
+}
+
+function Invoke-JiraRestMethod {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [hashtable]$Headers,
+        [string]$Body,
+        [int]$MaxAttempts = 4
+    )
+
+    $attempt = 1
+    while ($attempt -le $MaxAttempts) {
+        try {
+            if ([string]::IsNullOrWhiteSpace($Body)) {
+                return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers
+            }
+
+            return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -Body $Body
+        }
+        catch {
+            $statusCode = Get-HttpStatusCodeFromException -Exception $_.Exception
+            if ($null -eq $statusCode) { $statusCode = 0 }
+            $message = $_.Exception.Message
+            $isTransient = Test-IsTransientNetworkFailure -StatusCode $statusCode -Message $message
+            $isLastAttempt = $attempt -ge $MaxAttempts
+            if (-not $isTransient -or $isLastAttempt) {
+                throw
+            }
+
+            $delayMs = [int](500 * [math]::Pow(2, $attempt - 1))
+            Start-Sleep -Milliseconds $delayMs
+            $attempt++
+        }
+    }
+}
 
 function Get-JiraConfigValue {
     param(
@@ -386,6 +461,82 @@ function Invoke-Gh {
     return $text.Trim()
 }
 
+function Get-GitHubApiHeaders {
+    param([string]$Token)
+
+    if ([string]::IsNullOrWhiteSpace($Token)) {
+        throw "GitHub token is required for API requests."
+    }
+
+    return @{
+        Authorization = "Bearer $Token"
+        Accept = "application/vnd.github+json"
+        "X-GitHub-Api-Version" = "2022-11-28"
+        "User-Agent" = "opsxj-script"
+    }
+}
+
+function Invoke-GitHubApi {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [object]$Body,
+        [string]$Token
+    )
+
+    $headers = Get-GitHubApiHeaders -Token $Token
+    $request = @{
+        Method = $Method
+        Uri = $Uri
+        Headers = $headers
+        ErrorAction = "Stop"
+    }
+    if ($null -ne $Body) {
+        $request.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
+        $request.ContentType = "application/json"
+    }
+
+    try {
+        return Invoke-RestMethod @request
+    }
+    catch {
+        $statusCode = ""
+        try {
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+        }
+        catch {
+            $statusCode = ""
+        }
+        throw "GitHub API request failed (status: $statusCode, uri: $Uri). $($_.Exception.Message)"
+    }
+}
+
+function Parse-GitHubPullRequestReference {
+    param([string]$PrReference)
+
+    if ([string]::IsNullOrWhiteSpace($PrReference)) {
+        return $null
+    }
+
+    $trimmed = $PrReference.Trim()
+    if ($trimmed -match "^https://github\.com/(?<repo>[^/]+/[^/]+)/pull/(?<number>\d+)(?:/.*)?$") {
+        return @{
+            repo = [string]$Matches["repo"]
+            number = [int]$Matches["number"]
+        }
+    }
+    if ($trimmed -match "^\d+$") {
+        return @{
+            repo = $null
+            number = [int]$trimmed
+        }
+    }
+
+    return $null
+}
+
 function Get-DefaultBaseBranch {
     param(
         [string]$RemoteName,
@@ -468,9 +619,9 @@ function Assert-GitHubPrerequisites {
     $ghFallback = "C:\\Program Files\\GitHub CLI\\gh.exe"
     $ghExists = [bool]$ghCommand -or (Test-Path $ghFallback)
 
-    if (-not $ghExists) {
+    if ([string]::IsNullOrWhiteSpace($githubToken) -and -not $ghExists) {
         if (-not $SkipGhAuth) {
-            throw "GitHub CLI (gh) is not installed or not in PATH. Install gh and retry."
+            throw "GitHub connection requires GITHUB_TOKEN or GitHub CLI (gh). Configure one and retry."
         }
     }
 
@@ -537,6 +688,24 @@ function Get-ExistingPullRequest {
         [string]$Repo
     )
 
+    $toolConfig = Get-ToolConfig
+    $githubToken = [string]$toolConfig.githubToken
+
+    if (-not [string]::IsNullOrWhiteSpace($githubToken) -and -not [string]::IsNullOrWhiteSpace($Repo)) {
+        $owner = ($Repo -split "/", 2)[0]
+        $head = [uri]::EscapeDataString("${owner}:$BranchName")
+        $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
+        $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
+        if ($items.Count -gt 0) {
+            return [pscustomobject]@{
+                number = [string]$items[0].number
+                title = [string]$items[0].title
+                url = [string]$items[0].html_url
+            }
+        }
+        return $null
+    }
+
     $args = @("pr", "list", "--head", $BranchName, "--state", "open", "--json", "number,title,url")
     if (-not [string]::IsNullOrWhiteSpace($Repo)) {
         $args += @("--repo", $Repo)
@@ -545,9 +714,9 @@ function Get-ExistingPullRequest {
     $json = Invoke-Gh -CliArgs $args
     if (-not $json) { return $null }
 
-    $items = @($json | ConvertFrom-Json)
-    if ($items.Count -gt 0) {
-        return $items[0]
+    $ghItems = @($json | ConvertFrom-Json)
+    if ($ghItems.Count -gt 0) {
+        return $ghItems[0]
     }
 
     return $null
@@ -566,6 +735,7 @@ function Ensure-GitHubPullRequest {
         $remoteName = $toolConfig.gitRemoteName
         if (-not $remoteName) { $remoteName = "origin" }
         $githubRepo = [string]$toolConfig.githubRepo
+        $githubToken = [string]$toolConfig.githubToken
         if ([string]::IsNullOrWhiteSpace($githubRepo)) {
             $githubRepo = Resolve-GitHubRepoFromRemote -RemoteName $remoteName
         }
@@ -645,11 +815,27 @@ function Ensure-GitHubPullRequest {
         $prBody = $bodyLines -join "`n"
 
         try {
-            $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $branchName, "--title", $prTitle, "--body", $prBody)
-            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
-                $createArgs += @("--repo", $githubRepo)
+            if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+                if ([string]::IsNullOrWhiteSpace($githubRepo)) {
+                    throw "GitHub repository could not be resolved for token-based PR creation."
+                }
+                $uri = "https://api.github.com/repos/$githubRepo/pulls"
+                $payload = @{
+                    title = $prTitle
+                    head = $branchName
+                    base = $baseBranch
+                    body = $prBody
+                }
+                $createdPr = Invoke-GitHubApi -Method "Post" -Uri $uri -Body $payload -Token $githubToken
+                $prUrl = [string]$createdPr.html_url
             }
-            $prUrl = Invoke-Gh -CliArgs $createArgs
+            else {
+                $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $branchName, "--title", $prTitle, "--body", $prBody)
+                if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                    $createArgs += @("--repo", $githubRepo)
+                }
+                $prUrl = Invoke-Gh -CliArgs $createArgs
+            }
         }
         catch {
             throw "Unable to create pull request in GitHub. $($_.Exception.Message)"
@@ -767,7 +953,7 @@ function Set-JiraIssueToDone {
     $transitionsUri = "$($ctx.baseUrl)/rest/api/3/issue/$IssueKey/transitions"
 
     try {
-        $transitionsResponse = Invoke-RestMethod -Method Get -Uri $transitionsUri -Headers $ctx.headers
+        $transitionsResponse = Invoke-JiraRestMethod -Method "Get" -Uri $transitionsUri -Headers $ctx.headers -Body ""
     }
     catch {
         throw "Jira transitions query failed for '$IssueKey'. $($_.Exception.Message)"
@@ -791,7 +977,7 @@ function Set-JiraIssueToDone {
     } | ConvertTo-Json -Depth 5
 
     try {
-        Invoke-RestMethod -Method Post -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
+        Invoke-JiraRestMethod -Method "Post" -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
     }
     catch {
         throw "Jira transition to Done failed for '$IssueKey'. $($_.Exception.Message)"
@@ -852,7 +1038,7 @@ function Get-JiraIssueData {
     }
 
     try {
-        $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+        $response = Invoke-JiraRestMethod -Method "Get" -Uri $uri -Headers $headers -Body ""
     }
     catch {
         $statusCode = ""
@@ -940,6 +1126,32 @@ function Get-PullRequestMergeStatus {
             merged = $false
             state = $trimmed
             url = $trimmed
+        }
+    }
+
+    $toolConfig = Get-ToolConfig
+    $githubToken = [string]$toolConfig.githubToken
+
+    if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+        $prRef = Parse-GitHubPullRequestReference -PrReference $trimmed
+        $repoRef = $null
+        $prNumber = $null
+        if ($prRef) {
+            $repoRef = [string]$prRef.repo
+            $prNumber = [int]$prRef.number
+        }
+        if ([string]::IsNullOrWhiteSpace($repoRef)) {
+            $repoRef = [string]$Repo
+        }
+        if (-not [string]::IsNullOrWhiteSpace($repoRef) -and $prNumber) {
+            $uri = "https://api.github.com/repos/$repoRef/pulls/$prNumber"
+            $obj = Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null
+            $isMerged = [bool]$obj.merged -or (-not [string]::IsNullOrWhiteSpace([string]$obj.merged_at))
+            return @{
+                merged = [bool]$isMerged
+                state = [string]$obj.state
+                url = [string]$obj.html_url
+            }
         }
     }
 
@@ -1209,7 +1421,6 @@ function Invoke-New {
     param(
         [string]$RepoRoot,
         [string]$IssueKey,
-        [switch]$SkipJira,
         [switch]$SelectRepos
     )
 
@@ -1217,18 +1428,8 @@ function Invoke-New {
         throw "Issue key must match format ABC-123."
     }
 
-    if ($SkipJira) {
-        $issue = @{
-            key         = $IssueKey.ToUpperInvariant()
-            summary     = "Issue $IssueKey"
-            description = "Jira lookup skipped. Complete this content manually."
-            url         = ""
-        }
-    }
-    else {
-        $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
-    }
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = [bool]$SkipJira }
+    $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = $false }
 
     $summarySlug = To-KebabCase $issue.summary
     if (-not $summarySlug) { $summarySlug = "change" }
@@ -1297,11 +1498,17 @@ function Invoke-Archive {
     }
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira }
 
-    if (-not $NoValidate) {
-        $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
-        Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
+    if ($NoValidate) {
+        throw "Policy enforced: -NoValidate is not allowed in opsxj:archive."
     }
+
+    if ($SkipJira) {
+        throw "Policy enforced: -SkipJira is not allowed in opsxj:archive."
+    }
+
+    $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
+    Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
 
     try {
         $impactEntries = Assert-AllImpactedPullRequestsMerged -RepoRoot $RepoRoot -ChangeName $changeName
@@ -1312,32 +1519,8 @@ function Invoke-Archive {
         throw
     }
 
-    $args = @("archive", $changeName)
-    if ($Yes) { $args += "-y" }
-    if ($SkipSpecs) { $args += "--skip-specs" }
-    if ($NoValidate) { $args += "--no-validate" }
-
-    Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
-    Write-Output "Archived change: $changeName"
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
-
-    $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
-    if ($pushResult.pushed) {
-        Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
-    }
-    else {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
-    }
-
-    if ($SkipJira) {
-        Write-Output "Skipped Jira transition by flag."
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "skipped" -Message "Jira transition skipped by flag." -Data @{}
-        return
-    }
-
     if (-not $issueKey) {
-        throw "Archive completed but Jira issue key could not be resolved from '$IssueOrChange'."
+        throw "Cannot archive: Jira issue key could not be resolved from '$IssueOrChange'."
     }
 
     $issue = Get-JiraIssueData -IssueKey $issueKey
@@ -1354,13 +1537,53 @@ function Invoke-Archive {
 
     Write-Output "Jira issue transitioned: $issueKey -> $doneState"
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState }
+
+    $args = @("archive", $changeName)
+    if ($Yes) { $args += "-y" }
+    if ($SkipSpecs) { $args += "--skip-specs" }
+
+    Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
+    Write-Output "Archived change: $changeName"
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
+
+    $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
+    if ($pushResult.pushed) {
+        Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
+    }
+    else {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
+    }
+}
+
+function Invoke-JiraDone {
+    param(
+        [string]$IssueKey
+    )
+
+    if ($IssueKey -notmatch "^[A-Za-z]+-\d+$") {
+        throw "Issue key must match format ABC-123."
+    }
+
+    $normalized = $IssueKey.ToUpperInvariant()
+    $issue = Get-JiraIssueData -IssueKey $normalized
+    Assert-IssueHasText -Issue $issue
+
+    $doneState = Set-JiraIssueToDone -IssueKey $normalized
+    Write-Output "Jira issue transitioned: $normalized -> $doneState"
 }
 
 $repoRoot = Get-RepoRoot
 
 if ($Command -eq "new") {
-    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SkipJira:$SkipJira -SelectRepos:$SelectRepos
+    if ($SkipJira) {
+        throw "Policy enforced: -SkipJira is not allowed in opsxj:new."
+    }
+    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos
 }
 elseif ($Command -eq "archive") {
     Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
+}
+elseif ($Command -eq "jira-done") {
+    Invoke-JiraDone -IssueKey $IssueOrChange
 }
