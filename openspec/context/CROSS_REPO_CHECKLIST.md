@@ -7,6 +7,7 @@ Use this checklist before validating a change that impacts 2+ repositories.
 
 1. Regenerate context:
    - `powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Generate-OpenSpecMultiRepoContext.ps1`
+   - This also refreshes: `Docs/OpenSpec_Contexto_Operativo.md`
 2. Ensure `proposal.md` references:
    - `openspec/context/multi-repo-context.md`
 3. Ensure `design.md` contains:
