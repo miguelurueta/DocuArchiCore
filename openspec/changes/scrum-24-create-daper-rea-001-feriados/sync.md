@@ -19,7 +19,7 @@ Use this template at the start of each Jira ticket (`SCRUM-24`) to decide exactl
 | `MiApp.DTOs` | `no` | `No se solicitan DTOs nuevos en este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `MiApp.Services` | `no` | `No hay logica de servicio nueva definida` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `MiApp.Repository` | `yes` | `Pruebas de mapeo Dapper y soporte de acceso a datos` | `pending` | `pending` | `pending` | `todo` |
-| `MiApp.Models` | `yes` | `Crear modelo rea_001_feriados en ruta Radicacion/Feriados` | `done` | `https://github.com/miguelurueta/MiApp.Models/pull/1` | `pending` | `review` |
+| `MiApp.Models` | `yes` | `Crear modelo rea_001_feriados en ruta Radicacion/Feriados` | `done` | `https://github.com/miguelurueta/MiApp.Models/pull/1` | `pending` | `merged` |
 
 ## Operating Rule
 
