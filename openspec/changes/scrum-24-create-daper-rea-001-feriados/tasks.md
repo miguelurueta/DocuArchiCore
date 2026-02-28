@@ -3,6 +3,7 @@
 - [x] 1.1 Revisar el issue Jira SCRUM-24 y confirmar alcance.
 - [x] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
 - [ ] 1.3 Solicitar estructura de tabla `rea_001_feriados` (columnas/tipos/nullability/PK) antes de generar modelo. Ver `table-schema-request.md`.
+- [x] 1.4 Preparar SQL de introspeccion para DBA/desarrollador (`db-introspection.sql`).
 
 ## 2. Specs
 
@@ -17,3 +18,7 @@
 - [ ] 3.3 Implementar Unit/Integration/Contract tests y documentar evidencia.
 - [ ] 3.4 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
 - [ ] 3.5 Validar y archivar con OpenSpec.
+
+## Current State
+
+- `blocked`: pending table schema confirmation for `rea_001_feriados`.

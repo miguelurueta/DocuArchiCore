@@ -18,14 +18,19 @@ Use this template at the start of each Jira ticket (`SCRUM-24`) to decide exactl
 | `DocuArchiCore.Web` | `no` | `Sin alcance frontend` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `MiApp.DTOs` | `no` | `No se solicitan DTOs nuevos en este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `MiApp.Services` | `no` | `No hay logica de servicio nueva definida` | `n/a` | `n/a` | `n/a` | `n_a` |
-| `MiApp.Repository` | `yes` | `Pruebas de mapeo Dapper y soporte de acceso a datos` | `pending` | `pending` | `pending` | `todo` |
-| `MiApp.Models` | `yes` | `Crear modelo rea_001_feriados en ruta Radicacion/Feriados` | `pending` | `pending` | `pending` | `todo` |
+| `MiApp.Repository` | `yes` | `Pruebas de mapeo Dapper y soporte de acceso a datos` | `pending` | `pending` | `pending` | `blocked` |
+| `MiApp.Models` | `yes` | `Crear modelo rea_001_feriados en ruta Radicacion/Feriados` | `pending` | `pending` | `pending` | `blocked` |
 
 ## Operating Rule
 
 Run `opsxj:new SCRUM-24` only in rows with `Impacta? = yes`.
 Run `opsxj:archive SCRUM-24` only after the repo PR is merged.
 Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
+
+## Blockers
+
+- Waiting for confirmed schema of `docuarchi.rea_001_feriados`.
+- Use `table-schema-request.md` and `db-introspection.sql` to collect required DDL/columns.
 
 ## Typical API Change Pattern
 
