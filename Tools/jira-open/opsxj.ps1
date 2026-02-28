@@ -386,6 +386,82 @@ function Invoke-Gh {
     return $text.Trim()
 }
 
+function Get-GitHubApiHeaders {
+    param([string]$Token)
+
+    if ([string]::IsNullOrWhiteSpace($Token)) {
+        throw "GitHub token is required for API requests."
+    }
+
+    return @{
+        Authorization = "Bearer $Token"
+        Accept = "application/vnd.github+json"
+        "X-GitHub-Api-Version" = "2022-11-28"
+        "User-Agent" = "opsxj-script"
+    }
+}
+
+function Invoke-GitHubApi {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [object]$Body,
+        [string]$Token
+    )
+
+    $headers = Get-GitHubApiHeaders -Token $Token
+    $request = @{
+        Method = $Method
+        Uri = $Uri
+        Headers = $headers
+        ErrorAction = "Stop"
+    }
+    if ($null -ne $Body) {
+        $request.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
+        $request.ContentType = "application/json"
+    }
+
+    try {
+        return Invoke-RestMethod @request
+    }
+    catch {
+        $statusCode = ""
+        try {
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+        }
+        catch {
+            $statusCode = ""
+        }
+        throw "GitHub API request failed (status: $statusCode, uri: $Uri). $($_.Exception.Message)"
+    }
+}
+
+function Parse-GitHubPullRequestReference {
+    param([string]$PrReference)
+
+    if ([string]::IsNullOrWhiteSpace($PrReference)) {
+        return $null
+    }
+
+    $trimmed = $PrReference.Trim()
+    if ($trimmed -match "^https://github\.com/(?<repo>[^/]+/[^/]+)/pull/(?<number>\d+)(?:/.*)?$") {
+        return @{
+            repo = [string]$Matches["repo"]
+            number = [int]$Matches["number"]
+        }
+    }
+    if ($trimmed -match "^\d+$") {
+        return @{
+            repo = $null
+            number = [int]$trimmed
+        }
+    }
+
+    return $null
+}
+
 function Get-DefaultBaseBranch {
     param(
         [string]$RemoteName,
@@ -468,9 +544,9 @@ function Assert-GitHubPrerequisites {
     $ghFallback = "C:\\Program Files\\GitHub CLI\\gh.exe"
     $ghExists = [bool]$ghCommand -or (Test-Path $ghFallback)
 
-    if (-not $ghExists) {
+    if ([string]::IsNullOrWhiteSpace($githubToken) -and -not $ghExists) {
         if (-not $SkipGhAuth) {
-            throw "GitHub CLI (gh) is not installed or not in PATH. Install gh and retry."
+            throw "GitHub connection requires GITHUB_TOKEN or GitHub CLI (gh). Configure one and retry."
         }
     }
 
@@ -537,6 +613,24 @@ function Get-ExistingPullRequest {
         [string]$Repo
     )
 
+    $toolConfig = Get-ToolConfig
+    $githubToken = [string]$toolConfig.githubToken
+
+    if (-not [string]::IsNullOrWhiteSpace($githubToken) -and -not [string]::IsNullOrWhiteSpace($Repo)) {
+        $owner = ($Repo -split "/", 2)[0]
+        $head = [uri]::EscapeDataString("${owner}:$BranchName")
+        $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
+        $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
+        if ($items.Count -gt 0) {
+            return [pscustomobject]@{
+                number = [string]$items[0].number
+                title = [string]$items[0].title
+                url = [string]$items[0].html_url
+            }
+        }
+        return $null
+    }
+
     $args = @("pr", "list", "--head", $BranchName, "--state", "open", "--json", "number,title,url")
     if (-not [string]::IsNullOrWhiteSpace($Repo)) {
         $args += @("--repo", $Repo)
@@ -545,9 +639,9 @@ function Get-ExistingPullRequest {
     $json = Invoke-Gh -CliArgs $args
     if (-not $json) { return $null }
 
-    $items = @($json | ConvertFrom-Json)
-    if ($items.Count -gt 0) {
-        return $items[0]
+    $ghItems = @($json | ConvertFrom-Json)
+    if ($ghItems.Count -gt 0) {
+        return $ghItems[0]
     }
 
     return $null
@@ -566,6 +660,7 @@ function Ensure-GitHubPullRequest {
         $remoteName = $toolConfig.gitRemoteName
         if (-not $remoteName) { $remoteName = "origin" }
         $githubRepo = [string]$toolConfig.githubRepo
+        $githubToken = [string]$toolConfig.githubToken
         if ([string]::IsNullOrWhiteSpace($githubRepo)) {
             $githubRepo = Resolve-GitHubRepoFromRemote -RemoteName $remoteName
         }
@@ -645,11 +740,27 @@ function Ensure-GitHubPullRequest {
         $prBody = $bodyLines -join "`n"
 
         try {
-            $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $branchName, "--title", $prTitle, "--body", $prBody)
-            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
-                $createArgs += @("--repo", $githubRepo)
+            if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+                if ([string]::IsNullOrWhiteSpace($githubRepo)) {
+                    throw "GitHub repository could not be resolved for token-based PR creation."
+                }
+                $uri = "https://api.github.com/repos/$githubRepo/pulls"
+                $payload = @{
+                    title = $prTitle
+                    head = $branchName
+                    base = $baseBranch
+                    body = $prBody
+                }
+                $createdPr = Invoke-GitHubApi -Method "Post" -Uri $uri -Body $payload -Token $githubToken
+                $prUrl = [string]$createdPr.html_url
             }
-            $prUrl = Invoke-Gh -CliArgs $createArgs
+            else {
+                $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $branchName, "--title", $prTitle, "--body", $prBody)
+                if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                    $createArgs += @("--repo", $githubRepo)
+                }
+                $prUrl = Invoke-Gh -CliArgs $createArgs
+            }
         }
         catch {
             throw "Unable to create pull request in GitHub. $($_.Exception.Message)"
@@ -940,6 +1051,32 @@ function Get-PullRequestMergeStatus {
             merged = $false
             state = $trimmed
             url = $trimmed
+        }
+    }
+
+    $toolConfig = Get-ToolConfig
+    $githubToken = [string]$toolConfig.githubToken
+
+    if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+        $prRef = Parse-GitHubPullRequestReference -PrReference $trimmed
+        $repoRef = $null
+        $prNumber = $null
+        if ($prRef) {
+            $repoRef = [string]$prRef.repo
+            $prNumber = [int]$prRef.number
+        }
+        if ([string]::IsNullOrWhiteSpace($repoRef)) {
+            $repoRef = [string]$Repo
+        }
+        if (-not [string]::IsNullOrWhiteSpace($repoRef) -and $prNumber) {
+            $uri = "https://api.github.com/repos/$repoRef/pulls/$prNumber"
+            $obj = Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null
+            $isMerged = [bool]$obj.merged -or (-not [string]::IsNullOrWhiteSpace([string]$obj.merged_at))
+            return @{
+                merged = [bool]$isMerged
+                state = [string]$obj.state
+                url = [string]$obj.html_url
+            }
         }
     }
 

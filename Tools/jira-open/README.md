@@ -9,7 +9,9 @@ Guia recomendada de operacion multi-repo:
 
 - `openspec.cmd` available in PATH
 - `git` with a configured `origin` remote
-- `gh` (GitHub CLI) available in PATH and authenticated (`gh auth login`)
+- GitHub connection:
+  - Preferred: `GITHUB_TOKEN` (PAT) configured in `Tools/jira-open/.jira-open.env` or env var
+  - Fallback: `gh` (GitHub CLI) in PATH and authenticated (`gh auth login`)
 - PowerShell execution with `-ExecutionPolicy Bypass`
 - Jira config:
   - Fill `Tools/jira-open/.jira-open.env` (local file), or
@@ -17,7 +19,7 @@ Guia recomendada de operacion multi-repo:
 - Git/GitHub connection config in the same `Tools/jira-open/.jira-open.env`:
   - `GIT_REMOTE_NAME` (default: `origin`)
   - `GIT_BASE_BRANCH` (optional, overrides base branch auto-detection for PRs)
-  - `GITHUB_TOKEN` (optional, enables token-based `gh` auth for non-interactive environments)
+  - `GITHUB_TOKEN` (recommended; enables direct GitHub API auth for PR create/list/merge checks)
   - `GITHUBREPO` or `GITHUB_REPO` (optional). If empty, `opsxj` auto-detects `owner/repo` from `git remote get-url <GIT_REMOTE_NAME>`.
 
 ## Commands
@@ -32,6 +34,20 @@ Then create a change:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> [-SkipJira]
+```
+
+Repository target mode:
+
+- Auto-detection (default):
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY>
+```
+
+- Manual selection (interactive list):
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> -SelectRepos
 ```
 
 Examples:
@@ -72,6 +88,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:archive -- OPSXJ-200 -Yes -SkipSpecs
 - `opsxj:new -SelectRepos` asks interactively which repositories are impacted and pre-fills `sync.md` (`yes/no`, `pending/n/a`).
 - `opsxj:new` now includes backend update baseline rules in generated artifacts via `openspec/context/OPSXJ_BACKEND_RULES.md`.
 - PR title is based on Jira ticket `summary`.
+- GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
 - If a PR already exists for the change branch, `opsxj:new` reports that PR instead of creating a duplicate.
 - `opsxj:archive` validates that the change branch is merged into base branch (`GIT_BASE_BRANCH` or auto-detected) before archiving.
 - After successful archive, `opsxj:archive` transitions Jira issue to a done state (e.g. `Done`, `Terminado`, `Closed`).
