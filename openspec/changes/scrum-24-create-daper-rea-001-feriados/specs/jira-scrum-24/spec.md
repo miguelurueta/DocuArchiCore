@@ -13,3 +13,10 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Table schema confirmation before model generation
+Model creation for `rea_001_feriados` MUST wait for confirmed table schema details from the requirement.
+
+#### Scenario: Schema not provided yet
+- **WHEN** the table structure is not included in the ticket details
+- **THEN** implementation remains blocked and tasks track schema request as pending

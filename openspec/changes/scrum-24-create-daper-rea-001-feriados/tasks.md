@@ -1,8 +1,8 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-24 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el issue Jira SCRUM-24 y confirmar alcance.
+- [x] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
+- [ ] 1.3 Solicitar estructura de tabla `rea_001_feriados` (columnas/tipos/nullability/PK) antes de generar modelo.
 
 ## 2. Specs
 

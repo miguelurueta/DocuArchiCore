@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-24`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| `DocuArchi.Api` | `yes/no` | `<endpoint/controller/DI>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `DocuArchiCore` | `yes/no` | `<coordinacion openspec/ui>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `DocuArchiCore.Abstractions` | `yes/no` | `<contracts/interfaces>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `DocuArchiCore.Web` | `yes/no` | `<frontend/web>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `MiApp.DTOs` | `yes/no` | `<request/response dto>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `MiApp.Services` | `yes/no` | `<service rules/interfaces>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `MiApp.Repository` | `yes/no` | `<query/dapper/mysql>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
-| `MiApp.Models` | `yes/no` | `<domain model>` | `pending/done/n/a` | `<url/n/a>` | `pending/done/n/a` | `todo/in_progress/review/merged/n_a` |
+| `DocuArchi.Api` | `no` | `Se usa como referencia de estructura y conexion existente` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore` | `yes` | `Coordinacion OpenSpec del ticket SCRUM-24` | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/3` | `pending` | `review` |
+| `DocuArchiCore.Abstractions` | `no` | `Sin cambios de contratos en este alcance` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Web` | `no` | `Sin alcance frontend` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.DTOs` | `no` | `No se solicitan DTOs nuevos en este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.Services` | `no` | `No hay logica de servicio nueva definida` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.Repository` | `yes` | `Pruebas de mapeo Dapper y soporte de acceso a datos` | `pending` | `pending` | `pending` | `todo` |
+| `MiApp.Models` | `yes` | `Crear modelo rea_001_feriados en ruta Radicacion/Feriados` | `pending` | `pending` | `pending` | `todo` |
 
 ## Operating Rule
 
