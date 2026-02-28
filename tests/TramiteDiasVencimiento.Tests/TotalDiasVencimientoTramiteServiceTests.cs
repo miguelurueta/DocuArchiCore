@@ -74,4 +74,21 @@ public class TotalDiasVencimientoTramiteServiceTests
             result.errors!.Cast<AppError>(),
             e => e.Field == "IdTipoTramite" && e.Message.Contains("fallo simulado"));
     }
+
+    [Fact]
+    public async Task ServiceSolicitaTotalDiasVencimientoTramite_CuandoDefaultDbAliasEsNulo_RetornaErrorControlado()
+    {
+        var repoMock = new Mock<ITotalDiasVencimientoTramiteRepository>();
+        var service = new TotalDiasVencimientoTramiteService(repoMock.Object);
+
+        var result = await service.ServiceSolicitaTotalDiasVencimientoTramite(10, 20, null!);
+
+        Assert.False(result.success);
+        Assert.Equal("DefaultDbAlias requerido", result.message);
+        Assert.Equal(0, result.data);
+        Assert.NotNull(result.errors);
+        Assert.Contains(
+            result.errors!.Cast<AppError>(),
+            e => e.Field == "defaultDbAlias" && e.Message == "DefaultDbAlias requerido");
+    }
 }
