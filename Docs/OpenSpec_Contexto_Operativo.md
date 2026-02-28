@@ -2,7 +2,7 @@
 
 Este archivo se actualiza automaticamente al ejecutar `Tools/Generate-OpenSpecMultiRepoContext.ps1`.
 
-- Updated: 2026-02-28 07:21:24 -05:00
+- Updated: 2026-02-28 07:36:35 -05:00
 - OpenSpec root: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\openspec
 - Context source: openspec/context/multi-repo-context.md
 - Repositories found: 7
