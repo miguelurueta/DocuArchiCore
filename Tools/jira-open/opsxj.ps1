@@ -602,6 +602,53 @@ function Get-GitHubApiHeaders {
     }
 }
 
+function Ensure-ArchiveWorkingBranch {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    Push-Location $RepoRoot
+    try {
+        $currentBranch = Invoke-Git -CliArgs @("rev-parse", "--abbrev-ref", "HEAD")
+        if ($currentBranch -eq $ChangeName) {
+            return
+        }
+
+        $dirtyOutput = Invoke-Git -CliArgs @("status", "--porcelain")
+        $dirtyLines = @()
+        if (-not [string]::IsNullOrWhiteSpace($dirtyOutput)) {
+            $dirtyLines = @($dirtyOutput -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        $effectiveDirty = @(
+            $dirtyLines | Where-Object {
+                $line = $_.Trim()
+                -not ($line -match "openspec[\\/]+logs[\\/].+\.lock$")
+            } | Where-Object {
+                $line = $_.Trim()
+                -not ($line -match "^\?\?\s+openspec[\\/]+logs[\\/].+\.jsonl$")
+            } | Where-Object {
+                $line = $_.Trim()
+                -not ($line -match "^\?\?\s+openspec[\\/]+logs[\\/]?$")
+            }
+        )
+        if ($effectiveDirty.Count -gt 0) {
+            $dirtyPreview = ($effectiveDirty -join "; ")
+            throw "Cannot switch from '$currentBranch' to '$ChangeName' because working tree has local changes. [$dirtyPreview]"
+        }
+
+        Invoke-Git -CliArgs @("show-ref", "--verify", "--quiet", "refs/heads/$ChangeName") -IgnoreExitCode | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Change branch '$ChangeName' does not exist locally."
+        }
+
+        Invoke-Git -CliArgs @("checkout", $ChangeName) | Out-Null
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Assert-ToolAvailable {
     param([string]$ToolName)
 
@@ -1704,6 +1751,8 @@ function Invoke-Archive {
     if (-not $issueKey) {
         $issueKey = Get-IssueKeyFromChangeName -ChangeName $changeName
     }
+
+    Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira }
 
     if ($NoValidate) {

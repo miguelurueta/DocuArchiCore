@@ -72,6 +72,8 @@ Usar plantilla:
 Regla:
 - Solo correr `opsxj:new` en repos con `Impacta? = yes`.
 - Repos `no` quedan `n/a` para dejar alcance explicito.
+- Convencion de ramas recomendada por ticket: `ABC-123-descripcion-corta` (o `main/master` solo para mantenimiento).
+- `opsxj:archive` ahora exige ejecutarse en la rama del cambio para evitar archivados en ramas incorrectas.
 
 ## Comandos utiles
 
@@ -79,6 +81,18 @@ Probar Jira:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:test-jira
+```
+
+Auditar ramas del multirepo:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:branch-audit
+```
+
+Auditar ramas para un ticket esperado:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/jira-open/opsxj-branch-audit.ps1 -ExpectedIssue SCRUM-29
 ```
 
 Crear cambio:
