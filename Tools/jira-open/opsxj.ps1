@@ -1055,7 +1055,10 @@ function Assert-ChangeMergedInGit {
         if (-not $remoteName) { $remoteName = "origin" }
         $baseBranch = Get-DefaultBaseBranch -RemoteName $remoteName -ConfiguredBaseBranch $toolConfig.gitBaseBranch
         # Refresh refs to avoid false positives from stale local branches.
-        & git fetch $remoteName $baseBranch $ChangeName --prune | Out-Null
+        # Test-only escape hatch to avoid remote/network requirements in local scripted tests.
+        if ($env:OPSXJ_TEST_SKIP_REMOTE_FETCH -ne "1") {
+            & git fetch $remoteName $baseBranch $ChangeName --prune | Out-Null
+        }
 
         $remoteChangeRef = "refs/remotes/$remoteName/$ChangeName"
         $remoteBaseRef = "refs/remotes/$remoteName/$baseBranch"

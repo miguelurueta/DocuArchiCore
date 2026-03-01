@@ -19,10 +19,11 @@ function Run-Git {
     try {
         $previousEap = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        & git @CliArgs *> $null
+        $output = & git @CliArgs 2>&1
         $ErrorActionPreference = $previousEap
         if ($LASTEXITCODE -ne 0) {
-            throw "git $($CliArgs -join ' ') failed."
+            $text = ($output | ForEach-Object { "$_" }) -join "`n"
+            throw "git $($CliArgs -join ' ') failed. $text"
         }
     }
     finally {
@@ -53,6 +54,7 @@ try {
     Run-Git -RepoRoot $repoRoot -CliArgs @("add", ".")
     Run-Git -RepoRoot $repoRoot -CliArgs @("commit", "-m", "init")
     Run-Git -RepoRoot $repoRoot -CliArgs @("branch", "-M", "main")
+    Run-Git -RepoRoot $repoRoot -CliArgs @("remote", "add", "origin", "https://github.com/example/repo.git")
 
     Run-Git -RepoRoot $repoRoot -CliArgs @("checkout", "-b", $changeName)
     Set-Content -Path (Join-Path $repoRoot "feature.txt") -Value "feature" -NoNewline
@@ -69,6 +71,8 @@ try {
     $env:JIRA_EMAIL = "bot@example.com"
     $env:JIRA_API_TOKEN = "token"
     $env:GIT_BASE_BRANCH = "main"
+    $env:GITHUB_TOKEN = "test-token"
+    $env:OPSXJ_TEST_SKIP_REMOTE_FETCH = "1"
 
     $script:TransitionedToDone = $false
     function global:Invoke-RestMethod {
@@ -134,6 +138,8 @@ try {
         Remove-Item Env:JIRA_EMAIL -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_API_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:GIT_BASE_BRANCH -ErrorAction SilentlyContinue
+        Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_TEST_SKIP_REMOTE_FETCH -ErrorAction SilentlyContinue
     }
 
     Write-Output "PASS: opsxj:archive validates git merge and transitions Jira to Done."
