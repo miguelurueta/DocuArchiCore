@@ -10,7 +10,8 @@ param(
     [switch]$SelectRepos,
     [switch]$Yes,
     [switch]$SkipSpecs,
-    [switch]$NoValidate
+    [switch]$NoValidate,
+    [switch]$Reopen
 )
 
 $ErrorActionPreference = "Stop"
@@ -297,7 +298,101 @@ function Write-OpsxjLog {
         data = $Data
     } | ConvertTo-Json -Depth 8 -Compress
 
-    Add-Content -Path $logPath -Value $entry
+    $maxAttempts = 5
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        try {
+            Add-Content -Path $logPath -Value $entry
+            break
+        }
+        catch {
+            if ($attempt -ge $maxAttempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds (150 * $attempt)
+        }
+    }
+}
+
+function Get-IssueLockPath {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey
+    )
+
+    $logsDir = Join-Path $RepoRoot "openspec\\logs"
+    New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    return (Join-Path $logsDir "$($IssueKey.ToUpperInvariant()).lock")
+}
+
+function Acquire-IssueLock {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey
+    )
+
+    if ([string]::IsNullOrWhiteSpace($IssueKey)) {
+        throw "Issue key is required to acquire lock."
+    }
+
+    $lockPath = Get-IssueLockPath -RepoRoot $RepoRoot -IssueKey $IssueKey
+    $maxAttempts = 30
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        try {
+            $stream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+            $writer = New-Object System.IO.StreamWriter($stream, [System.Text.Encoding]::UTF8, 1024, $true)
+            $writer.WriteLine("pid=$PID")
+            $writer.WriteLine("startedUtc=$([DateTime]::UtcNow.ToString('o'))")
+            $writer.Flush()
+            $writer.Dispose()
+            $script:IssueLockPath = $lockPath
+            $script:IssueLockStream = $stream
+            return
+        }
+        catch {
+            if ($attempt -ge $maxAttempts) {
+                throw "Issue lock is busy for '$IssueKey'. Another opsxj command may be running."
+            }
+            Start-Sleep -Milliseconds 200
+        }
+    }
+}
+
+function Release-IssueLock {
+    if ($null -ne $script:IssueLockStream) {
+        try { $script:IssueLockStream.Dispose() } catch {}
+        $script:IssueLockStream = $null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($script:IssueLockPath) -and (Test-Path $script:IssueLockPath)) {
+        try { Remove-Item -Path $script:IssueLockPath -Force } catch {}
+    }
+    $script:IssueLockPath = $null
+}
+
+function Get-ArchivedChangeDirectory {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $pattern = "*-$ChangeName"
+    $roots = @(
+        (Join-Path $RepoRoot "openspec\\archive"),
+        (Join-Path $RepoRoot "openspec\\changes\\archive")
+    )
+
+    $matches = @()
+    foreach ($archiveRoot in $roots) {
+        if (-not (Test-Path $archiveRoot)) { continue }
+        $matches += Get-ChildItem -Path $archiveRoot -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like $pattern }
+    }
+    $matches = $matches | Sort-Object LastWriteTime -Descending
+
+    if ($matches.Count -eq 0) {
+        return $null
+    }
+
+    return $matches[0].FullName
 }
 
 function Get-DetectedImpactRepos {
@@ -500,6 +595,58 @@ function Get-GitHubApiHeaders {
         Accept = "application/vnd.github+json"
         "X-GitHub-Api-Version" = "2022-11-28"
         "User-Agent" = "opsxj-script"
+    }
+}
+
+function Assert-ToolAvailable {
+    param([string]$ToolName)
+
+    $tool = Get-Command $ToolName -ErrorAction SilentlyContinue
+    if (-not $tool) {
+        throw "Required tool '$ToolName' is not available in PATH."
+    }
+}
+
+function Invoke-Preflight {
+    param(
+        [string]$RepoRoot,
+        [string]$CommandName,
+        [string]$IssueOrChange
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RepoRoot) -or -not (Test-Path $RepoRoot)) {
+        throw "Repository root could not be resolved."
+    }
+
+    Assert-ToolAvailable -ToolName "git"
+    if ($CommandName -in @("new", "archive")) {
+        Assert-ToolAvailable -ToolName "openspec.cmd"
+    }
+
+    $insideWorkTree = Invoke-Git -CliArgs @("rev-parse", "--is-inside-work-tree")
+    if ($insideWorkTree -ne "true") {
+        throw "Current path is not inside a git repository."
+    }
+
+    $toolConfig = Get-ToolConfig
+    if ([string]::IsNullOrWhiteSpace([string]$toolConfig.jiraBaseUrl) -or
+        [string]::IsNullOrWhiteSpace([string]$toolConfig.jiraEmail) -or
+        [string]::IsNullOrWhiteSpace([string]$toolConfig.jiraApiToken)) {
+        throw "Missing Jira configuration. Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN."
+    }
+
+    if ($CommandName -in @("new", "archive")) {
+        if ([string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
+            throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required."
+        }
+    }
+
+    if ($CommandName -eq "new" -and $IssueOrChange -notmatch "^[A-Za-z]+-\d+$") {
+        throw "Issue key must match format ABC-123."
+    }
+
+    if ($CommandName -eq "archive" -and [string]::IsNullOrWhiteSpace($IssueOrChange)) {
+        throw "Issue key or change name is required for archive."
     }
 }
 
@@ -903,20 +1050,35 @@ function Assert-ChangeMergedInGit {
         $remoteName = $toolConfig.gitRemoteName
         if (-not $remoteName) { $remoteName = "origin" }
         $baseBranch = Get-DefaultBaseBranch -RemoteName $remoteName -ConfiguredBaseBranch $toolConfig.gitBaseBranch
+        # Refresh refs to avoid false positives from stale local branches.
+        & git fetch $remoteName $baseBranch $ChangeName --prune | Out-Null
 
-        & git show-ref --verify --quiet "refs/heads/$ChangeName"
+        $remoteChangeRef = "refs/remotes/$remoteName/$ChangeName"
+        $remoteBaseRef = "refs/remotes/$remoteName/$baseBranch"
+        $localChangeRef = "refs/heads/$ChangeName"
+        $localBaseRef = "refs/heads/$baseBranch"
+
+        & git show-ref --verify --quiet $remoteChangeRef
+        $hasRemoteChange = ($LASTEXITCODE -eq 0)
+        & git show-ref --verify --quiet $remoteBaseRef
+        $hasRemoteBase = ($LASTEXITCODE -eq 0)
+
+        $changeRef = if ($hasRemoteChange) { $remoteChangeRef } else { $localChangeRef }
+        $baseRef = if ($hasRemoteBase) { $remoteBaseRef } else { $localBaseRef }
+
+        & git show-ref --verify --quiet $changeRef
         if ($LASTEXITCODE -ne 0) {
-            throw "Change branch '$ChangeName' does not exist locally."
+            throw "Change branch '$ChangeName' does not exist (checked '$changeRef')."
         }
 
-        & git show-ref --verify --quiet "refs/heads/$baseBranch"
+        & git show-ref --verify --quiet $baseRef
         if ($LASTEXITCODE -ne 0) {
-            throw "Base branch '$baseBranch' does not exist locally."
+            throw "Base branch '$baseBranch' does not exist (checked '$baseRef')."
         }
 
-        & git merge-base --is-ancestor "refs/heads/$ChangeName" "refs/heads/$baseBranch"
+        & git merge-base --is-ancestor $changeRef $baseRef
         if ($LASTEXITCODE -ne 0) {
-            throw "Change branch '$ChangeName' is not merged into '$baseBranch'."
+            throw "Change branch '$ChangeName' is not merged into '$baseBranch' (checked '$changeRef' -> '$baseRef')."
         }
 
         return $baseBranch
@@ -1448,7 +1610,8 @@ function Invoke-New {
     param(
         [string]$RepoRoot,
         [string]$IssueKey,
-        [switch]$SelectRepos
+        [switch]$SelectRepos,
+        [switch]$Reopen
     )
 
     if ($IssueKey -notmatch "^[A-Za-z]+-\d+$") {
@@ -1464,6 +1627,17 @@ function Invoke-New {
 
     $changeName = ((To-KebabCase $issue.key) + "-" + $summarySlug).Trim("-")
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$changeName"
+    $archivedPath = Get-ArchivedChangeDirectory -RepoRoot $RepoRoot -ChangeName $changeName
+    if ($archivedPath -and -not $Reopen) {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_skipped_archived" -Status "skipped" -Message "Change already archived. Use -Reopen to regenerate artifacts." -Data @{ change = $changeName; archivePath = $archivedPath }
+        Write-Output "Change '$changeName' is already archived at '$archivedPath'. Use -Reopen to recreate artifacts."
+        return
+    }
+    if ($archivedPath -and $Reopen) {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_reopen_archived" -Status "ok" -Message "Reopen requested for archived change." -Data @{ change = $changeName; archivePath = $archivedPath }
+        Write-Output "Reopen flag detected. Regenerating archived change '$changeName'."
+    }
+
     $selectedRepos = Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog (Get-ImpactRepoCatalog) -SelectRepos:$SelectRepos
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) }
 
@@ -1601,16 +1775,34 @@ function Invoke-JiraDone {
 }
 
 $repoRoot = Get-RepoRoot
-
-if ($Command -eq "new") {
-    if ($SkipJira) {
-        throw "Policy enforced: -SkipJira is not allowed in opsxj:new."
-    }
-    Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos
+$lockIssueKey = $null
+if ($IssueOrChange -match "^[A-Za-z]+-\d+$") {
+    $lockIssueKey = $IssueOrChange.ToUpperInvariant()
 }
 elseif ($Command -eq "archive") {
-    Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
+    $lockIssueKey = Get-IssueKeyFromChangeName -ChangeName $IssueOrChange
 }
-elseif ($Command -eq "jira-done") {
-    Invoke-JiraDone -IssueKey $IssueOrChange
+if ([string]::IsNullOrWhiteSpace($lockIssueKey)) {
+    $lockIssueKey = "OPSXJ-" + (($IssueOrChange -replace "[^A-Za-z0-9]+", "-").Trim("-")).ToUpperInvariant()
+}
+
+Acquire-IssueLock -RepoRoot $repoRoot -IssueKey $lockIssueKey
+try {
+    Invoke-Preflight -RepoRoot $repoRoot -CommandName $Command -IssueOrChange $IssueOrChange
+
+    if ($Command -eq "new") {
+        if ($SkipJira) {
+            throw "Policy enforced: -SkipJira is not allowed in opsxj:new."
+        }
+        Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen
+    }
+    elseif ($Command -eq "archive") {
+        Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
+    }
+    elseif ($Command -eq "jira-done") {
+        Invoke-JiraDone -IssueKey $IssueOrChange
+    }
+}
+finally {
+    Release-IssueLock
 }
