@@ -505,9 +505,13 @@ function Invoke-OpenSpec {
     )
     Push-Location $RepoRoot
     try {
-        & openspec.cmd @CliArgs
+        $output = & openspec.cmd @CliArgs 2>&1
+        if ($output) {
+            $output | ForEach-Object { Write-Output $_ }
+        }
         if ($LASTEXITCODE -ne 0) {
-            throw "openspec.cmd failed: $($CliArgs -join ' ')"
+            $text = if ($output) { ($output | Out-String).Trim() } else { "" }
+            throw "openspec.cmd failed: $($CliArgs -join ' '). $text"
         }
     }
     finally {
@@ -1743,9 +1747,27 @@ function Invoke-Archive {
     $args = @("archive", $changeName, "-y")
     if ($SkipSpecs) { $args += "--skip-specs" }
 
-    Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
-    Write-Output "Archived change: $changeName"
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
+    $archiveAlreadyExisted = $false
+    try {
+        Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
+        Write-Output "Archived change: $changeName"
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
+    }
+    catch {
+        $archiveError = $_.Exception.Message
+        if ($archiveError -match "already exists") {
+            $archiveAlreadyExisted = $true
+            Write-Output "Archive already exists for '$changeName'. Applying idempotent cleanup."
+            $changePath = Join-Path $RepoRoot "openspec\\changes\\$changeName"
+            if (Test-Path $changePath) {
+                Remove-Item -Path $changePath -Recurse -Force
+            }
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "Archive already existed; active change directory cleaned." -Data @{ change = $changeName }
+        }
+        else {
+            throw
+        }
+    }
 
     $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
     if ($pushResult.pushed) {
@@ -1753,7 +1775,8 @@ function Invoke-Archive {
         Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
     }
     else {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message "Orchestrator push skipped." -Data $pushResult
+        $skipMessage = if ($archiveAlreadyExisted) { "Orchestrator push skipped after idempotent archive handling." } else { "Orchestrator push skipped." }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message $skipMessage -Data $pushResult
     }
 }
 
