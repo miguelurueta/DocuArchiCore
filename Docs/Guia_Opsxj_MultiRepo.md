@@ -28,11 +28,14 @@ GIT_REMOTE_NAME=origin
 GIT_BASE_BRANCH=
 GITHUB_TOKEN=tu_github_token
 GITHUBREPO=
+OPSXJ_IMPACT_REPOS=
 ```
 
 Notas:
 - `GITHUBREPO` vacio: `opsxj` autodetecta `owner/repo` desde `git remote get-url origin`.
 - Mantener el mismo `GITHUB_TOKEN` en todos los repos.
+- `OPSXJ_IMPACT_REPOS` opcional: lista separada por coma para forzar repos impactados sin interaccion.
+- Ejemplo: `OPSXJ_IMPACT_REPOS=DocuArchi.Api,MiApp.Services,MiApp.Repository`.
 
 ## Flujo por ticket (ABC-123)
 
@@ -48,7 +51,7 @@ Notas:
 
 1. `opsxj:new` consulta Jira y valida texto del ticket (`summary` o `description`).
 2. IA detecta repos impactados por logica:
-   - Si no hay confianza: solicita repo o plantilla de cambios.
+   - Si no hay confianza: aplica fallback automatico (catalogo completo) sin prompt.
 3. El cambio OpenSpec debe quedar completo hasta `Application` y `Test`.
 4. Se generan PRs por repo impactado.
 5. `opsxj:archive` valida que todos los PRs impactados esten mergeados.
@@ -84,6 +87,19 @@ Crear cambio:
 npm.cmd --prefix Tools/jira-open run opsxj:new -- SCRUM-23
 ```
 
+Crear cambio (no interactivo):
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:new -- SCRUM-23
+```
+
+Forzar repos impactados (opcional) con `OPSXJ_IMPACT_REPOS`:
+
+```powershell
+$env:OPSXJ_IMPACT_REPOS="DocuArchi.Api,MiApp.Services,MiApp.Repository"
+npm.cmd --prefix Tools/jira-open run opsxj:new -- SCRUM-23
+```
+
 Archivar cambio:
 
 ```powershell
@@ -98,7 +114,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:archive -- SCRUM-23
   - Repo/branch remoto incorrecto o `GITHUBREPO` apuntando a otro repo.
 - Jira no cambia a terminado:
   - Verificar transiciones disponibles del workflow Jira del proyecto.
-- `No se pudo detectar el repositorio, especifique la plantilla de cambios.`:
-  - Completar seleccion manual de repo (o plantilla) y reintentar.
+- `Policy enforced: interactive repo selection is disabled...`:
+  - Quitar `-SelectRepos` y usar `OPSXJ_IMPACT_REPOS`.
 - `El ticket no tiene texto, no puede archivarse.`:
   - Completar `summary` o `description` en Jira antes de ejecutar archive.
