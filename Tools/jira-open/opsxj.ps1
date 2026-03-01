@@ -347,7 +347,38 @@ function Resolve-ImpactReposForIssue {
     )
 
     if ($SelectRepos) {
-        return @(Prompt-SelectImpactRepos -IssueKey $Issue.key -RepoCatalog $RepoCatalog)
+        throw "Policy enforced: interactive repo selection is disabled. Use OPSXJ_IMPACT_REPOS in Tools/jira-open/.jira-open.env or environment variable."
+    }
+
+    $configPath = Join-Path $PSScriptRoot ".jira-open.env"
+    $configuredReposRaw = Get-FirstConfigValue -Keys @("OPSXJ_IMPACT_REPOS") -ConfigPath $configPath
+    if (-not [string]::IsNullOrWhiteSpace($configuredReposRaw)) {
+        $configuredRepos = @(
+            $configuredReposRaw -split "," |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        )
+        if ($configuredRepos.Count -eq 0) {
+            throw "OPSXJ_IMPACT_REPOS is configured but empty."
+        }
+
+        $catalogSet = @{}
+        foreach ($repo in $RepoCatalog) { $catalogSet[$repo.ToLowerInvariant()] = $repo }
+
+        $resolved = New-Object System.Collections.Generic.List[string]
+        foreach ($repo in $configuredRepos) {
+            $key = $repo.ToLowerInvariant()
+            if (-not $catalogSet.ContainsKey($key)) {
+                throw "OPSXJ_IMPACT_REPOS contains unknown repo '$repo'. Allowed values: $($RepoCatalog -join ', ')"
+            }
+            $canonical = $catalogSet[$key]
+            if (-not $resolved.Contains($canonical)) {
+                $resolved.Add($canonical)
+            }
+        }
+
+        Write-Output ("Impacted repos from OPSXJ_IMPACT_REPOS: {0}" -f ($resolved -join ", "))
+        return @($resolved)
     }
 
     $detected = Get-DetectedImpactRepos -Issue $Issue -RepoCatalog $RepoCatalog
@@ -357,13 +388,9 @@ function Resolve-ImpactReposForIssue {
         return $repos
     }
 
-    Write-Output "No se pudo detectar automaticamente el repositorio. Se requiere seleccion manual."
-    $manual = @(Prompt-SelectImpactRepos -IssueKey $Issue.key -RepoCatalog $RepoCatalog)
-    if ($manual.Count -eq 0) {
-        throw "No se pudo detectar el repositorio, especifique la plantilla de cambios."
-    }
-
-    return $manual
+    # Non-interactive fallback to keep opsxj:new fully automated.
+    Write-Output "No repo auto-detected. Falling back to full repository catalog."
+    return @($RepoCatalog)
 }
 
 function To-KebabCase {
@@ -1538,8 +1565,8 @@ function Invoke-Archive {
     Write-Output "Jira issue transitioned: $issueKey -> $doneState"
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState }
 
-    $args = @("archive", $changeName)
-    if ($Yes) { $args += "-y" }
+    # Always run archive in non-interactive mode to prevent CI/terminal prompt blocks.
+    $args = @("archive", $changeName, "-y")
     if ($SkipSpecs) { $args += "--skip-specs" }
 
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
