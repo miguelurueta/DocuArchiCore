@@ -12,7 +12,7 @@ Use this template at the start of each Jira ticket (`SCRUM-35`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| `DocuArchiCore` | `yes` | `Documentacion tecnica y reubicacion de docs DynamicUiTable` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchiCore` | `yes` | `Documentacion tecnica y reubicacion de docs DynamicUiTable` | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/14` | `pending` | `in_progress` |
 | `DocuArchi.Api` | `no` | `Sin cambios de runtime/API para SCRUM-35` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `DocuArchiCore.Abstractions` | `no` | `Sin cambios de contratos transversales` | `n/a` | `n/a` | `n/a` | `n_a` |
 | `DocuArchiCore.Web` | `no` | `No se requiere cambio de codigo web, solo guia documental` | `n/a` | `n/a` | `n/a` | `n_a` |
