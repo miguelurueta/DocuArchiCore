@@ -412,6 +412,177 @@ public sealed class RadicadosPendientesHandler : IDynamicUiTableHandler
 }
 ```
 
+## Ejemplo completo: consulta especializada con IDapperCrudEngine + DynamicUiTableBuilder
+
+Este es el patron recomendado cuando necesitas consultas de negocio (joins/filtros/paginacion/sort) y luego render UI dinamica.
+
+### 1) Repositorio especializado (consulta con QueryOptions)
+
+```csharp
+using MiApp.Repository.DataAccess;
+
+public interface IRadicadosPendientesUiRepository
+{
+    Task<(List<Dictionary<string, object?>> rows, int total)> QueryAsync(
+        string defaultDbAlias,
+        int idPlantilla,
+        int idUsuarioRadicacion,
+        int page,
+        int pageSize,
+        string? sortField,
+        string? sortDir,
+        string? search);
+}
+
+public sealed class RadicadosPendientesUiRepository : IRadicadosPendientesUiRepository
+{
+    private readonly IDapperCrudEngine _dapper;
+
+    public RadicadosPendientesUiRepository(IDapperCrudEngine dapper)
+    {
+        _dapper = dapper;
+    }
+
+    public async Task<(List<Dictionary<string, object?>> rows, int total)> QueryAsync(
+        string defaultDbAlias,
+        int idPlantilla,
+        int idUsuarioRadicacion,
+        int page,
+        int pageSize,
+        string? sortField,
+        string? sortDir,
+        string? search)
+    {
+        var offset = (page - 1) * pageSize;
+        var safeSortField = string.IsNullOrWhiteSpace(sortField) ? "fecha_registro" : sortField;
+        var safeSortDir = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase) ? "DESC" : "ASC";
+
+        var options = new QueryOptions
+        {
+            TableName = "ra_rad_estados_modulo_radicacion",
+            Columns =
+            [
+                "id_estado_radicado",
+                "consecutivo_radicado",
+                "remitente",
+                "fecha_registro",
+                "estado",
+                "id_usuario_radicado"
+            ],
+            Filters = new Dictionary<string, object>
+            {
+                { "system_plantilla_radicado_id_Plantilla", idPlantilla },
+                { "id_usuario_radicado", idUsuarioRadicacion },
+                { "estado", 1 }
+            },
+            UseLikeOperator = !string.IsNullOrWhiteSpace(search),
+            DefaultAlias = defaultDbAlias,
+            OrderByFields = [ new OrderByField { Column = safeSortField, Direction = safeSortDir } ],
+            Limit = pageSize,
+            Offset = offset
+        };
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            // Busca por consecutivo/remitente usando OR con LIKE
+            options.UseOrOperator = true;
+            options.Filters["consecutivo_radicado"] = search!;
+            options.Filters["remitente"] = search!;
+        }
+
+        var query = await _dapper.GetAllAsync<Dictionary<string, object?>>(options);
+        if (!query.Success || query.Data == null)
+        {
+            return (new List<Dictionary<string, object?>>(), 0);
+        }
+
+        var rows = query.Data.ToList();
+        var normalized = rows.Select(r =>
+        {
+            // DynamicUiTableBuilder espera "id" como llave principal del row.
+            r["id"] = r.TryGetValue("id_estado_radicado", out var v) ? v?.ToString() : string.Empty;
+            return r;
+        }).ToList();
+
+        var total = query.TotalRecords ?? normalized.Count;
+        return (normalized, total);
+    }
+}
+```
+
+### 2) Handler de tabla (conecta repositorio con builder)
+
+```csharp
+using MiApp.DTOs.DTOs.UI.MuiTable;
+using MiApp.DTOs.DTOs.Utilidades;
+using MiApp.Services.Service.UI.MuiTable;
+
+public sealed class RadicadosPendientesDynamicHandler : IDynamicUiTableHandler
+{
+    private readonly IRadicadosPendientesUiRepository _repo;
+
+    public RadicadosPendientesDynamicHandler(IRadicadosPendientesUiRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public string TableId => "radicadosPendientes";
+
+    public async Task<(List<object> rows, int total)> GetRowsAsync(DynamicUiTableQueryRequestDto req)
+    {
+        // Estos valores pueden venir de claims, request o resolucion de negocio.
+        var idPlantilla = 10;
+        var idUsuarioRadicacion = 123;
+
+        var (rows, total) = await _repo.QueryAsync(
+            req.DefaultDbAlias,
+            idPlantilla,
+            idUsuarioRadicacion,
+            req.Page,
+            req.PageSize,
+            req.SortField,
+            req.SortDir,
+            req.Search);
+
+        return (rows.Cast<object>().ToList(), total);
+    }
+
+    public List<UiColumnDto>? GetFixedColumns() => new()
+    {
+        new() { Key = "consecutivo_radicado", ColumnName = "consecutivo_radicado", HeaderName = "Radicado", Order = 1, Sortable = true },
+        new() { Key = "remitente", ColumnName = "remitente", HeaderName = "Remitente", Order = 2, Sortable = true },
+        new() { Key = "fecha_registro", ColumnName = "fecha_registro", HeaderName = "Fecha", Order = 3, Sortable = true },
+        new() { Key = "estado", ColumnName = "estado", HeaderName = "Estado", Order = 4, Sortable = true }
+    };
+
+    public List<UiActionDto> GetActions(DynamicUiTableQueryRequestDto req) => new()
+    {
+        new UiActionDto { ActionId = "refresh", Label = "Refrescar", Placement = "toolbar", Behavior = "api_call", BehaviorConfig = new() { ["requery"] = true } },
+        new UiActionDto { ActionId = "openDetail", Label = "Abrir", Placement = "row", Behavior = "navigate", BehaviorConfig = new() { ["route"] = "/radicado/{id_estado_radicado}" } }
+    };
+
+    public List<UiCellActionDto> GetCellActions(DynamicUiTableQueryRequestDto req) => [];
+
+    public Task<AppResponses<object>> ExecuteActionAsync(ExecuteUiActionRequestDto req)
+        => Task.FromResult(new AppResponses<object> { success = true, message = "OK", errors = [], data = new { req.ActionId, req.RowId } });
+}
+```
+
+### 3) Registro DI
+
+```csharp
+builder.Services.AddScoped<IRadicadosPendientesUiRepository, RadicadosPendientesUiRepository>();
+builder.Services.AddScoped<IDynamicUiTableHandler, RadicadosPendientesDynamicHandler>();
+```
+
+### 4) Resultado final
+
+Con este flujo:
+1. `DynamicUiTableController` valida claims (`defaulalias`) y llama `QueryAsync`.
+2. `DynamicUiTableService` resuelve el handler por `TableId`.
+3. El handler consulta con `IDapperCrudEngine`.
+4. `DynamicUiTableBuilder` transforma filas/columnas/acciones al DTO final (`DynamicUiTableDto` o `DynamicUiRowsOnlyDto`).
+
 ## Checklist rapido de implementacion
 
 - Definir `TableId` estable por modulo.
