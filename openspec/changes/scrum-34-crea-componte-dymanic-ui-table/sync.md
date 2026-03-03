@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-34`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| `DocuArchi.Api` | `yes` | `Endpoints genericos/especificos para query y action de tabla dinamica` | `done` | `pending` | `pending` | `in_progress` |
-| `DocuArchiCore` | `yes` | `Coordinacion OpenSpec, docs tecnicos y evidencia` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchi.Api` | `no` | `Cambios integrados sin PR trazable para validacion automatica de archive` | `done` | `n/a` | `n/a` | `done` |
+| `DocuArchiCore` | `yes` | `Coordinacion OpenSpec, docs tecnicos y evidencia` | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/11` | `pending` | `in_progress` |
 | `DocuArchiCore.Abstractions` | `no` | `Sin cambios cross-cutting confirmados en esta fase` | `n/a` | `n/a` | `n/a` | `n_a` |
-| `DocuArchiCore.Web` | `yes` | `Guia de consumo frontend para tabla dinamica` | `pending` | `pending` | `pending` | `todo` |
-| `MiApp.DTOs` | `yes` | `DTOs UI/MuiTable (config, rows, acciones, request/response)` | `done` | `pending` | `pending` | `in_progress` |
-| `MiApp.Services` | `yes` | `Builder reusable, service generico y handlers por modulo` | `done` | `pending` | `pending` | `in_progress` |
-| `MiApp.Repository` | `yes` | `Repositorio de configuracion ui_table_columns y queries seguras` | `done` | `pending` | `pending` | `in_progress` |
-| `MiApp.Models` | `yes` | `Modelo de configuracion UI (si la tabla no existe en Models)` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchiCore.Web` | `no` | `No hace parte del alcance confirmado para SCRUM-34` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.DTOs` | `no` | `Cambios integrados sin PR trazable para validacion automatica de archive` | `done` | `n/a` | `n/a` | `done` |
+| `MiApp.Services` | `no` | `Cambios integrados sin PR trazable para validacion automatica de archive` | `done` | `n/a` | `n/a` | `done` |
+| `MiApp.Repository` | `no` | `Cambios integrados sin PR trazable para validacion automatica de archive` | `done` | `n/a` | `n/a` | `done` |
+| `MiApp.Models` | `no` | `Cambios integrados sin PR trazable para validacion automatica de archive` | `done` | `n/a` | `n/a` | `done` |
 
 ## Operating Rule
 
