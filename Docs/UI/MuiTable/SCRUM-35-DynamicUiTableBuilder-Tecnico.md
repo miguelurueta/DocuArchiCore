@@ -1,8 +1,11 @@
-# SCRUM-35 - Documentacion Tecnica DynamicUiTableBuilder
+# SCRUM-35 - Documento Tecnico para Desarrollador: DynamicUiTableBuilder
 
 ## Objetivo
 
-Este documento describe el comportamiento tecnico del componente `DynamicUiTableBuilder` y su consumo desde servicios internos, tomando como base la implementacion de SCRUM-34.
+Este documento describe el comportamiento tecnico de `DynamicUiTableBuilder` y como consumir `IDynamicUiTableService` desde servicios internos, incluyendo:
+- construccion de columnas para `FixedColumns`
+- definicion de eventos/acciones (`UiActionDto` / `UiCellActionDto`)
+- ejemplo end-to-end con datos de `ra_rad_estados_modulo_radicacion`
 
 ## Ubicacion del componente
 
@@ -19,84 +22,348 @@ Este documento describe el comportamiento tecnico del componente `DynamicUiTable
 /// Construye la respuesta completa de tabla dinamica (configuracion + filas + acciones).
 /// </summary>
 /// <param name="input">
-/// Parametros de construccion:
-/// - Request: llega desde controller/service (TableId, paginacion, sort, claims, alias).
-/// - Rows/Total: provienen del handler de negocio por TableId.
-/// - Actions/CellActions: provienen del handler.
-/// - Columns: columnas fijas del handler o de request.
+/// Request: TableId, paginacion, sort, claims, alias.
+/// Rows/Total: salida del handler de negocio por TableId.
+/// Actions/CellActions: definiciones de eventos del handler.
+/// Columns: columnas fijas o columnas desde DB.
 /// </param>
 /// <returns>
-/// DynamicUiTableDto con:
-/// - Columns ordenadas por "Order"
-/// - Columna de acciones inyectada si no existe
-/// - Rows mapeadas a UiRowDto
-/// - Actions separadas por placement (toolbar/bulk/row)
-/// - Pagination y Sorting
+/// DynamicUiTableDto con Columns ordenadas, Rows mapeadas,
+/// acciones separadas por placement y metadata de Pagination/Sorting.
 /// </returns>
 ```
 
 Notas de comportamiento:
 - Si `UseColumnConfigFromDb=true`, consulta columnas en `IUiTableConfigRepository` usando `DefaultDbAlias` + `TableId`.
-- Si no existe columna de acciones, agrega `actions`/`Opciones` con `IsActionColumn=true`.
+- Si no existe columna de acciones, agrega automaticamente `actions` (`Opciones`).
 
 ### `BuildRowsOnlyAsync(DynamicUiTableBuildInput input)`
 
 ```xml
 /// <summary>
-/// Construye una respuesta liviana con filas y paginacion, sin metadata completa de configuracion.
+/// Construye una respuesta liviana con filas y paginacion.
 /// </summary>
-/// <param name="input">
-/// Input armado por servicio con Rows, Total y parametros de paginacion.
-/// </param>
-/// <returns>
-/// DynamicUiRowsOnlyDto con TableId, Rows mapeadas y Pagination.
-/// </returns>
+/// <param name="input">Input armado por servicio con Rows y Total.</param>
+/// <returns>DynamicUiRowsOnlyDto.</returns>
 ```
 
 ### `ToUiRow(object row)` (funcion interna clave)
 
 ```xml
 /// <summary>
-/// Convierte una fila de dominio/anonima en UiRowDto para consumo uniforme del frontend.
+/// Convierte una fila de dominio/anonima a UiRowDto.
 /// </summary>
-/// <param name="row">
-/// Puede llegar como Dictionary<string, object?> o como objeto con propiedades.
-/// </param>
+/// <param name="row">Dictionary<string, object?> o POCO.</param>
 /// <returns>
-/// UiRowDto con:
-/// - Id: valor de la clave/propiedad "id" (si existe)
-/// - Values: mapa completo de columnas y valores
+/// UiRowDto con Id (campo "id") y Values (mapa completo de columnas).
 /// </returns>
 ```
 
-## Consumo del servicio desde otro servicio interno
+## Consumo interno recomendado
 
-### Flujo recomendado
+Flujo:
+1. Controller valida claim `defaulalias`.
+2. Controller extrae claims de seguridad (`role`, `permission`, `permiso`).
+3. Servicio interno arma `DynamicUiTableQueryRequestDto`.
+4. Servicio interno llama `QueryAsync` o `ExecuteActionAsync`.
 
-1. Controller valida claims y completa `DefaultDbAlias`.
-2. Controller deriva claims del token (`role`, `permission`, `permiso`) y los asigna a `UserClaims`.
-3. Servicio consumidor arma `DynamicUiTableQueryRequestDto`.
-4. Servicio consumidor invoca:
-   - `IDynamicUiTableService.QueryAsync(req)` o
-   - `IDynamicUiTableService.ExecuteActionAsync(req)`.
+Origen de parametros:
+- `TableId`: definido por backend/modulo.
+- `DefaultDbAlias`: claim `defaulalias`.
+- `UserClaims`: claims del token.
+- `Page/PageSize/SortField/SortDir`: request de frontend.
 
-### Parametros y origen
-
-- `TableId`: lo define backend por modulo/feature.
-- `DefaultDbAlias`: claim `defaulalias` del token.
-- `UserClaims`: claims del token (`role/permission/permiso`).
-- `Page/PageSize/SortField/SortDir`: request de frontend validado por backend.
-
-### Retornos esperados
-
-- `AppResponses<object>` con `data` tipo:
+Retornos esperados:
+- `AppResponses<object>` con `data`:
   - `DynamicUiTableDto` si `IncludeConfig=true`
   - `DynamicUiRowsOnlyDto` si `IncludeConfig=false`
-- En validaciones fallidas: `success=false` + `errors` con `Type="Validation"`.
+- Error controlado: `success=false` y `errors` (`Validation`/`Exception`).
 
-## Ejemplo completo (tabla `ra_rad_estados_modulo_radicacion`)
+## Como construir columnas para pasarlas como parametro
 
-### Request de consulta
+Cuando quieres forzar columnas desde servicio/handler (sin depender de `ui_table_columns`), usa `FixedColumns`:
+
+```csharp
+var fixedColumns = new List<UiColumnDto>
+{
+    new()
+    {
+        Key = "consecutivo_radicado",
+        ColumnName = "consecutivo_radicado",
+        HeaderName = "Radicado",
+        DataType = "text",
+        RenderType = "grid_text",
+        Visible = true,
+        Sortable = true,
+        Order = 1,
+        Width = 180,
+        Align = "left"
+    },
+    new()
+    {
+        Key = "remitente",
+        ColumnName = "remitente",
+        HeaderName = "Remitente",
+        DataType = "text",
+        RenderType = "grid_text",
+        Visible = true,
+        Sortable = true,
+        Order = 2,
+        Width = 220,
+        Align = "left"
+    },
+    new()
+    {
+        Key = "fecha_registro",
+        ColumnName = "fecha_registro",
+        HeaderName = "Fecha",
+        DataType = "datetime",
+        RenderType = "grid_datetime",
+        Visible = true,
+        Sortable = true,
+        Order = 3,
+        Width = 180,
+        Align = "left"
+    },
+    new()
+    {
+        Key = "estado",
+        ColumnName = "estado",
+        HeaderName = "Estado",
+        DataType = "number",
+        RenderType = "grid_chip",
+        Visible = true,
+        Sortable = true,
+        Order = 4,
+        Width = 120,
+        Align = "center"
+    }
+};
+
+var req = new DynamicUiTableQueryRequestDto
+{
+    TableId = "radicadosPendientes",
+    DefaultDbAlias = defaultDbAlias,
+    UserClaims = claims,
+    Page = 1,
+    PageSize = 25,
+    SortField = "fecha_registro",
+    SortDir = "asc",
+    IncludeConfig = true,
+    UseColumnConfigFromDb = false,
+    FixedColumns = fixedColumns
+};
+```
+
+## Como crear el campo de evento (acciones)
+
+En el modelo actual, el "campo de evento" se modela con `UiActionDto`:
+- `Behavior`: tipo de evento/accion
+- `BehaviorConfig`: configuracion del evento
+- `Placement`: donde se muestra (`toolbar`, `bulk`, `row`)
+- `Presentation`: como se pinta (`button`, `menu_item`, `icon`)
+
+### Tipos de evento recomendados (convencion)
+
+No hay enum estricto en backend; `Behavior` es string. Convenciones recomendadas:
+- `api_call`
+- `navigate`
+- `modal`
+- `download`
+- `emit`
+- `custom`
+
+### Ejemplos por tipo de evento
+
+```csharp
+var toolbarRefresh = new UiActionDto
+{
+    ActionId = "refresh",
+    Label = "Refrescar",
+    Placement = "toolbar",
+    Presentation = "button",
+    Behavior = "api_call",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["method"] = "POST",
+        ["url"] = "/api/ui/dynamic-table/query",
+        ["requery"] = true
+    },
+    Icon = "refresh",
+    Tone = "primary"
+};
+
+var rowOpen = new UiActionDto
+{
+    ActionId = "openDetail",
+    Label = "Abrir",
+    Placement = "row",
+    Presentation = "icon",
+    Behavior = "navigate",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["route"] = "/radicacion/radicado/{id_estado_radicado}",
+        ["target"] = "self"
+    },
+    Icon = "open_in_new",
+    Tone = "neutral"
+};
+
+var rowAssign = new UiActionDto
+{
+    ActionId = "asignar",
+    Label = "Asignar",
+    Placement = "row",
+    Presentation = "menu_item",
+    Behavior = "modal",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["modalId"] = "asignar-radicado",
+        ["size"] = "md"
+    },
+    RequiresConfirm = false,
+    RequiredClaimsAny = new List<string> { "radicacion.asignar" },
+    Rules = new List<RowRuleDto>
+    {
+        new() { Type = "equals", Field = "estado", Value = "1" }
+    }
+};
+
+var rowDownload = new UiActionDto
+{
+    ActionId = "downloadPdf",
+    Label = "Descargar",
+    Placement = "row",
+    Presentation = "icon",
+    Behavior = "download",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["url"] = "/api/radicados/{id_estado_radicado}/pdf",
+        ["fileName"] = "radicado-{consecutivo_radicado}.pdf"
+    },
+    Icon = "download",
+    Tone = "info"
+};
+
+var bulkClose = new UiActionDto
+{
+    ActionId = "cerrarMasivo",
+    Label = "Cerrar seleccion",
+    Placement = "bulk",
+    Presentation = "button",
+    Behavior = "emit",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["eventName"] = "bulk-close-radicados"
+    },
+    RequiresConfirm = true,
+    ConfirmTitle = "Confirmar cierre masivo",
+    ConfirmMessage = "Se cerraran los radicados seleccionados",
+    RequiredClaimsAll = new List<string> { "radicacion.cerrar", "radicacion.bulk" }
+};
+
+var rowCustom = new UiActionDto
+{
+    ActionId = "customAction",
+    Label = "Accion custom",
+    Placement = "row",
+    Presentation = "menu_item",
+    Behavior = "custom",
+    BehaviorConfig = new Dictionary<string, object?>
+    {
+        ["handler"] = "frontendCustomHandler",
+        ["payloadMode"] = "row"
+    }
+};
+
+var cellWhatsApp = new UiCellActionDto
+{
+    ColumnKey = "remitente",
+    Action = new UiActionDto
+    {
+        ActionId = "contactar",
+        Label = "Contactar",
+        Placement = "row",
+        Presentation = "icon",
+        Behavior = "navigate",
+        BehaviorConfig = new Dictionary<string, object?>
+        {
+            ["route"] = "https://wa.me/{telefono}",
+            ["target"] = "blank"
+        },
+        Icon = "chat",
+        Tone = "success"
+    }
+};
+```
+
+## Ejemplo de handler completo (columnas + eventos)
+
+```csharp
+public sealed class RadicadosPendientesHandler : IDynamicUiTableHandler
+{
+    public string TableId => "radicadosPendientes";
+
+    public List<UiColumnDto>? GetFixedColumns() => new()
+    {
+        new() { Key = "consecutivo_radicado", ColumnName = "consecutivo_radicado", HeaderName = "Radicado", Order = 1, Sortable = true },
+        new() { Key = "remitente", ColumnName = "remitente", HeaderName = "Remitente", Order = 2, Sortable = true },
+        new() { Key = "fecha_registro", ColumnName = "fecha_registro", HeaderName = "Fecha", Order = 3, Sortable = true },
+        new() { Key = "estado", ColumnName = "estado", HeaderName = "Estado", Order = 4, Sortable = true }
+    };
+
+    public List<UiActionDto> GetActions(DynamicUiTableQueryRequestDto req) => new()
+    {
+        // toolbar
+        new UiActionDto { ActionId = "refresh", Label = "Refrescar", Placement = "toolbar", Behavior = "api_call", BehaviorConfig = new() { ["requery"] = true } },
+        // row
+        new UiActionDto { ActionId = "openDetail", Label = "Abrir", Placement = "row", Behavior = "navigate", BehaviorConfig = new() { ["route"] = "/radicado/{id_estado_radicado}" } },
+        // bulk
+        new UiActionDto { ActionId = "cerrarMasivo", Label = "Cerrar", Placement = "bulk", Behavior = "emit", BehaviorConfig = new() { ["eventName"] = "bulk-close-radicados" }, RequiresConfirm = true }
+    };
+
+    public List<UiCellActionDto> GetCellActions(DynamicUiTableQueryRequestDto req) => new()
+    {
+        new UiCellActionDto
+        {
+            ColumnKey = "remitente",
+            Action = new UiActionDto { ActionId = "contactar", Label = "Contactar", Behavior = "navigate", BehaviorConfig = new() { ["route"] = "https://wa.me/{telefono}" } }
+        }
+    };
+
+    public Task<(List<object> rows, int total)> GetRowsAsync(DynamicUiTableQueryRequestDto req)
+    {
+        var rows = new List<object>
+        {
+            new Dictionary<string, object?>
+            {
+                ["id"] = "101",
+                ["id_estado_radicado"] = 101,
+                ["consecutivo_radicado"] = "RAD-2026-000123",
+                ["remitente"] = "Empresa ABC",
+                ["fecha_registro"] = "2026-03-03T09:45:00",
+                ["estado"] = 1,
+                ["telefono"] = "573001112233"
+            }
+        };
+
+        return Task.FromResult((rows, 1));
+    }
+
+    public Task<AppResponses<object>> ExecuteActionAsync(ExecuteUiActionRequestDto req)
+        => Task.FromResult(new AppResponses<object>
+        {
+            success = true,
+            message = "OK",
+            errors = [],
+            data = new { action = req.ActionId, row = req.RowId }
+        });
+}
+```
+
+## Ejemplo end-to-end (ra_rad_estados_modulo_radicacion)
+
+### Request
 
 ```json
 {
@@ -105,13 +372,13 @@ Notas de comportamiento:
   "pageSize": 25,
   "sortField": "fecha_registro",
   "sortDir": "asc",
-  "search": "",
+  "search": "RAD-2026",
   "includeConfig": true,
-  "useColumnConfigFromDb": true
+  "useColumnConfigFromDb": false
 }
 ```
 
-### Response de referencia
+### Response
 
 ```json
 {
@@ -120,12 +387,12 @@ Notas de comportamiento:
   "errors": [],
   "data": {
     "tableId": "radicadosPendientes",
-    "title": "radicadosPendientes",
     "columns": [
-      { "key": "consecutivo_radicado", "headerName": "Radicado", "sortable": true, "order": 1 },
-      { "key": "remitente", "headerName": "Remitente", "sortable": true, "order": 2 },
-      { "key": "fecha_registro", "headerName": "Fecha Registro", "sortable": true, "order": 3 },
-      { "key": "actions", "headerName": "Opciones", "sortable": false, "isActionColumn": true, "order": 99 }
+      { "key": "consecutivo_radicado", "headerName": "Radicado", "order": 1 },
+      { "key": "remitente", "headerName": "Remitente", "order": 2 },
+      { "key": "fecha_registro", "headerName": "Fecha", "order": 3 },
+      { "key": "estado", "headerName": "Estado", "order": 4 },
+      { "key": "actions", "headerName": "Opciones", "isActionColumn": true, "order": 5 }
     ],
     "rows": [
       {
@@ -145,34 +412,10 @@ Notas de comportamiento:
 }
 ```
 
-## Ejemplo de consumo interno (C#)
+## Checklist rapido de implementacion
 
-```csharp
-public sealed class RadicadosPendientesFacade
-{
-    private readonly IDynamicUiTableService _dynamicUiTableService;
-
-    public RadicadosPendientesFacade(IDynamicUiTableService dynamicUiTableService)
-    {
-        _dynamicUiTableService = dynamicUiTableService;
-    }
-
-    public Task<AppResponses<object>> ConsultarAsync(string defaultDbAlias, List<string> claims)
-    {
-        var req = new DynamicUiTableQueryRequestDto
-        {
-            TableId = "radicadosPendientes",
-            DefaultDbAlias = defaultDbAlias,
-            UserClaims = claims,
-            Page = 1,
-            PageSize = 25,
-            SortField = "fecha_registro",
-            SortDir = "asc",
-            IncludeConfig = true,
-            UseColumnConfigFromDb = true
-        };
-
-        return _dynamicUiTableService.QueryAsync(req);
-    }
-}
-```
+- Definir `TableId` estable por modulo.
+- Definir columnas en `GetFixedColumns` o habilitar `UseColumnConfigFromDb`.
+- Definir acciones con `Behavior` + `BehaviorConfig` + claims.
+- Validar `SortField` contra columnas permitidas.
+- Retornar `AppResponses<object>` con errores controlados.
