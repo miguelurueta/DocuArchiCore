@@ -10,16 +10,16 @@ Use this template at the start of each Jira ticket (`SCRUM-35`) to decide exactl
 
 ## Impact Matrix
 
-| $(Repo) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(---) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchi.Api) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchiCore.Abstractions) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchiCore.Web) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.DTOs) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Services) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Repository) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Models) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
+|---|---|---|---|---|---|---|
+| `DocuArchiCore` | `yes` | `Documentacion tecnica y reubicacion de docs DynamicUiTable` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchi.Api` | `no` | `Sin cambios de runtime/API para SCRUM-35` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Abstractions` | `no` | `Sin cambios de contratos transversales` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Web` | `no` | `No se requiere cambio de codigo web, solo guia documental` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.DTOs` | `no` | `Sin cambios de DTO en este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.Services` | `no` | `Componente ya implementado en SCRUM-34; se documenta en DocuArchiCore` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.Repository` | `no` | `Sin cambios de repositorio para este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.Models` | `no` | `Sin cambios de modelo para este ticket` | `n/a` | `n/a` | `n/a` | `n_a` |
 
 ## Operating Rule
 
@@ -29,9 +29,5 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 
 ## Typical API Change Pattern
 
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
-- `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+- `DocuArchiCore`: yes (scope documental)
+- Demas repos: no (sin cambios de codigo en SCRUM-35)
