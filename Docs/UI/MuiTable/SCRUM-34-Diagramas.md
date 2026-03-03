@@ -1,4 +1,6 @@
-# SCRUM-34 - Diagramas de Analisis
+# SCRUM-34 - Diagramas de Analisis (Reubicado en SCRUM-35)
+
+> Documento movido desde `Docs/Radicacion/Tramite` a `Docs/UI/MuiTable` como parte del ticket SCRUM-35.
 
 ## Caso de uso
 

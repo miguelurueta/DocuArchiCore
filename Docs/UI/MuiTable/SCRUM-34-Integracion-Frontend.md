@@ -1,4 +1,4 @@
-# SCRUM-34 - Guia de Integracion Frontend
+# SCRUM-34 - Guia de Integracion Frontend (Actualizada en SCRUM-35)
 
 ## Endpoints
 
@@ -14,10 +14,10 @@
 
 ```json
 {
-  "tableId": "default",
+  "tableId": "radicadosPendientes",
   "page": 1,
   "pageSize": 25,
-  "sortField": "id",
+  "sortField": "fecha_registro",
   "sortDir": "asc",
   "search": "",
   "includeConfig": true,
@@ -29,17 +29,18 @@
 Notas:
 - `defaultDbAlias` no se envia desde frontend; el backend lo toma del claim `defaulalias`.
 - Si usas wrapper por modulo, puedes omitir `tableId`; el backend usa `{modulo}` como fallback.
-- `sortField` debe existir dentro de columnas permitidas; si no, retorna validacion.
+- `sortField` debe existir dentro de columnas permitidas por el handler; si no, retorna validacion.
+- Claims de seguridad (`role`, `permission`, `permiso`) se derivan del token y se reflejan en `userClaims`.
 
 ## Request action
 
 ```json
 {
-  "tableId": "default",
+  "tableId": "radicadosPendientes",
   "actionId": "openDetail",
-  "rowId": "123",
-  "columnKey": "acciones",
-  "selectedRowIds": ["123", "124"],
+  "rowId": "101",
+  "columnKey": "opciones",
+  "selectedRowIds": ["101", "102"],
   "payload": {
     "motivo": "Aprobado"
   }
@@ -58,29 +59,32 @@ Notas:
   "message": "OK",
   "errors": [],
   "data": {
-    "tableId": "default",
-    "title": "default",
+    "tableId": "radicadosPendientes",
+    "title": "radicadosPendientes",
     "columns": [
       {
-        "key": "id",
-        "columnName": "id",
-        "headerName": "Id",
+        "key": "consecutivo_radicado",
+        "columnName": "consecutivo_radicado",
+        "headerName": "Radicado",
         "dataType": "text",
         "renderType": "grid_text",
         "visible": true,
         "sortable": true,
         "order": 1,
-        "width": 120,
+        "width": 160,
         "align": "left",
         "isActionColumn": false
       }
     ],
     "rows": [
       {
-        "id": "123",
+        "id": "101",
         "values": {
-          "id": "123",
-          "asunto": "Radicado de prueba"
+          "id_estado_radicado": 101,
+          "consecutivo_radicado": "RAD-2026-000123",
+          "remitente": "Empresa ABC",
+          "fecha_registro": "2026-03-03T09:45:00",
+          "estado": 1
         },
         "meta": null
       }
@@ -89,14 +93,14 @@ Notas:
     "bulkActions": [],
     "rowActions": [],
     "cellActions": [],
-    "userClaims": ["radicacion.consultar"],
+    "userClaims": ["radicacion.consultar", "radicacion.gestionar"],
     "pagination": {
       "page": 1,
       "pageSize": 25,
       "total": 1
     },
     "sorting": {
-      "sortField": "id",
+      "sortField": "fecha_registro",
       "sortDir": "asc"
     }
   }
@@ -113,13 +117,16 @@ Notas:
   "message": "OK",
   "errors": [],
   "data": {
-    "tableId": "default",
+    "tableId": "radicadosPendientes",
     "rows": [
       {
-        "id": "123",
+        "id": "101",
         "values": {
-          "id": "123",
-          "asunto": "Radicado de prueba"
+          "id_estado_radicado": 101,
+          "consecutivo_radicado": "RAD-2026-000123",
+          "remitente": "Empresa ABC",
+          "fecha_registro": "2026-03-03T09:45:00",
+          "estado": 1
         }
       }
     ],
@@ -159,6 +166,7 @@ Notas:
 - `rowActions` / `toolbarActions` / `bulkActions` / `cellActions` -> render de botones/comandos.
 - `pagination.total` -> total de registros para paginador.
 - `sorting` -> estado de ordenamiento en UI.
+- Campos base de ejemplo para pendientes: `id_estado_radicado`, `consecutivo_radicado`, `remitente`, `fecha_registro`, `estado`.
 
 ## Ejemplo de consumo (TypeScript)
 
@@ -183,6 +191,38 @@ export async function queryDynamicTable(token: string, body: Record<string, unkn
   const payload = (await res.json()) as ApiResponse<unknown>;
   if (!payload.success) throw payload;
   return payload.data;
+}
+```
+
+## Ejemplo React + MUI DataGrid
+
+```tsx
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { useEffect, useState } from "react";
+
+export function RadicadosPendientesGrid({ token }: { token: string }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [columns, setColumns] = useState<GridColDef[]>([]);
+
+  useEffect(() => {
+    queryDynamicTable(token, {
+      tableId: "radicadosPendientes",
+      page: 1,
+      pageSize: 25,
+      sortField: "fecha_registro",
+      sortDir: "asc",
+      includeConfig: true
+    }).then((data: any) => {
+      setRows((data.rows || []).map((r: any) => ({ id: r.id, ...r.values })));
+      setColumns(
+        (data.columns || [])
+          .filter((c: any) => c.visible)
+          .map((c: any) => ({ field: c.key, headerName: c.headerName, flex: 1 }))
+      );
+    });
+  }, [token]);
+
+  return <DataGrid rows={rows} columns={columns} autoHeight disableRowSelectionOnClick />;
 }
 ```
 
