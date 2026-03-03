@@ -10,16 +10,16 @@ Use this template at the start of each Jira ticket (`SCRUM-34`) to decide exactl
 
 ## Impact Matrix
 
-| $(Repo) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(---) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchi.Api) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore.Abstractions) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchiCore.Web) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.DTOs) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Services) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Repository) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Models) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
+|---|---|---|---|---|---|---|
+| `DocuArchi.Api` | `yes` | `Endpoints genericos/especificos para query y action de tabla dinamica` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchiCore` | `yes` | `Coordinacion OpenSpec, docs tecnicos y evidencia` | `done` | `pending` | `pending` | `in_progress` |
+| `DocuArchiCore.Abstractions` | `no` | `Sin cambios cross-cutting confirmados en esta fase` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Web` | `yes` | `Guia de consumo frontend para tabla dinamica` | `pending` | `pending` | `pending` | `todo` |
+| `MiApp.DTOs` | `yes` | `DTOs UI/MuiTable (config, rows, acciones, request/response)` | `done` | `pending` | `pending` | `in_progress` |
+| `MiApp.Services` | `yes` | `Builder reusable, service generico y handlers por modulo` | `done` | `pending` | `pending` | `in_progress` |
+| `MiApp.Repository` | `yes` | `Repositorio de configuracion ui_table_columns y queries seguras` | `done` | `pending` | `pending` | `in_progress` |
+| `MiApp.Models` | `yes` | `Modelo de configuracion UI (si la tabla no existe en Models)` | `done` | `pending` | `pending` | `in_progress` |
 
 ## Operating Rule
 
@@ -35,3 +35,8 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 - `MiApp.DTOs`: usually yes
 - `MiApp.Models`: optional (only if model changes)
 - `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+
+## Notes
+
+- Se requiere definir estructura final de tabla de configuracion UI si no existe actualmente (`ui_table_columns`).
+- La implementacion se hara multi-repo: API + Service + Repository + DTOs + Docs.
