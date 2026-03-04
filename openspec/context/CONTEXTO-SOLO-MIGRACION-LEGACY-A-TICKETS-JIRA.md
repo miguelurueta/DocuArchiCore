@@ -101,3 +101,41 @@ La especificacion debe reflejar la version optimizada y arquitectonicamente corr
    - fecha de creacion,
    - descripcion de parametros,
    - descripcion del retorno de la funcion.
+
+## Especificacion guardada: rutas obligatorias de implementacion
+
+Referencia principal:
+- `Docs/MigracionCodigo/TiketJira/radicador/Registra_Radicacion_entrante/SCRUM-38-ticket-consolidado-Registra_Radicacion_entrante.md`
+
+Configuracion de rutas destino (obligatorio para IA):
+- API (Controller): `/Controllers/Radicacion/Tramite/`
+- Service: `/Services/Service/Radicacion/Tramite/`
+- Repository: `/Repositorio/Radicador/Tramite/`
+- DTO: `/DTOs/Radicacion/Tramite/`
+- Model: `/Models/Radicacion/Tramite/`
+- Mapping: `/Services/Mapping/Radicacion/Tramite/`
+- Tests unitarios/integracion: `/tests/TramiteDiasVencimiento.Tests/`
+- Documentacion tecnica y diagramas: `/Docs/Radicacion/Tramite/`
+
+Reglas de uso:
+1. Si la carpeta no existe, crearla respetando el patron del repositorio.
+2. Toda clase nueva debe ubicarse solo en su capa correspondiente.
+3. No mezclar implementacion de negocio en Controller ni SQL en Service.
+
+## Convencion de nomenclatura para funciones migradas
+
+Aplicar `PascalCase` en:
+- clases,
+- metodos,
+- propiedades,
+- DTOs,
+- interfaces.
+
+Aplicar `camelCase` en:
+- variables.
+
+## Regla para APIs de registro
+
+- En tickets/especificaciones de APIs de registro NO especificar un `SCRUM-*` fijo.
+- El identificador oficial del ticket lo asigna Jira.
+- Usar titulo/descripcion funcional neutral hasta que Jira asigne el codigo.

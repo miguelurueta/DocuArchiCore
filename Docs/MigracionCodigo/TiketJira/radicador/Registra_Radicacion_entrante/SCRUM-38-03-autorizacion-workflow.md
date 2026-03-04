@@ -49,3 +49,14 @@ Criterios de aceptación:
 2. Separación de responsabilidades y bajo acoplamiento.
 3. Código testeable y reusable.
 4. Validación y seguridad de datos obligatoria.
+
+## Reglas obligatorias del entorno de migracion (actualizado)
+
+1. Mantener SoC, bajo acoplamiento y alta cohesion.
+2. Cumplir principios SOLID.
+3. Agregar diagramas de casos de uso, clases, secuencia y estado en `/Docs/Radicacion/Tramite`.
+4. Incluir documentacion tecnica para frontend: descripcion del DTO, parametros de envio y direccion de la API.
+5. Agregar comentarios en todas las funciones con:
+   - fecha de creacion,
+   - descripcion de parametros,
+   - descripcion de retorno.

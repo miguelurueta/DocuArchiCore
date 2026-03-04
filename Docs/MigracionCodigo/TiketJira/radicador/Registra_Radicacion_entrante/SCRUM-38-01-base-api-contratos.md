@@ -1,51 +1,76 @@
-﻿# Ticket 1 - Base API y contratos
+﻿# Ticket 1 - Base API y contratos (Registra_Radicacion_entrante)
 
-Objetivo:
-Implementar base de migración con endpoint inicial, contratos de entrada/salida y respuesta estándar.
+## Contexto
 
-## Configuración técnica cerrada (aplica a todos los tickets)
+- Repositorio fuente: `D:\imagenesda\GestorDocumental\Desarrollo\Visual-2019\GestionDocumental-Docuarchi.net\GestionDocumental-Docuarchi.net`
+- Archivo fuente: `/radicador/ClassRadicador.vb`
+- Función fuente: `Registra_Radicacion_entrante`
+- Repositorio destino: `D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore`
 
-- Función origen: `Registra_Radicacion_entrante` en `/radicador/ClassRadicador.vb`.
-- Mapeo de conexión legacy -> base de datos destino:
-  - `conect.Dbase_Conction_Mysql` -> `workflowtconta` -> alias `WF` (`MySqlConnection_WF`).
-  - `conect.Dbase_Conction_Mysql_RA` -> `docuarchi` -> alias `DA` (`MySqlConnection_DA`).
-  - `conect.Dbase_Conction_Mysql_DA` -> `docuarchi` -> alias `DA` (`MySqlConnection_DA`).
-- Regla de implementación Repository:
-  - Identificar conector usado en función legacy.
-  - Traducir a alias (`WF` o `DA`).
-  - Ejecutar consultas parametrizadas con `QueryOptions.DefaultAlias = defaultDbAlias`.
-  - Retornar `AppResponses` en éxito/sin resultados/error.
-- Patrón obligatorio: `Controller -> Service -> Repository -> DTO/Model/Mapping -> Tests/Docs`.
+## Objetivo
 
-Alcance:
-1. Crear endpoint inicial de radicación entrante.
-2. Definir DTO request/response iniciales.
-3. Estandarizar respuesta AppResponses.
-4. Manejo controlado de errores en Controller (	ry/catch).
-5. Definir defaultDbAlias como dato de contexto de backend (claim/sesión), no por query string.
+Crear la base de migración para exponer el caso de uso de radicación entrante en arquitectura por capas (`Controller -> Service -> Repository`) con contratos estables y respuesta estándar (`AppResponses`).
 
-Criterios de aceptación:
-1. Endpoint responde estructura válida en éxito/error.
-2. Contratos documentados con comentarios XML.
-3. No contiene lógica de negocio en Controller.
-4. Queda listo para conectar Service del Ticket 2.
+## Reglas de migración aplicadas
+
+1. No replicar errores del legacy; documentar y aplicar corrección.
+2. Mantener consultas parametrizadas y validación de datos.
+3. Mapeo de conexión legacy:
+   - `conect.Dbase_Conction_Mysql` -> `workflowtconta` -> alias `WF`
+   - `conect.Dbase_Conction_Mysql_RA` -> `docuarchi` -> alias `DA`
+   - `conect.Dbase_Conction_Mysql_DA` -> `docuarchi` -> alias `DA`
+
+## Alcance funcional
+
+1. Definir endpoint base para registrar radicación entrante.
+2. Definir DTO de entrada y DTO de salida mínimos.
+3. Definir interfaz de servicio principal de migración.
+4. Estandarizar contrato de respuesta `AppResponses`.
+5. Manejo controlado de errores en Controller y Service (`try/catch`).
 
 ## Correcciones incluidas
 
-1. El ticket no replica defectos del legacy; define comportamiento corregido y verificable.
-2. Toda inconsistencia detectada en validaciones, flujo o persistencia se transforma en requisito de corrección técnica.
-3. Se exige implementación parametrizada, segura y trazable (sin SQL Injection, manejo controlado de errores).
+1. Evitar ambigüedad de tipo/valor en parámetros de flujo (sin mezclar `"null"` y `0`).
+2. Garantizar mensajes de error coherentes por etapa de validación.
+3. Preparar diseño para separar validación, autorización y persistencia (sin método monolítico).
 
-## Especificación de corrección
+## Requerimientos técnicos obligatorios
 
-1. Describir regla legacy actual + problema detectado.
-2. Definir regla objetivo corregida en el entorno nuevo.
-3. Incluir criterios de aceptación para comprobar la corrección.
-4. Incluir pruebas unitarias/integración asociadas a la corrección.
+1. Mantener SoC, bajo acoplamiento y alta cohesión.
+2. Cumplir principios SOLID.
+3. Comentarios en funciones con:
+   - fecha de creación,
+   - descripción de parámetros,
+   - descripción de retorno.
+4. Este ticket no ejecuta lógica SQL aún; prepara contratos para tickets siguientes.
 
-## Criterio de calidad aplicado
+## Criterios de aceptación
 
-1. Clean Architecture y principios SOLID.
-2. Separación de responsabilidades y bajo acoplamiento.
-3. Código testeable y reusable.
-4. Validación y seguridad de datos obligatoria.
+1. Existe endpoint base documentado y callable.
+2. Request/Response DTO definidos con campos mínimos del caso de uso.
+3. Service interface definida y conectada al controller.
+4. Todas las respuestas salen envueltas en `AppResponses`.
+5. Casos cubiertos: éxito, validación fallida y excepción controlada.
+
+## Pruebas requeridas
+
+1. Prueba unitaria de validación de request inválido.
+2. Prueba unitaria de flujo exitoso simulado.
+3. Prueba unitaria de excepción controlada.
+
+## Evidencia esperada en PR
+
+1. Código de Controller/Service/DTO base.
+2. Tests unitarios en verde.
+3. Documento técnico actualizado en `/Docs/MigracionCodigo`.
+
+## Reglas obligatorias del entorno de migracion (actualizado)
+
+1. Mantener SoC, bajo acoplamiento y alta cohesion.
+2. Cumplir principios SOLID.
+3. Agregar diagramas de casos de uso, clases, secuencia y estado en `/Docs/Radicacion/Tramite`.
+4. Incluir documentacion tecnica para frontend: descripcion del DTO, parametros de envio y direccion de la API.
+5. Agregar comentarios en todas las funciones con:
+   - fecha de creacion,
+   - descripcion de parametros,
+   - descripcion de retorno.
