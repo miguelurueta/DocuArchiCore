@@ -139,3 +139,10 @@ Aplicar `camelCase` en:
 - En tickets/especificaciones de APIs de registro NO especificar un `SCRUM-*` fijo.
 - El identificador oficial del ticket lo asigna Jira.
 - Usar titulo/descripcion funcional neutral hasta que Jira asigne el codigo.
+
+## Regla para funciones que llenan tablas (frontend MUI)
+
+- Toda funcion que retorne datos para llenar tablas debe integrar:
+  1. `DynamicUiTable` (estructura/metadata de tabla para frontend),
+  2. `DapperCrudEngine` (consulta de datos en backend).
+- Aplica para frontend tipo tabla o `data-grid` MUI.
