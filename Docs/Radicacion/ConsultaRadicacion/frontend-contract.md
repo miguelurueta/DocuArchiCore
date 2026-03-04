@@ -27,6 +27,11 @@
   - `Rows`: registros con `id` y `Values`
   - `RowActions`: acciones por fila segun `TipoModuloDeConsulta`
 
+## Nota SCRUM-38
+
+- La columna `estado_validacion` ya no se incluye en `Columns` cuando `TipoModuloDeConsulta = 1`.
+- El frontend no debe depender de esa clave para renderizado o validacion.
+
 ## Manejo en UI
 
 1. Enviar `TextoBuscado` con debounce.
