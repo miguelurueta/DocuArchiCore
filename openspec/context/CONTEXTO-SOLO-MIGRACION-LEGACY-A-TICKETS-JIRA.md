@@ -90,3 +90,14 @@ La especificacion debe reflejar la version optimizada y arquitectonicamente corr
   2. ejecutar merge,
   3. usar la conexion del entorno para operaciones de repositorio remoto.
 - Sin confirmacion explicita, no se ejecuta PR ni merge.
+
+## Requerimientos obligatorios para tickets de migracion
+
+7. Mantener SoC, bajo acoplamiento y alta cohesion.
+8. Cumplir principios SOLID.
+9. Agregar diagramas de casos de uso, clases, secuencia y estado en `/Docs/Radicacion/Tramite`.
+10. Incluir documentacion tecnica para frontend: descripcion del DTO, parametros de envio y direccion de la API.
+11. Agregar comentarios en todas las funciones con:
+   - fecha de creacion,
+   - descripcion de parametros,
+   - descripcion del retorno de la funcion.
