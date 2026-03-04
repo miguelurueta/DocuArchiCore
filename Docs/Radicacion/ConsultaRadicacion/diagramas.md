@@ -1,4 +1,4 @@
-# Diagramas SCRUM-37
+# Diagramas SCRUM-37 / SCRUM-38
 
 ## Caso de uso
 
@@ -69,3 +69,8 @@ stateDiagram-v2
     SinResultados --> [*]
     Exito --> [*]
 ```
+
+## Ajuste SCRUM-38
+
+- `BuildColumns` elimina la adicion condicional de `estado_validacion` para `TipoModuloDeConsulta = 1`.
+- Se mantienen intactas columnas base, columnas dinamicas y acciones por fila.
