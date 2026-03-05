@@ -36,7 +36,7 @@
 - [x] 4.3 Implementar pruebas de contrato para endpoints API.
 - [x] 4.4 Ejecutar `dotnet test` (o dejar evidencia de skip justificado).
 - [x] 4.5 Validar cambio con `openspec.cmd validate scrum-42-crea-api-radicacion`.
-- [ ] 4.6 Archivar con OpenSpec solo despues de merge de PRs impactados.
+- [x] 4.6 Archivar con OpenSpec solo despues de merge de PRs impactados.
 
 ## Notas de ejecucion
 
