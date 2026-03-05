@@ -22,11 +22,11 @@
   - rollback total si falla cualquier paso.
   - Q09 condicional segun rama funcional.
 - [x] 3.5 Registrar interfaces en Program.cs (Services/Repositories/Mapping).
-- [ ] 3.6 Verificar compilacion local por repo impactado.
+- [x] 3.6 Verificar compilacion local por repo impactado.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar pruebas unitarias:
+- [x] 4.1 Implementar pruebas unitarias:
   - validaciones de request
   - reglas de negocio
   - propagacion de `defaultDbAlias`.
