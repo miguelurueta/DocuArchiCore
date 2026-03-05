@@ -16,7 +16,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var repository = new RegistrarRadicacionEntranteRepository(factory);
 
         var result = await repository.RegistrarRadicacionEntranteAsync(
-            BuildRequest("ENTRANTE"),
+            BuildRequest("ENTRANTE", esRelacionado: true),
             55,
             "DA");
 
@@ -25,7 +25,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.NotNull(factory.LastConnection!.LastTransaction);
         Assert.True(factory.LastConnection.LastTransaction!.Committed);
         Assert.False(factory.LastConnection.LastTransaction.RolledBack);
-        Assert.Equal(["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08"], factory.LastConnection.ExecutedSteps);
+        Assert.Equal(["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q08"], factory.LastConnection.ExecutedSteps);
     }
 
     [Fact]
@@ -61,18 +61,20 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
         Assert.Equal(
-            ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08", "Q09"],
+            ["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q08", "Q09"],
             factory.LastConnection!.ExecutedSteps);
     }
 
-    private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion)
+    private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion, bool esRelacionado = false)
     {
         return new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 100,
             TipoRadicacion = tipoRadicacion,
             Asunto = "Asunto",
-            Remitente = "Remitente"
+            Remitente = "Remitente",
+            EsRelacionado = esRelacionado,
+            RadicadosRelacionados = esRelacionado ? [777] : []
         };
     }
 
@@ -183,10 +185,9 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         protected override DbTransaction? DbTransaction { get; set; }
 
         public override void Cancel() { }
-        public override int ExecuteNonQuery() => 1;
         public override object? ExecuteScalar()
         {
-            var stepName = Convert.ToString(_parameters.GetByAnyName("stepName")?.Value) ?? string.Empty;
+            var stepName = ExtractStepName(CommandText);
             if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
@@ -197,12 +198,47 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
                 _connection.ExecutedSteps.Add(stepName);
             }
 
-            return stepName;
+            return stepName == "Q01" ? 10 : 1;
+        }
+
+        public override int ExecuteNonQuery()
+        {
+            var stepName = ExtractStepName(CommandText);
+            if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                _connection.ExecutedSteps.Add(stepName);
+            }
+
+            return 1;
         }
 
         protected override DbParameter CreateDbParameter() => new FakeDbParameter();
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) => throw new NotSupportedException();
         public override void Prepare() { }
+
+        private static string ExtractStepName(string commandText)
+        {
+            if (string.IsNullOrWhiteSpace(commandText))
+            {
+                return string.Empty;
+            }
+
+            var markers = new[] { "Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08", "Q09" };
+            foreach (var marker in markers)
+            {
+                if (commandText.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return marker;
+                }
+            }
+
+            return string.Empty;
+        }
     }
 
     private sealed class FakeDbParameter : DbParameter

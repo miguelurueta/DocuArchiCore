@@ -65,6 +65,32 @@ public sealed class RadicacionControllerContractTests
     }
 
     [Fact]
+    public async Task RegistrarEntrante_CuandoFaltaUsuarioIdClaim_RetornaBadRequest()
+    {
+        var claimService = new Mock<IClaimValidationService>();
+        claimService
+            .Setup(c => c.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA" });
+        claimService
+            .Setup(c => c.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string>
+            {
+                Success = false,
+                ClaimValue = null,
+                Response = new AppResponses<string> { success = false, message = "sin usuarioid", data = string.Empty }
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            Mock.Of<IRegistrarRadicacionEntranteService>(),
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>());
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
     public async Task FlujoInicial_CuandoServiceOk_RetornaOkConContrato()
     {
         var claimService = BuildClaimService("DA", "10");
