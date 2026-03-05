@@ -10,16 +10,22 @@ Use this template at the start of each Jira ticket (`SCRUM-42`) to decide exactl
 
 ## Impact Matrix
 
-| $(Repo) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(---) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchi.Api) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore.Abstractions) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchiCore.Web) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.DTOs) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Services) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Repository) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Models) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| Repo | Impacta? | Motivo | opsxj:new | PR | opsxj:archive | Estado |
+|---|---|---|---|---|---|---|
+| DocuArchi.Api | yes | Endpoint/controller de radicacion + integracion API | blocked (local changes) | pending | pending | in-progress |
+| DocuArchiCore | yes | Repo orquestador de Jira/Git/OpenSpec para SCRUM-42 | done | existing | pending | in-progress |
+| DocuArchiCore.Abstractions | no | Fuera de alcance del ticket actual | n/a | n/a | n/a | n/a |
+| DocuArchiCore.Web | yes | No tiene `Tools/jira-open`; aplicar por flujo orquestado | blocked (no tooling) | pending | pending | in-progress |
+| MiApp.DTOs | yes | Contratos DTO de request/response de radicacion | blocked (orquestado en DocuArchiCore) | pending | pending | in-progress |
+| MiApp.Services | yes | Servicios de validacion/registro/flujo | blocked (orquestado en DocuArchiCore) | pending | pending | in-progress |
+| MiApp.Repository | yes | Repositorios Q01-Q09 y transaccion | blocked (orquestado en DocuArchiCore) | pending | pending | in-progress |
+| MiApp.Models | yes | Modelos persistidos relacionados con radicacion | blocked (orquestado en DocuArchiCore) | pending | pending | in-progress |
+
+## Operational Decision (SCRUM-42)
+
+1. `DocuArchiCore` se define como repositorio orquestador para `opsxj:new` y conexion Jira/Git.
+2. Los repos impactados se atienden por implementacion coordinada desde el cambio orquestador, preservando sus working trees locales.
+3. No ejecutar limpieza destructiva en repos hijos con trabajo activo; usar stash temporal solo cuando sea estrictamente necesario y restaurar inmediatamente.
 
 ## Operating Rule
 
