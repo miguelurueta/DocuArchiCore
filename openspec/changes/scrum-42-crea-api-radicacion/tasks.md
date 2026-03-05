@@ -13,6 +13,7 @@
 ## 3. Application
 
 - [x] 3.0 Publicar playbook tecnico de implementacion multi-repo (`implementation-playbook.md`).
+- [x] 3.0.1 Publicar checkpoint operativo de continuidad (`application-checkpoint.md`).
 - [ ] 3.1 Implementar `POST /api/radicacion/registrar-entrante` (Controller + Service + Repository).
 - [ ] 3.2 Implementar `POST /api/radicacion/validar-entrante`.
 - [ ] 3.3 Implementar `GET /api/radicacion/flujo-inicial`.
