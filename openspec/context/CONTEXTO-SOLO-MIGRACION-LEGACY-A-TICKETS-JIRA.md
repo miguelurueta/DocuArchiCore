@@ -16,10 +16,13 @@ Reglas acordadas:
 2. Generar ticket/documentacion en la ruta que indique el usuario.
 3. Priorizar separacion por tickets por etapas para funciones monoliticas.
 4. No corregir legacy en esta fase; documentar migracion y plan de implementacion.
+5. Atomicidad obligatoria en operaciones multi-tabla: si no se completan todos los registros del bloque transaccional, no se confirma la transaccion (rollback total).
+6. Toda migracion debe generar obligatoriamente tres artefactos: Plan de Migracion, Especificacion Consolidada y Ticket Jira consolidado basado en ambos documentos.
 
 ## Definiciones cerradas para implementar (3 puntos)
 
 ### 1) Schema / base de datos objetivo por funcion legacy
+
 Usar la conexion del contexto actual y mapear la base objetivo segun el conector legado detectado en cada funcion:
 - Si la funcion usa `conect.Dbase_Conction_Mysql` -> apunta a BD `workflowtconta`.
 - Si la funcion usa `conect.Dbase_Conction_Mysql_RA` -> apunta a BD `docuarchi`.
@@ -30,13 +33,16 @@ Equivalencia esperada en entorno actual (aliases):
 - `docuarchi` -> alias/connection string tipo `MySqlConnection_DA`.
 
 ### 2) Queries / reglas exactas de negocio por funcion
+
 Para cada funcion migrada:
 1. Identificar primero el conector legacy usado (`Dbase_Conction_Mysql`, `Dbase_Conction_Mysql_RA`, `Dbase_Conction_Mysql_DA`).
 2. Determinar BD destino con el mapeo anterior.
 3. Extraer query y reglas desde el codigo legacy respetando la BD asignada.
 4. Implementar query parametrizada en repository usando `QueryOptions.DefaultAlias` (sin SQL injection).
+5. En persistencia multi-tabla, aplicar regla de atomicidad todo-o-nada: cualquier fallo implica rollback completo sin registros parciales.
 
 ### 3) Ruta / capa destino definitiva en repo actual
+
 La implementacion se ejecuta obligatoriamente por capas:
 - `Controller -> Service -> Repository -> DTO/Model/Mapping -> Tests/Docs`.
 
@@ -44,7 +50,97 @@ La organizacion y orden de construccion queda regida por los tickets creados:
 - `SCRUM-38-01` a `SCRUM-38-07` en `C:\tike-jira\Radicacion`.
 
 ## Nota operativa
+
 Este contexto se usa como regla base para nuevas solicitudes de migracion del flujo `Registra_Radicacion_entrante` y funciones relacionadas.
+
+## Referencia de frontend en contexto actual
+
+- Proyecto frontend actual de referencia: `D:\imagenesda\GestorDocumental\DocuArchiCore.react`
+
+## Regla para funciones legacy con `As Page`
+
+- Para toda funcion legacy cuya firma reciba `As Page` (ejemplo: `ByRef Page1 As Page`), se debe migrar el origen de datos a contrato API enviado por frontend React.
+- Queda prohibido depender en backend de `FindControl`, controles WebForms (`Hidden`, `CheckBox`, `DropDownList`, etc.) o estado UI del servidor.
+- El backend debe recibir datos exclusivamente por:
+  1. Request DTO del endpoint (body),
+  2. Claims/sesion de autenticacion,
+  3. Servicios/repositorios internos.
+
+## Regla estricta sobre `Session.Item` y reemplazos legacy
+
+- Nunca utilizar variables `Session.Item` en implementaciones migradas.
+- No inventar ni asumir reemplazos de valores legacy sin fuente confirmada.
+- Cuando aparezca una dependencia legacy (`Session.Item`, `HttpContext.Current.Session`, `FindControl`, hidden fields), se debe detener el reemplazo y preguntar al usuario el origen real del dato.
+- La pregunta debe entregarse siempre con contexto funcional:
+  1. variable legacy exacta detectada,
+  2. uso en la logica (para que se necesita),
+  3. punto de entrada propuesto (claim, DTO, servicio, repositorio),
+  4. decision requerida al usuario.
+
+## Regla de Reconstruccion de Flujo Funcional (WebForms / JavaScript)
+
+Antes de generar el ticket de migracion o definir requerimientos funcionales, se debe reconstruir el flujo completo de la funcionalidad a migrar e identificar el contexto real desde donde se ejecuta.
+
+### 1) Identificacion del origen de la llamada
+
+Se debe identificar el punto real donde se dispara la funcionalidad, incluyendo:
+- Eventos del WebForm:
+  - `Page_Load`
+  - `Button_Click`
+  - `SelectedIndexChanged`
+  - eventos de `GridView`
+  - `PostBack`
+- Eventos JavaScript asociados al WebForm:
+  - `onclick`
+  - `onchange`
+  - `submit`
+  - llamadas `ajax`
+  - funciones JavaScript vinculadas al formulario
+
+### 2) Reconstruccion del flujo completo
+
+Se debe analizar el recorrido completo de ejecucion:
+
+UI (WebForm / JavaScript)
+-> Evento del formulario
+-> Llamada a metodo backend
+-> Logica de negocio
+-> Consulta a base de datos
+-> Respuesta backend
+-> Actualizacion de UI
+
+El analisis debe identificar:
+- validaciones en frontend,
+- validaciones en backend,
+- transformacion de datos,
+- dependencias entre controles del formulario,
+- comportamiento dinamico de la interfaz.
+
+### 3) Comprension del objetivo funcional
+
+Se debe explicar el proposito funcional de la funcion dentro del flujo del formulario, incluyendo:
+- que problema resuelve,
+- en que momento del proceso del formulario se ejecuta,
+- que datos consume,
+- que datos produce,
+- que componentes dependen del resultado.
+
+### 4) Regla para generacion del ticket
+
+El ticket no debe basarse solo en el codigo del metodo; debe basarse en el flujo completo reconstruido.
+
+Esto garantiza:
+- comprension correcta de la funcionalidad original,
+- preservacion del comportamiento esperado durante la migracion,
+- eliminacion de dependencias implicitas de WebForms.
+
+### 5) Integracion con OpenSpec
+
+El ticket generado debe integrarse completamente con el modelo OpenSpec del proyecto, incluyendo:
+- contexto funcional basado en flujo reconstruido,
+- requerimientos funcionales derivados del flujo,
+- requerimientos tecnicos alineados con la nueva arquitectura,
+- pruebas basadas en el comportamiento real del flujo.
 
 ## Reglas de calidad para migracion de codigo
 
@@ -65,6 +161,7 @@ Este contexto se usa como regla base para nuevas solicitudes de migracion del fl
 - Aplicar buenas practicas de ingenieria de software en la propuesta.
 
 ### 5) Mejora arquitectonica obligatoria
+
 El ticket debe promover implementacion alineada con:
 - Clean Architecture.
 - Principios SOLID.
@@ -74,6 +171,7 @@ El ticket debe promover implementacion alineada con:
 - Seguridad y validacion adecuada de datos.
 
 ### Regla final
+
 La especificacion debe reflejar la version optimizada y arquitectonicamente correcta del codigo migrado, no una copia literal del codigo existente.
 
 ## Regla de salida de tickets generados en exploracion
@@ -95,8 +193,6 @@ La especificacion debe reflejar la version optimizada y arquitectonicamente corr
 
 7. Mantener SoC, bajo acoplamiento y alta cohesion.
 8. Cumplir principios SOLID.
-9. Agregar diagramas de casos de uso, clases, secuencia y estado en `/Docs/Radicacion/Tramite`.
-10. Incluir documentacion tecnica para frontend: descripcion del DTO, parametros de envio y direccion de la API.
 11. Agregar comentarios en todas las funciones con:
    - fecha de creacion,
    - descripcion de parametros,
@@ -112,8 +208,6 @@ Configuracion de rutas destino (obligatorio para IA):
 - Service: `/Services/Service/Radicacion/Tramite/`
 - Repository: `/Repositorio/Radicador/Tramite/`
 - DTO: `/DTOs/Radicacion/Tramite/`
-- Model: `/Models/Radicacion/Tramite/`
-- Mapping: `/Services/Mapping/Radicacion/Tramite/`
 - Tests unitarios/integracion: `/tests/TramiteDiasVencimiento.Tests/`
 - Documentacion tecnica y diagramas: `/Docs/Radicacion/Tramite/`
 
@@ -130,11 +224,7 @@ Aplicar `PascalCase` en:
 - propiedades,
 - DTOs,
 - interfaces.
-
-Aplicar `camelCase` en:
 - variables.
-
-## Regla para APIs de registro
 
 - En tickets/especificaciones de APIs de registro NO especificar un `SCRUM-*` fijo.
 - El identificador oficial del ticket lo asigna Jira.
@@ -146,3 +236,29 @@ Aplicar `camelCase` en:
   1. `DynamicUiTable` (estructura/metadata de tabla para frontend),
   2. `DapperCrudEngine` (consulta de datos en backend).
 - Aplica para frontend tipo tabla o `data-grid` MUI.
+
+## Regla principal de planificacion previa (obligatoria)
+
+Antes de generar cualquier ticket Jira u OpenSpec de implementacion, se debe entregar primero un `PLAN DE MIGRACION PROPUESTO` y esperar aprobacion explicita del usuario.
+
+## Regla de conservación del plan (obligatoria)
+
+1. El `PLAN DE MIGRACION PROPUESTO` debe conservarse siempre en version detallada.
+2. No reemplazar el plan detallado por resúmenes o versiones reducidas.
+3. Toda ampliación del plan debe integrarse sobre la versión detallada existente, manteniendo fases, matrices y pendientes explícitos.
+4. Si el usuario solicita visualizar el plan, se debe mostrar en formato detallado completo.
+
+## Fases minimas obligatorias del plan de migracion
+
+1. Inventario de funciones legacy del flujo.
+2. Reconstruccion del flujo funcional end-to-end.
+3. Conversion de parametros legacy a DTO.
+4. Mapeo de queries a repository (con alias DB).
+5. Mapeo legacy -> arquitectura target.
+6. Endpoints API propuestos.
+7. Dependencias legacy y reemplazo.
+8. Riesgos tecnicos y mitigaciones.
+
+## Regla obligatoria para Fase 1 (Inventario)
+
+El inventario debe cubrir el 100% de funciones relacionadas al flujo migrado (funcion principal, dependencias directas e indirectas de negocio/infra). No se permite cerrar el plan con inventario parcial.

@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\DocuArchi.Api\DocuArchi.Api.csproj" />
     <ProjectReference Include="..\..\..\MiApp.Repository\MiApp.Repository.csproj" />
     <ProjectReference Include="..\..\..\MiApp.Services\MiApp.Services.csproj" />
     <ProjectReference Include="..\..\..\MiApp.DTOs\MiApp.DTOs.csproj" />
