@@ -25,7 +25,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.NotNull(factory.LastConnection!.LastTransaction);
         Assert.True(factory.LastConnection.LastTransaction!.Committed);
         Assert.False(factory.LastConnection.LastTransaction.RolledBack);
-        Assert.Equal(["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q08"], factory.LastConnection.ExecutedSteps);
+        Assert.Equal(["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08"], factory.LastConnection.ExecutedSteps);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var repository = new RegistrarRadicacionEntranteRepository(factory);
 
         var result = await repository.RegistrarRadicacionEntranteAsync(
-            BuildRequest("ENTRANTE"),
+            BuildRequest("ENTRANTE", esRelacionado: true),
             55,
             "DA");
 
@@ -218,7 +218,25 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         }
 
         protected override DbParameter CreateDbParameter() => new FakeDbParameter();
-        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) => throw new NotSupportedException();
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+        {
+            var stepName = ExtractStepName(CommandText);
+            if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                _connection.ExecutedSteps.Add(stepName);
+            }
+
+            var table = new DataTable();
+            table.Columns.Add("ConsecutivoRad", typeof(int));
+            table.Columns.Add("ConsecutivoCodBarra", typeof(int));
+            table.Rows.Add(10, 10);
+            return table.CreateDataReader();
+        }
         public override void Prepare() { }
 
         private static string ExtractStepName(string commandText)
