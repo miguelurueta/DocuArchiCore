@@ -1,0 +1,108 @@
+using DocuArchi.Api.Controllers.Radicacion.Tramite;
+using MiApp.DTOs.DTOs.Radicacion.Tramite;
+using MiApp.DTOs.DTOs.Utilidades;
+using MiApp.Services.Service.Radicacion.Tramite;
+using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using Xunit;
+
+namespace TramiteDiasVencimiento.Tests;
+
+public sealed class RadicacionControllerContractTests
+{
+    [Fact]
+    public async Task RegistrarEntrante_CuandoClaimsValidosYServiceOk_RetornaOkConContrato()
+    {
+        var claimService = BuildClaimService("DA", "10");
+        var registrar = new Mock<IRegistrarRadicacionEntranteService>();
+        var validar = new Mock<IValidarRadicacionEntranteService>();
+        var flujo = new Mock<IFlujoInicialRadicacionService>();
+
+        registrar
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA"))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
+            {
+                success = true,
+                message = "OK",
+                data = new RegistrarRadicacionEntranteResponseDto
+                {
+                    ConsecutivoRadicado = "RAD-001"
+                },
+                errors = []
+            });
+
+        var controller = new RadicacionController(claimService.Object, registrar.Object, validar.Object, flujo.Object);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
+        Assert.True(payload.success);
+        Assert.Equal("RAD-001", payload.data.ConsecutivoRadicado);
+    }
+
+    [Fact]
+    public async Task RegistrarEntrante_CuandoFaltaAliasClaim_RetornaBadRequest()
+    {
+        var claimService = new Mock<IClaimValidationService>();
+        claimService
+            .Setup(c => c.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string>
+            {
+                Success = false,
+                ClaimValue = null,
+                Response = new AppResponses<string> { success = false, message = "sin alias", data = string.Empty }
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            Mock.Of<IRegistrarRadicacionEntranteService>(),
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>());
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task FlujoInicial_CuandoServiceOk_RetornaOkConContrato()
+    {
+        var claimService = BuildClaimService("DA", "10");
+        var flujo = new Mock<IFlujoInicialRadicacionService>();
+        flujo
+            .Setup(s => s.ObtenerFlujoInicialAsync(5, "DA"))
+            .ReturnsAsync(new AppResponses<FlujoInicialDto>
+            {
+                success = true,
+                message = "OK",
+                data = new FlujoInicialDto { IdTipoTramite = 5, CodigoFlujo = "FLUJO-5", ActividadInicial = "Radicar" },
+                errors = []
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            Mock.Of<IRegistrarRadicacionEntranteService>(),
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            flujo.Object);
+
+        var result = await controller.FlujoInicial(5);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<AppResponses<FlujoInicialDto>>(ok.Value);
+        Assert.True(payload.success);
+        Assert.Equal("FLUJO-5", payload.data.CodigoFlujo);
+    }
+
+    private static Mock<IClaimValidationService> BuildClaimService(string alias, string usuarioId)
+    {
+        var claimService = new Mock<IClaimValidationService>();
+        claimService
+            .Setup(c => c.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = alias });
+        claimService
+            .Setup(c => c.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = usuarioId });
+
+        return claimService;
+    }
+}
