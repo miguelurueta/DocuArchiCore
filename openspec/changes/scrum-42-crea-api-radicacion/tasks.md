@@ -30,10 +30,10 @@
   - validaciones de request
   - reglas de negocio
   - propagacion de `defaultDbAlias`.
-- [ ] 4.2 Implementar pruebas de integracion transaccional:
+- [x] 4.2 Implementar pruebas de integracion transaccional:
   - commit exitoso
   - rollback total ante fallo Q01-Q08.
-- [ ] 4.3 Implementar pruebas de contrato para endpoints API.
+- [x] 4.3 Implementar pruebas de contrato para endpoints API.
 - [x] 4.4 Ejecutar `dotnet test` (o dejar evidencia de skip justificado).
 - [x] 4.5 Validar cambio con `openspec.cmd validate scrum-42-crea-api-radicacion`.
 - [ ] 4.6 Archivar con OpenSpec solo despues de merge de PRs impactados.
