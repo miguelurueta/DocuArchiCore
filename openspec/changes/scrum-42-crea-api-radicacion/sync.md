@@ -10,16 +10,16 @@ Use this template at the start of each Jira ticket (`SCRUM-42`) to decide exactl
 
 ## Impact Matrix
 
-| Repo | Impacta? | Motivo | opsxj:new | PR | opsxj:archive | Estado |
-|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | Definir alcance de controller/endpoint radicacion | pending | pending | pending | todo |
-| DocuArchiCore | yes | Repo coordinador de artefactos OpenSpec y documentacion | done | n/a | pending | in-progress |
-| DocuArchiCore.Abstractions | no | Fuera de alcance segun ticket actual | n/a | n/a | n/a | n/a |
-| DocuArchiCore.Web | yes | Definir alcance frontend de consumo API | pending | pending | pending | todo |
-| MiApp.DTOs | yes | Definir DTOs request/response de radicacion | pending | pending | pending | todo |
-| MiApp.Services | yes | Definir servicios de validacion/registro/flujo | pending | pending | pending | todo |
-| MiApp.Repository | yes | Definir repositorios Q01-Q09 y transaccion | pending | pending | pending | todo |
-| MiApp.Models | yes | Definir cambios de modelos persistidos | pending | pending | pending | todo |
+| $(Repo) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
+| $(---) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
+| $(DocuArchi.Api) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(DocuArchiCore) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(DocuArchiCore.Abstractions) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
+| $(DocuArchiCore.Web) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(MiApp.DTOs) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(MiApp.Services) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(MiApp.Repository) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| $(MiApp.Models) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
 
 ## Operating Rule
 
