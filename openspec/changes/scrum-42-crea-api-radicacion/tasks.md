@@ -8,7 +8,7 @@
 
 - [x] 2.1 Completar specs/jira-scrum-42/spec.md con requisitos finales.
 - [x] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Agregar requisitos de endpoints, atomicidad y alias DB con escenarios testables.
+- [x] 2.3 Agregar requisitos de endpoints, atomicidad y alias DB con escenarios testables.
 
 ## 3. Application
 
