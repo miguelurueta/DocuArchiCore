@@ -1,6 +1,8 @@
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestorDocumental.usuario;
+using MiApp.Models.Models.Radicacion.PlantillaRadicado;
+using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using MiApp.Services.Service.Radicacion.Tramite;
 using MiApp.Services.Service.Usuario;
@@ -15,6 +17,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     public async Task RegistrarRadicacionEntranteAsync_CuandoRequestValido_RetornaSuccess()
     {
         var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
         var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
 
         remitRepo
@@ -26,8 +29,21 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 data = BuildRemitDestInterno(55)
             });
 
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
+            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado>
+            {
+                Success = true,
+                Message = "YES",
+                Data = BuildPlantilla(100)
+            });
+
         registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, "DA"))
+            .Setup(r => r.RegistrarRadicacionEntranteAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                55,
+                "DA",
+                It.IsAny<SystemPlantillaRadicado>()))
             .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
             {
                 success = true,
@@ -35,7 +51,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 data = new RegistrarRadicacionEntranteResponseDto { ConsecutivoRadicado = "RAD-TEST-1" }
             });
 
-        var service = new RegistrarRadicacionEntranteService(remitRepo.Object, registrarRepo.Object);
+        var service = new RegistrarRadicacionEntranteService(remitRepo.Object, plantillaRepo.Object, registrarRepo.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -55,6 +71,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     {
         var service = new RegistrarRadicacionEntranteService(
             Mock.Of<IRemitDestInternoR>(),
+            Mock.Of<ISystemPlantillaRadicadoR>(),
             Mock.Of<IRegistrarRadicacionEntranteRepository>());
 
         var result = await service.RegistrarRadicacionEntranteAsync(
@@ -70,6 +87,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     public async Task RegistrarRadicacionEntranteAsync_PropagaAliasYUsuarioRadicadorAlRepositorio()
     {
         var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
         var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
 
         remitRepo
@@ -81,11 +99,21 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 data = BuildRemitDestInterno(77)
             });
 
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(10, "DA"))
+            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado>
+            {
+                Success = true,
+                Message = "YES",
+                Data = BuildPlantilla(10)
+            });
+
         registrarRepo
             .Setup(r => r.RegistrarRadicacionEntranteAsync(
                 It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
                 77,
-                "DA"))
+                "DA",
+                It.IsAny<SystemPlantillaRadicado>()))
             .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
             {
                 success = true,
@@ -93,7 +121,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 data = new RegistrarRadicacionEntranteResponseDto()
             });
 
-        var service = new RegistrarRadicacionEntranteService(remitRepo.Object, registrarRepo.Object);
+        var service = new RegistrarRadicacionEntranteService(remitRepo.Object, plantillaRepo.Object, registrarRepo.Object);
         var request = new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 10,
@@ -105,7 +133,34 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var result = await service.RegistrarRadicacionEntranteAsync(request, 25, "DA");
 
         Assert.True(result.success);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(request, 77, "DA"), Times.Once);
+        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(request, 77, "DA", It.IsAny<SystemPlantillaRadicado>()), Times.Once);
+    }
+
+    private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)
+    {
+        return new SystemPlantillaRadicado
+        {
+            id_Plantilla = idPlantilla,
+            Nombre_Plantilla_Radicado = "ra_plantilla_100",
+            Tipo_Plantilla = "RAD",
+            Fecha_Creacion = DateTime.UtcNow,
+            Estado_Plantilla = 1,
+            Consecutivo_Rad = 10,
+            Consecutivo_CodBarra = 10,
+            util_activo_plantilla_flujo = 1,
+            Util_activo_plantilla_default_rad_interno = 0,
+            util_evalua_periodo_general = 0,
+            utill_evalua_periodo_pqr = 0,
+            util_evalua_periodo_interno = 0,
+            util_evalua_festivo = 0,
+            util_tipo_modulo_envio = 0,
+            util_consecutivo_general = 0,
+            util_default_simple = 0,
+            util_estado_pendiente_rad = 0,
+            utilIncuyeConsecutivoArea = 0,
+            utilConseTipoRad = 0,
+            util_default_radicado = 1
+        };
     }
 
     private static RemitDestInterno BuildRemitDestInterno(int idUsuarioRadicacion)

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
+using MiApp.Models.Models.Radicacion.PlantillaRadicado;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using Xunit;
@@ -18,7 +19,8 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("ENTRANTE", esRelacionado: true),
             55,
-            "DA");
+            "DA",
+            BuildPlantilla(100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -37,7 +39,8 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("ENTRANTE", esRelacionado: true),
             55,
-            "DA");
+            "DA",
+            BuildPlantilla(100));
 
         Assert.False(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -56,7 +59,8 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("PQR"),
             55,
-            "DA");
+            "DA",
+            BuildPlantilla(100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -75,6 +79,33 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             Remitente = "Remitente",
             EsRelacionado = esRelacionado,
             RadicadosRelacionados = esRelacionado ? [777] : []
+        };
+    }
+
+    private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)
+    {
+        return new SystemPlantillaRadicado
+        {
+            id_Plantilla = idPlantilla,
+            Nombre_Plantilla_Radicado = "ra_plantilla_100",
+            Tipo_Plantilla = "RAD",
+            Fecha_Creacion = DateTime.UtcNow,
+            Estado_Plantilla = 1,
+            Consecutivo_Rad = 10,
+            Consecutivo_CodBarra = 10,
+            util_activo_plantilla_flujo = 1,
+            Util_activo_plantilla_default_rad_interno = 0,
+            util_evalua_periodo_general = 0,
+            utill_evalua_periodo_pqr = 0,
+            util_evalua_periodo_interno = 0,
+            util_evalua_festivo = 0,
+            util_tipo_modulo_envio = 0,
+            util_consecutivo_general = 0,
+            util_default_simple = 0,
+            util_estado_pendiente_rad = 0,
+            utilIncuyeConsecutivoArea = 0,
+            utilConseTipoRad = 0,
+            util_default_radicado = 1
         };
     }
 
