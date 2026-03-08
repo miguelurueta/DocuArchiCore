@@ -1,4 +1,4 @@
-﻿# Especificacion Consolidada
+﻿registra # Especificacion Consolidada
 ## Funcion objetivo
 - Componente fuente: `radicador`
 - Funcion legacy: `Registra_Radicacion_entrante`

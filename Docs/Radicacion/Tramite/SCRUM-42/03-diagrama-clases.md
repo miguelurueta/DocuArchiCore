@@ -21,7 +21,17 @@ classDiagram
     }
 
     class IRegistrarRadicacionEntranteRepository {
-      +RegistrarRadicacionEntranteAsync(request,idUsuarioRadicador,defaultDbAlias)
+      +RegistrarRadicacionEntranteAsync(request,idUsuarioRadicador,idUsuarioGestion,defaultDbAlias,ip,modulo,estructuraPlantilla,camposDinamicos,parametros,citaTipoDocEntrante)
+    }
+
+    class IRegistroRadicacionPolicyService {
+      +Evaluate(request,citaTipoDocEntrante)
+    }
+
+    class RegistroRadicacionDecision {
+      +EjecutaQ06Q07: bool
+      +EjecutaQ08: bool
+      +EjecutaQ09: bool
     }
 
     class RegistrarRadicacionEntranteRequestDto
@@ -34,6 +44,8 @@ classDiagram
     RadicacionController --> IValidarRadicacionEntranteService
     RadicacionController --> IFlujoInicialRadicacionService
     IRegistrarRadicacionEntranteService --> IRegistrarRadicacionEntranteRepository
+    IRegistrarRadicacionEntranteRepository --> IRegistroRadicacionPolicyService
+    IRegistroRadicacionPolicyService --> RegistroRadicacionDecision
     IRegistrarRadicacionEntranteService --> RegistrarRadicacionEntranteRequestDto
     IRegistrarRadicacionEntranteService --> RegistrarRadicacionEntranteResponseDto
     IValidarRadicacionEntranteService --> ValidarRadicacionEntranteRequestDto
