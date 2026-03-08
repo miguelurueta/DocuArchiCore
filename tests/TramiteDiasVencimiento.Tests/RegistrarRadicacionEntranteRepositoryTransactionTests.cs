@@ -1,7 +1,10 @@
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
+using MiApp.DTOs.DTOs.GestorDocumental.Sede;
+using MiApp.DTOs.DTOs.GestorDocumental.usuario;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
 using MiApp.Models.Models.Radicacion.PlantillaRadicado;
+using MiApp.Models.Models.Radicacion.TipoTramite;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using Xunit;
@@ -19,8 +22,14 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("ENTRANTE", esRelacionado: true),
             55,
+            10,
             "DA",
-            BuildPlantilla(100));
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -39,8 +48,14 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("ENTRANTE", esRelacionado: true),
             55,
+            10,
             "DA",
-            BuildPlantilla(100));
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.False(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -59,8 +74,14 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("PQR"),
             55,
+            10,
             "DA",
-            BuildPlantilla(100));
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -69,16 +90,48 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             factory.LastConnection!.ExecutedSteps);
     }
 
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoDocNoRequiereRespuesta_NoEjecutaQ06NiQ07()
+    {
+        var factory = new FakeDbConnectionFactory();
+        var repository = new RegistrarRadicacionEntranteRepository(factory);
+        var tipoDoc = BuildTipoDocEntrante(302, 100);
+        tipoDoc.requiere_respuesta = 0;
+
+        var result = await repository.RegistrarRadicacionEntranteAsync(
+            BuildRequest("ENTRANTE"),
+            55,
+            10,
+            "DA",
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            tipoDoc);
+
+        Assert.True(result.success);
+        Assert.NotNull(factory.LastConnection);
+        Assert.Equal(
+            ["Q01", "Q02", "Q03", "Q05", "Q08"],
+            factory.LastConnection!.ExecutedSteps);
+    }
+
     private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion, bool esRelacionado = false)
     {
         return new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 100,
-            TipoRadicacion = tipoRadicacion,
-            Asunto = "Asunto",
-            Remitente = "Remitente",
-            EsRelacionado = esRelacionado,
-            RadicadosRelacionados = esRelacionado ? [777] : []
+            TipoRadicado = new TipoRadicadoEntradaDto
+            {
+                TipoRadicacion = tipoRadicacion,
+                IdTipoRadicado = 1
+            },
+            ASUNTO = "Asunto",
+            Remitente = new RemitenteRadicacionDto { Nombre = "Remitente", id_Dest_Ext = 123 },
+            radicadoRelacionados = esRelacionado
+                ? [new RadicadoRelacionadoDto { consecutivoRelacionadohijo = "777", idregistroradicadohijo = 0, idplantillahijo = 0 }]
+                : []
         };
     }
 
@@ -106,6 +159,61 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             utilIncuyeConsecutivoArea = 0,
             utilConseTipoRad = 0,
             util_default_radicado = 1
+        };
+    }
+
+    private static ParametrosRadicadosDto BuildBackendParams()
+    {
+        return new ParametrosRadicadosDto
+        {
+            NombreAreaRemitdest = new NombreAreaRemitdestDto
+            {
+                IdArea = 7,
+                NombreArea = "AREA TEST"
+            },
+            TipoDocEntrante = new TipoDocEntranteParametroDto
+            {
+                IdTipoDocEntrante = 302,
+                DescripcionDoc = "TRAMITE TEST"
+            },
+            IdSedeNombre = new IdSedeNombreDto
+            {
+                IdSede = 4,
+                NombreSede = "SEDE TEST"
+            }
+        };
+    }
+
+    private static TipoDocEntrante BuildTipoDocEntrante(int idTipoDocEntrante, int idPlantilla)
+    {
+        return new TipoDocEntrante
+        {
+            id_Tipo_Doc_Entrante = idTipoDocEntrante,
+            Descripcion_Doc = "TRAMITE TEST",
+            system_plantilla_radicado_id_plantilla = idPlantilla,
+            estado_tipo_documento = 1,
+            flow_tipo = 1,
+            requiere_respuesta = 1,
+            codigo_gabinete_workflow = 1,
+            resp_correo_fisico_electronico = 1,
+            id_ruta = 1,
+            tipo_tramite = 1,
+            estado_ruta_open_close = 1,
+            obliga_exp_radicado = 0,
+            activo_modulo_respuesta = 1,
+            util_tipo_modulo_envio = 1,
+            util_producion_documental = 0,
+            tipo_tramite_entrante_saliente = 1,
+            wf_copia_doc_expediente_actualiza_exped_gabinete = 0,
+            wf_auto_vincula_doc_expediente_actualiza_exped_gabinete = 0,
+            wf_copia_doc_expediente_produc_actualiza_exped_gabinete = 0,
+            util_auto_vincula_migracion = 0,
+            id_gabinete = 1,
+            util_radicacion_simple = 1,
+            util_nivel_padre_auto_vincula = 0,
+            util_opcion_auto_vincula = 0,
+            util_Estado_Crea_ExpedienteSII = 0,
+            util_Estado_Multiple_expedienteSII = 0
         };
     }
 
@@ -224,6 +332,18 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
                 throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
             }
 
+            if (CommandText.Contains("SELECT 1", StringComparison.OrdinalIgnoreCase)
+                && CommandText.Contains("FROM tipo_doc_entrante", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            if (CommandText.Contains("SELECT Descripcion_Doc", StringComparison.OrdinalIgnoreCase)
+                && CommandText.Contains("FROM tipo_doc_entrante", StringComparison.OrdinalIgnoreCase))
+            {
+                return "TRAMITE";
+            }
+
             if (!string.IsNullOrWhiteSpace(stepName))
             {
                 _connection.ExecutedSteps.Add(stepName);
@@ -260,6 +380,46 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             if (!string.IsNullOrWhiteSpace(stepName))
             {
                 _connection.ExecutedSteps.Add(stepName);
+            }
+
+            if (CommandText.Contains("information_schema.columns", StringComparison.OrdinalIgnoreCase))
+            {
+                var schemaTable = new DataTable();
+                schemaTable.Columns.Add("COLUMN_NAME", typeof(string));
+
+                string[] columns =
+                [
+                    "system_plantilla_radicado_id_plantilla",
+                    "id_radicado_plantilla",
+                    "nombre_plantilla",
+                    "consecutivo",
+                    "codbarra",
+                    "flag_flow",
+                    "id_usuario_responsable",
+                    "asunto",
+                    "tipo_radicacion",
+                    "fecha_registro_utc",
+                    "id_respuesta",
+                    "id_usuario",
+                    "desc_operacion",
+                    "fecha_operacion_utc",
+                    "id_radicado",
+                    "consecutivo_radicado",
+                    "estado",
+                    "remitente",
+                    "id_usuario_radicado",
+                    "id_tarea_workflow",
+                    "tipo_doc_entrante_id_Tipo_Doc_Entrante",
+                    "tipo_plantilla_radicado",
+                    "log_error_wf_asing"
+                ];
+
+                foreach (var column in columns)
+                {
+                    schemaTable.Rows.Add(column);
+                }
+
+                return schemaTable.CreateDataReader();
             }
 
             var table = new DataTable();
@@ -376,3 +536,4 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         }
     }
 }
+

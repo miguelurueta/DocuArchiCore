@@ -17,7 +17,10 @@ public sealed class ValidarRadicacionEntranteServiceTests
             IdPlantilla = 100,
             TipoRadicacion = "ENTRANTE",
             Asunto = "Asunto",
-            Remitente = "Remitente"
+            Remitente = new RemitenteRadicacionDto
+            {
+                Nombre = "Remitente"
+            }
         });
 
         Assert.True(result.success);
@@ -36,7 +39,7 @@ public sealed class ValidarRadicacionEntranteServiceTests
             IdPlantilla = 0,
             TipoRadicacion = "ENTRANTE",
             Asunto = "",
-            Remitente = ""
+            Remitente = new RemitenteRadicacionDto()
         });
 
         Assert.False(result.success);
