@@ -25,6 +25,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -54,7 +55,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             });
 
         parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 10, "DA"))
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
             .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
             {
                 success = true,
@@ -112,6 +113,17 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 message = "OK",
                 data = new RegistrarRadicacionEntranteResponseDto { ConsecutivoRadicado = "RAD-TEST-1" }
             });
+        validaCamposService
+            .Setup(s => s.ValidaCamposObligatoriosAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                "DA",
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?>
+            {
+                success = true,
+                message = "OK",
+                data = []
+            });
 
         var service = new RegistrarRadicacionEntranteService(
             detalleRepo.Object,
@@ -119,13 +131,14 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             plantillaRepo.Object,
             registrarRepo.Object,
             parametrosService.Object,
-            tipoDocEntranteRepo.Object);
+            tipoDocEntranteRepo.Object,
+            validaCamposService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 100,
             TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302 },
+            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
@@ -134,7 +147,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         Assert.True(result.success);
         Assert.NotNull(result.data);
         Assert.Equal("RAD-TEST-1", result.data!.ConsecutivoRadicado);
-        parametrosService.Verify(s => s.SolicitaParametrosRadicados(33, 302, 10, "DA"), Times.Once);
+        parametrosService.Verify(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"), Times.Once);
     }
 
     [Fact]
@@ -146,7 +159,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Mock.Of<ISystemPlantillaRadicadoR>(),
             Mock.Of<IRegistrarRadicacionEntranteRepository>(),
             Mock.Of<ISolicitaParametrosRadicadosService>(),
-            Mock.Of<ITipoDocEntranteR>());
+            Mock.Of<ITipoDocEntranteR>(),
+            Mock.Of<IValidaCamposObligatoriosService>());
 
         var result = await service.RegistrarRadicacionEntranteAsync(
             new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 },
@@ -167,6 +181,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(25, "DA"))
@@ -196,7 +211,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             });
 
         parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(45, 302, 25, "DA"))
+            .Setup(s => s.SolicitaParametrosRadicados(45, 302, 77, "DA"))
             .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
             {
                 success = true,
@@ -246,6 +261,17 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 message = "OK",
                 data = new RegistrarRadicacionEntranteResponseDto()
             });
+        validaCamposService
+            .Setup(s => s.ValidaCamposObligatoriosAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                "DA",
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?>
+            {
+                success = true,
+                message = "OK",
+                data = []
+            });
 
         var service = new RegistrarRadicacionEntranteService(
             detalleRepo.Object,
@@ -253,12 +279,13 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             plantillaRepo.Object,
             registrarRepo.Object,
             parametrosService.Object,
-            tipoDocEntranteRepo.Object);
+            tipoDocEntranteRepo.Object,
+            validaCamposService.Object);
         var request = new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 10,
             TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302 },
+            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 45 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
@@ -279,7 +306,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<ParametrosRadicadosDto>(),
             It.IsAny<TipoDocEntrante>()),
             Times.Once);
-        parametrosService.Verify(s => s.SolicitaParametrosRadicados(45, 302, 25, "DA"), Times.Once);
+        parametrosService.Verify(s => s.SolicitaParametrosRadicados(45, 302, 77, "DA"), Times.Once);
     }
 
     [Fact]
@@ -291,6 +318,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -302,7 +330,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             });
 
         parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 10, "DA"))
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
             .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
             {
                 success = false,
@@ -325,13 +353,14 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             plantillaRepo.Object,
             registrarRepo.Object,
             parametrosService.Object,
-            tipoDocEntranteRepo.Object);
+            tipoDocEntranteRepo.Object,
+            validaCamposService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 100,
             TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302 },
+            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
