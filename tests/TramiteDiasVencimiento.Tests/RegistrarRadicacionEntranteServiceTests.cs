@@ -26,6 +26,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
+        var validaDimensionService = new Mock<IValidaDimensionCamposService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -124,6 +125,17 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 message = "OK",
                 data = []
             });
+        validaDimensionService
+            .Setup(s => s.ValidaDimensionCamposAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                "DA",
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?>
+            {
+                success = true,
+                message = "OK",
+                data = []
+            });
 
         var service = new RegistrarRadicacionEntranteService(
             detalleRepo.Object,
@@ -132,7 +144,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             registrarRepo.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposService.Object);
+            validaCamposService.Object,
+            validaDimensionService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -160,7 +173,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Mock.Of<IRegistrarRadicacionEntranteRepository>(),
             Mock.Of<ISolicitaParametrosRadicadosService>(),
             Mock.Of<ITipoDocEntranteR>(),
-            Mock.Of<IValidaCamposObligatoriosService>());
+            Mock.Of<IValidaCamposObligatoriosService>(),
+            Mock.Of<IValidaDimensionCamposService>());
 
         var result = await service.RegistrarRadicacionEntranteAsync(
             new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 },
@@ -182,6 +196,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
+        var validaDimensionService = new Mock<IValidaDimensionCamposService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(25, "DA"))
@@ -272,6 +287,17 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 message = "OK",
                 data = []
             });
+        validaDimensionService
+            .Setup(s => s.ValidaDimensionCamposAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                "DA",
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?>
+            {
+                success = true,
+                message = "OK",
+                data = []
+            });
 
         var service = new RegistrarRadicacionEntranteService(
             detalleRepo.Object,
@@ -280,7 +306,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             registrarRepo.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposService.Object);
+            validaCamposService.Object,
+            validaDimensionService.Object);
         var request = new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 10,
@@ -319,6 +346,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposService = new Mock<IValidaCamposObligatoriosService>();
+        var validaDimensionService = new Mock<IValidaDimensionCamposService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -354,7 +382,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             registrarRepo.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposService.Object);
+            validaCamposService.Object,
+            validaDimensionService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
