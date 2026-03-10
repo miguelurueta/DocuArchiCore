@@ -1,7 +1,8 @@
-using DocuArchi.Api.Controllers.Radicacion.Tramite;
+﻿using DocuArchi.Api.Controllers.Radicacion.Tramite;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Services.Service.Radicacion.Tramite;
+using MiApp.Services.Service.SessionHelper;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -20,7 +21,7 @@ public sealed class RadicacionControllerContractTests
         var flujo = new Mock<IFlujoInicialRadicacionService>();
 
         registrar
-            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA"))
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
             .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
             {
                 success = true,
@@ -32,7 +33,7 @@ public sealed class RadicacionControllerContractTests
                 errors = []
             });
 
-        var controller = new RadicacionController(claimService.Object, registrar.Object, validar.Object, flujo.Object);
+        var controller = new RadicacionController(claimService.Object, registrar.Object, validar.Object, flujo.Object, BuildIpHelper().Object);
         var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -58,7 +59,35 @@ public sealed class RadicacionControllerContractTests
             claimService.Object,
             Mock.Of<IRegistrarRadicacionEntranteService>(),
             Mock.Of<IValidarRadicacionEntranteService>(),
-            Mock.Of<IFlujoInicialRadicacionService>());
+            Mock.Of<IFlujoInicialRadicacionService>(),
+            BuildIpHelper().Object);
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task RegistrarEntrante_CuandoFaltaUsuarioIdClaim_RetornaBadRequest()
+    {
+        var claimService = new Mock<IClaimValidationService>();
+        claimService
+            .Setup(c => c.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA" });
+        claimService
+            .Setup(c => c.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string>
+            {
+                Success = false,
+                ClaimValue = null,
+                Response = new AppResponses<string> { success = false, message = "sin usuarioid", data = string.Empty }
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            Mock.Of<IRegistrarRadicacionEntranteService>(),
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>(),
+            BuildIpHelper().Object);
 
         var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
         Assert.IsType<BadRequestObjectResult>(result.Result);
@@ -83,7 +112,8 @@ public sealed class RadicacionControllerContractTests
             claimService.Object,
             Mock.Of<IRegistrarRadicacionEntranteService>(),
             Mock.Of<IValidarRadicacionEntranteService>(),
-            flujo.Object);
+            flujo.Object,
+            BuildIpHelper().Object);
 
         var result = await controller.FlujoInicial(5);
 
@@ -104,5 +134,14 @@ public sealed class RadicacionControllerContractTests
             .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = usuarioId });
 
         return claimService;
+    }
+
+    private static Mock<IIpHelper> BuildIpHelper()
+    {
+        var ipHelper = new Mock<IIpHelper>();
+        ipHelper
+            .Setup(i => i.ObtenerDireccionIP(It.IsAny<Microsoft.AspNetCore.Http.HttpContext>()))
+            .Returns("127.0.0.1");
+        return ipHelper;
     }
 }

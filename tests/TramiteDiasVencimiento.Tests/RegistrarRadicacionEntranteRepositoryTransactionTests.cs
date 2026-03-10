@@ -1,6 +1,10 @@
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
+using MiApp.DTOs.DTOs.GestorDocumental.Sede;
+using MiApp.DTOs.DTOs.GestorDocumental.usuario;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
+using MiApp.Models.Models.Radicacion.PlantillaRadicado;
+using MiApp.Models.Models.Radicacion.TipoTramite;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using Xunit;
@@ -16,9 +20,16 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var repository = new RegistrarRadicacionEntranteRepository(factory);
 
         var result = await repository.RegistrarRadicacionEntranteAsync(
-            BuildRequest("ENTRANTE"),
+            BuildRequest("ENTRANTE", esRelacionado: true),
             55,
-            "DA");
+            10,
+            "DA",
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -35,9 +46,16 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var repository = new RegistrarRadicacionEntranteRepository(factory);
 
         var result = await repository.RegistrarRadicacionEntranteAsync(
-            BuildRequest("ENTRANTE"),
+            BuildRequest("ENTRANTE", esRelacionado: true),
             55,
-            "DA");
+            10,
+            "DA",
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.False(result.success);
         Assert.NotNull(factory.LastConnection);
@@ -56,23 +74,146 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         var result = await repository.RegistrarRadicacionEntranteAsync(
             BuildRequest("PQR"),
             55,
-            "DA");
+            10,
+            "DA",
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            BuildTipoDocEntrante(302, 100));
 
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
         Assert.Equal(
-            ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08", "Q09"],
+            ["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q08", "Q09"],
             factory.LastConnection!.ExecutedSteps);
     }
 
-    private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion)
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoDocNoRequiereRespuesta_NoEjecutaQ06NiQ07()
+    {
+        var factory = new FakeDbConnectionFactory();
+        var repository = new RegistrarRadicacionEntranteRepository(factory);
+        var tipoDoc = BuildTipoDocEntrante(302, 100);
+        tipoDoc.requiere_respuesta = 0;
+
+        var result = await repository.RegistrarRadicacionEntranteAsync(
+            BuildRequest("ENTRANTE"),
+            55,
+            10,
+            "DA",
+            "127.0.0.1",
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            tipoDoc);
+
+        Assert.True(result.success);
+        Assert.NotNull(factory.LastConnection);
+        Assert.Equal(
+            ["Q01", "Q02", "Q03", "Q05", "Q08"],
+            factory.LastConnection!.ExecutedSteps);
+    }
+
+    private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion, bool esRelacionado = false)
     {
         return new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 100,
-            TipoRadicacion = tipoRadicacion,
-            Asunto = "Asunto",
-            Remitente = "Remitente"
+            TipoRadicado = new TipoRadicadoEntradaDto
+            {
+                TipoRadicacion = tipoRadicacion,
+                IdTipoRadicado = 1
+            },
+            ASUNTO = "Asunto",
+            Remitente = new RemitenteRadicacionDto { Nombre = "Remitente", id_Dest_Ext = 123 },
+            radicadoRelacionados = esRelacionado
+                ? [new RadicadoRelacionadoDto { consecutivoRelacionadohijo = "777", idregistroradicadohijo = 0, idplantillahijo = 0 }]
+                : []
+        };
+    }
+
+    private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)
+    {
+        return new SystemPlantillaRadicado
+        {
+            id_Plantilla = idPlantilla,
+            Nombre_Plantilla_Radicado = "ra_plantilla_100",
+            Tipo_Plantilla = "RAD",
+            Fecha_Creacion = DateTime.UtcNow,
+            Estado_Plantilla = 1,
+            Consecutivo_Rad = 10,
+            Consecutivo_CodBarra = 10,
+            util_activo_plantilla_flujo = 1,
+            Util_activo_plantilla_default_rad_interno = 0,
+            util_evalua_periodo_general = 0,
+            utill_evalua_periodo_pqr = 0,
+            util_evalua_periodo_interno = 0,
+            util_evalua_festivo = 0,
+            util_tipo_modulo_envio = 0,
+            util_consecutivo_general = 0,
+            util_default_simple = 0,
+            util_estado_pendiente_rad = 0,
+            utilIncuyeConsecutivoArea = 0,
+            utilConseTipoRad = 0,
+            util_default_radicado = 1
+        };
+    }
+
+    private static ParametrosRadicadosDto BuildBackendParams()
+    {
+        return new ParametrosRadicadosDto
+        {
+            NombreAreaRemitdest = new NombreAreaRemitdestDto
+            {
+                IdArea = 7,
+                NombreArea = "AREA TEST"
+            },
+            TipoDocEntrante = new TipoDocEntranteParametroDto
+            {
+                IdTipoDocEntrante = 302,
+                DescripcionDoc = "TRAMITE TEST"
+            },
+            IdSedeNombre = new IdSedeNombreDto
+            {
+                IdSede = 4,
+                NombreSede = "SEDE TEST"
+            }
+        };
+    }
+
+    private static TipoDocEntrante BuildTipoDocEntrante(int idTipoDocEntrante, int idPlantilla)
+    {
+        return new TipoDocEntrante
+        {
+            id_Tipo_Doc_Entrante = idTipoDocEntrante,
+            Descripcion_Doc = "TRAMITE TEST",
+            system_plantilla_radicado_id_plantilla = idPlantilla,
+            estado_tipo_documento = 1,
+            flow_tipo = 1,
+            requiere_respuesta = 1,
+            codigo_gabinete_workflow = 1,
+            resp_correo_fisico_electronico = 1,
+            id_ruta = 1,
+            tipo_tramite = 1,
+            estado_ruta_open_close = 1,
+            obliga_exp_radicado = 0,
+            activo_modulo_respuesta = 1,
+            util_tipo_modulo_envio = 1,
+            util_producion_documental = 0,
+            tipo_tramite_entrante_saliente = 1,
+            wf_copia_doc_expediente_actualiza_exped_gabinete = 0,
+            wf_auto_vincula_doc_expediente_actualiza_exped_gabinete = 0,
+            wf_copia_doc_expediente_produc_actualiza_exped_gabinete = 0,
+            util_auto_vincula_migracion = 0,
+            id_gabinete = 1,
+            util_radicacion_simple = 1,
+            util_nivel_padre_auto_vincula = 0,
+            util_opcion_auto_vincula = 0,
+            util_Estado_Crea_ExpedienteSII = 0,
+            util_Estado_Multiple_expedienteSII = 0
         };
     }
 
@@ -183,10 +324,37 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         protected override DbTransaction? DbTransaction { get; set; }
 
         public override void Cancel() { }
-        public override int ExecuteNonQuery() => 1;
         public override object? ExecuteScalar()
         {
-            var stepName = Convert.ToString(_parameters.GetByAnyName("stepName")?.Value) ?? string.Empty;
+            var stepName = ExtractStepName(CommandText);
+            if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
+            }
+
+            if (CommandText.Contains("SELECT 1", StringComparison.OrdinalIgnoreCase)
+                && CommandText.Contains("FROM tipo_doc_entrante", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            if (CommandText.Contains("SELECT Descripcion_Doc", StringComparison.OrdinalIgnoreCase)
+                && CommandText.Contains("FROM tipo_doc_entrante", StringComparison.OrdinalIgnoreCase))
+            {
+                return "TRAMITE";
+            }
+
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                _connection.ExecutedSteps.Add(stepName);
+            }
+
+            return stepName == "Q01" ? 10 : 1;
+        }
+
+        public override int ExecuteNonQuery()
+        {
+            var stepName = ExtractStepName(CommandText);
             if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
@@ -197,12 +365,89 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
                 _connection.ExecutedSteps.Add(stepName);
             }
 
-            return stepName;
+            return 1;
         }
 
         protected override DbParameter CreateDbParameter() => new FakeDbParameter();
-        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) => throw new NotSupportedException();
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+        {
+            var stepName = ExtractStepName(CommandText);
+            if (string.Equals(stepName, _failOnStep, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Fallo simulado en paso {stepName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                _connection.ExecutedSteps.Add(stepName);
+            }
+
+            if (CommandText.Contains("information_schema.columns", StringComparison.OrdinalIgnoreCase))
+            {
+                var schemaTable = new DataTable();
+                schemaTable.Columns.Add("COLUMN_NAME", typeof(string));
+
+                string[] columns =
+                [
+                    "system_plantilla_radicado_id_plantilla",
+                    "id_radicado_plantilla",
+                    "nombre_plantilla",
+                    "consecutivo",
+                    "codbarra",
+                    "flag_flow",
+                    "id_usuario_responsable",
+                    "asunto",
+                    "tipo_radicacion",
+                    "fecha_registro_utc",
+                    "id_respuesta",
+                    "id_usuario",
+                    "desc_operacion",
+                    "fecha_operacion_utc",
+                    "id_radicado",
+                    "consecutivo_radicado",
+                    "estado",
+                    "remitente",
+                    "id_usuario_radicado",
+                    "id_tarea_workflow",
+                    "tipo_doc_entrante_id_Tipo_Doc_Entrante",
+                    "tipo_plantilla_radicado",
+                    "log_error_wf_asing"
+                ];
+
+                foreach (var column in columns)
+                {
+                    schemaTable.Rows.Add(column);
+                }
+
+                return schemaTable.CreateDataReader();
+            }
+
+            var table = new DataTable();
+            table.Columns.Add("ConsecutivoRad", typeof(int));
+            table.Columns.Add("ConsecutivoCodBarra", typeof(int));
+            table.Rows.Add(10, 10);
+            return table.CreateDataReader();
+        }
         public override void Prepare() { }
+
+        private static string ExtractStepName(string commandText)
+        {
+            if (string.IsNullOrWhiteSpace(commandText))
+            {
+                return string.Empty;
+            }
+
+            var markers = new[] { "Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08", "Q09" };
+            foreach (var marker in markers)
+            {
+                if (commandText.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return marker;
+                }
+            }
+
+            return string.Empty;
+        }
     }
 
     private sealed class FakeDbParameter : DbParameter
@@ -291,3 +536,4 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         }
     }
 }
+
