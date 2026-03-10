@@ -65,6 +65,25 @@ public sealed class ValidaCamposObligatoriosServiceTests
     }
 
     [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoDescripcionVieneEnTipoTramite_NoExigeDescripcionDocumentoEnCampos()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.Tipo_tramite = new TipoTramiteRadicacionDto
+        {
+            Descripcion = "DERECHOS DE PETECION",
+            tipo_doc_entrante = 1
+        };
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "Descripcion_Documento")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.True(result.success);
+    }
+
+    [Fact]
     public async Task ValidaCamposObligatoriosAsync_CuandoExcepcion_RetornaErrorControlado()
     {
         var service = new ValidaCamposObligatoriosService();
