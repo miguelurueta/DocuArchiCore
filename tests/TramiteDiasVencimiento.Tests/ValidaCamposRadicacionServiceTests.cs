@@ -16,6 +16,7 @@ public sealed class ValidaCamposRadicacionServiceTests
         var service = BuildService(
             Success("OK", []),
             Success("OK", []),
+            Success("OK", []),
             Success("Sin resultados", null));
 
         var result = await service.ValidaCamposRadicacionAsync("DA", BuildRequest(), BuildDetalle());
@@ -32,6 +33,7 @@ public sealed class ValidaCamposRadicacionServiceTests
         var service = BuildService(
             Success("Sin resultados", null),
             Success("Sin resultados", null),
+            Success("Sin resultados", null),
             Success("Sin resultados", null));
 
         var result = await service.ValidaCamposRadicacionAsync("DA", BuildRequest(), BuildDetalle());
@@ -46,6 +48,7 @@ public sealed class ValidaCamposRadicacionServiceTests
     {
         var obligatorios = new Mock<IValidaCamposObligatoriosService>();
         var dimension = new Mock<IValidaDimensionCamposService>();
+        var tipoCampos = new Mock<IValidaTipoCamposService>();
         var unicos = new Mock<IValidaCamposDinamicosUnicosRadicacionService>();
 
         obligatorios.Setup(s => s.ValidaCamposObligatoriosAsync(
@@ -54,7 +57,7 @@ public sealed class ValidaCamposRadicacionServiceTests
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
             .ThrowsAsync(new InvalidOperationException("boom"));
 
-        var service = new ValidaCamposRadicacionService(obligatorios.Object, dimension.Object, unicos.Object);
+        var service = new ValidaCamposRadicacionService(obligatorios.Object, dimension.Object, unicos.Object, tipoCampos.Object);
         var result = await service.ValidaCamposRadicacionAsync("DA", BuildRequest(), BuildDetalle());
 
         Assert.False(result.success);
@@ -65,10 +68,12 @@ public sealed class ValidaCamposRadicacionServiceTests
     private static ValidaCamposRadicacionService BuildService(
         AppResponses<List<ValidationError>?> obligatoriosResult,
         AppResponses<List<ValidationError>?> dimensionResult,
+        AppResponses<List<ValidationError>?> tipoCamposResult,
         AppResponses<List<ValidationError>?> unicosResult)
     {
         var obligatorios = new Mock<IValidaCamposObligatoriosService>();
         var dimension = new Mock<IValidaDimensionCamposService>();
+        var tipoCampos = new Mock<IValidaTipoCamposService>();
         var unicos = new Mock<IValidaCamposDinamicosUnicosRadicacionService>();
 
         obligatorios.Setup(s => s.ValidaCamposObligatoriosAsync(
@@ -83,13 +88,19 @@ public sealed class ValidaCamposRadicacionServiceTests
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
             .ReturnsAsync(dimensionResult);
 
+        tipoCampos.Setup(s => s.ValidaTipoCamposAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                "DA",
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(tipoCamposResult);
+
         unicos.Setup(s => s.ValidaCamposDinamicosUnicosRadicacionAsync(
                 It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
                 "DA",
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
             .ReturnsAsync(unicosResult);
 
-        return new ValidaCamposRadicacionService(obligatorios.Object, dimension.Object, unicos.Object);
+        return new ValidaCamposRadicacionService(obligatorios.Object, dimension.Object, unicos.Object, tipoCampos.Object);
     }
 
     private static AppResponses<List<ValidationError>?> Success(string message, List<ValidationError>? data)
