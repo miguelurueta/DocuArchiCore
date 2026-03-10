@@ -62,6 +62,12 @@
     <None Update="Database\ValidaDimensionCampos\seed.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Database\ValidaCamposDinamicosUnicos\schema.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Database\ValidaCamposDinamicosUnicos\seed.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
