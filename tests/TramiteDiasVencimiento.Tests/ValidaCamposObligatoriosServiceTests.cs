@@ -97,6 +97,44 @@ public sealed class ValidaCamposObligatoriosServiceTests
         Assert.NotNull(result.errors);
     }
 
+    [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltaCampoFijo_UsaAliasEnMensaje()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.FECHALIMITERESPUESTA = null!;
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "FECHALIMITERESPUESTA")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "FECHALIMITERESPUESTA"
+            && e.Message.Contains("Fecha Límite Respuesta"));
+    }
+
+    [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltaCampoDinamico_UsaAliasCampoPlantillaEnMensaje()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        var detalle = new List<DetallePlantillaRadicado>
+        {
+            BuildDetalle("CampoDinamicoObligatorio", 1, 1, "Nro Oficio")
+        };
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", detalle);
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "CampoDinamicoObligatorio"
+            && e.Message.Contains("Nro Oficio"));
+    }
+
     private static RegistrarRadicacionEntranteRequestDto BuildValidRequest()
     {
         var request = new RegistrarRadicacionEntranteRequestDto
@@ -132,7 +170,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
         return new CampoRadicacionDto { NombreCampo = nombre, Valor = valor };
     }
 
-    private static DetallePlantillaRadicado BuildDetalle(string campoPlantilla, int campoObligatorio, int estadoCampo)
+    private static DetallePlantillaRadicado BuildDetalle(string campoPlantilla, int campoObligatorio, int estadoCampo, string? aliasCampo = null)
     {
         return new DetallePlantillaRadicado
         {
@@ -140,7 +178,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
             Campo_Plantilla = campoPlantilla,
             Tipo_Campo = "VARCHAR",
             Comportamiento_Campo = "DIGITACION",
-            Alias_Campo = campoPlantilla,
+            Alias_Campo = aliasCampo ?? campoPlantilla,
             Orden_Campo = 1,
             Estado_Campo = estadoCampo,
             Descripcion_Campo = campoPlantilla,

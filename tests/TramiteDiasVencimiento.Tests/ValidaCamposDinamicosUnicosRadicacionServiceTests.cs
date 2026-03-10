@@ -74,6 +74,34 @@ public sealed class ValidaCamposDinamicosUnicosRadicacionServiceTests
         Assert.NotNull(result.errors);
     }
 
+    [Fact]
+    public async Task ValidaCamposDinamicosUnicosRadicacionAsync_CuandoDuplicado_UsaAliasEnMensaje()
+    {
+        var repo = new Mock<IValidaCamposDinamicosUnicosRadicacionRepository>();
+        repo.Setup(r => r.SolicitaCoincidenciasCamposUnicosAsync(100, "DA", It.IsAny<IReadOnlyDictionary<string, string>>()))
+            .ReturnsAsync(new AppResponses<Dictionary<string, int>?>
+            {
+                success = true,
+                message = "OK",
+                data = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["CampoIdentificador"] = 1
+                }
+            });
+
+        var service = new ValidaCamposDinamicosUnicosRadicacionService(repo.Object);
+        var result = await service.ValidaCamposDinamicosUnicosRadicacionAsync(
+            BuildRequest("NIT-123"),
+            "DA",
+            BuildDetalleUnico("NIT del Solicitante"));
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "CampoIdentificador"
+            && e.Message.Contains("NIT del Solicitante"));
+    }
+
     private static RegistrarRadicacionEntranteRequestDto BuildRequest(string valorUnico)
     {
         var dto = new RegistrarRadicacionEntranteRequestDto
@@ -99,7 +127,7 @@ public sealed class ValidaCamposDinamicosUnicosRadicacionServiceTests
         return dto;
     }
 
-    private static IReadOnlyCollection<DetallePlantillaRadicado> BuildDetalleUnico()
+    private static IReadOnlyCollection<DetallePlantillaRadicado> BuildDetalleUnico(string aliasCampo = "CampoIdentificador")
     {
         return
         [
@@ -109,7 +137,7 @@ public sealed class ValidaCamposDinamicosUnicosRadicacionServiceTests
                 Campo_Plantilla = "CampoIdentificador",
                 Tipo_Campo = "VARCHAR",
                 Comportamiento_Campo = "UNICO",
-                Alias_Campo = "CampoIdentificador",
+                Alias_Campo = aliasCampo,
                 Orden_Campo = 1,
                 Estado_Campo = 1,
                 Descripcion_Campo = "Campo unico",
