@@ -73,6 +73,36 @@ public sealed class ValidaDimensionCamposServiceTests
         Assert.NotNull(result.errors);
     }
 
+    [Fact]
+    public async Task ValidaDimensionCamposAsync_CuandoDescripcionVieneEnTipoTramite_ValidaLongitudContraDescripcionDocumento()
+    {
+        var repo = new Mock<IValidaDimensionCamposRepository>();
+        repo.Setup(r => r.SolicitaLongitudesCamposAsync(100, "DA", It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<Dictionary<string, int>?>
+            {
+                success = true,
+                message = "OK",
+                data = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Descripcion_Documento"] = 10
+                }
+            });
+
+        var service = new ValidaDimensionCamposService(repo.Object);
+        var request = BuildRequest();
+        request.Campos = [];
+        request.Tipo_tramite = new TipoTramiteRadicacionDto
+        {
+            Descripcion = "DERECHOS DE PETECION",
+            tipo_doc_entrante = 1
+        };
+
+        var result = await service.ValidaDimensionCamposAsync(request, "DA", []);
+
+        Assert.False(result.success);
+        Assert.Equal("Validacion fallida", result.message);
+    }
+
     private static RegistrarRadicacionEntranteRequestDto BuildRequest()
     {
         return new RegistrarRadicacionEntranteRequestDto
