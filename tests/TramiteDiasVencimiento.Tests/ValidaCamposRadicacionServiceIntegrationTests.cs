@@ -60,7 +60,8 @@ public sealed class ValidaCamposRadicacionServiceIntegrationTests : IAsyncLifeti
         var service = new ValidaCamposRadicacionService(
             new ValidaCamposObligatoriosService(),
             new ValidaDimensionCamposService(new ValidaDimensionCamposRepository(factory)),
-            new ValidaCamposDinamicosUnicosRadicacionService(new ValidaCamposDinamicosUnicosRadicacionRepository(factory)));
+            new ValidaCamposDinamicosUnicosRadicacionService(new ValidaCamposDinamicosUnicosRadicacionRepository(factory)),
+            new ValidaTipoCamposService(new ValidaTipoCamposRepository(factory)));
 
         var result = await service.ValidaCamposRadicacionAsync("DA", BuildRequest(), BuildDetallePlantilla());
 
