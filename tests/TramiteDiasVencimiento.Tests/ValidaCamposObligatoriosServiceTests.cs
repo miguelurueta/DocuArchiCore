@@ -113,7 +113,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
         Assert.NotNull(result.data);
         Assert.Contains(result.data!, e =>
             e.Field == "FECHALIMITERESPUESTA"
-            && e.Message.Contains("Fecha Límite Respuesta"));
+            && e.Message == "Fecha Límite Respuesta: valor inválido.");
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
         Assert.NotNull(result.data);
         Assert.Contains(result.data!, e =>
             e.Field == "CampoDinamicoObligatorio"
-            && e.Message.Contains("Nro Oficio"));
+            && e.Message == "Nro Oficio: valor inválido.");
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildValidRequest()

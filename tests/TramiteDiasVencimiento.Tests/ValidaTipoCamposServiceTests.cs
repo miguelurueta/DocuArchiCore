@@ -79,7 +79,7 @@ public sealed class ValidaTipoCamposServiceTests
         Assert.NotNull(result.data);
         Assert.Contains(result.data!, e =>
             e.Field == "CampoNumero" &&
-            e.Message.Contains("Número de Oficio"));
+            e.Message == "Número de Oficio: valor inválido.");
     }
 
     [Fact]

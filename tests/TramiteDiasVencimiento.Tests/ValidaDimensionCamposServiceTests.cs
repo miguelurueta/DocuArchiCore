@@ -128,7 +128,7 @@ public sealed class ValidaDimensionCamposServiceTests
         Assert.NotNull(result.data);
         Assert.Contains(result.data!, e =>
             e.Field == "FECHALIMITERESPUESTA"
-            && e.Message.Contains("Fecha Límite Respuesta"));
+            && e.Message == "Fecha Límite Respuesta: valor inválido.");
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildRequest()

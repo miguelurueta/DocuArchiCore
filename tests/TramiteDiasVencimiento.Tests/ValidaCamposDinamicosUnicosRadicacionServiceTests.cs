@@ -99,7 +99,7 @@ public sealed class ValidaCamposDinamicosUnicosRadicacionServiceTests
         Assert.NotNull(result.data);
         Assert.Contains(result.data!, e =>
             e.Field == "CampoIdentificador"
-            && e.Message.Contains("NIT del Solicitante"));
+            && e.Message == "NIT del Solicitante: valor inválido.");
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildRequest(string valorUnico)
