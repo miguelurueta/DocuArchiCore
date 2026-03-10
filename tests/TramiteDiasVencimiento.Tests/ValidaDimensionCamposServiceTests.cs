@@ -103,6 +103,34 @@ public sealed class ValidaDimensionCamposServiceTests
         Assert.Equal("Validacion fallida", result.message);
     }
 
+    [Fact]
+    public async Task ValidaDimensionCamposAsync_CuandoSuperaLongitudCampoFijo_UsaAliasEnMensaje()
+    {
+        var repo = new Mock<IValidaDimensionCamposRepository>();
+        repo.Setup(r => r.SolicitaLongitudesCamposAsync(100, "DA", It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<Dictionary<string, int>?>
+            {
+                success = true,
+                message = "OK",
+                data = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["FECHALIMITERESPUESTA"] = 5
+                }
+            });
+
+        var service = new ValidaDimensionCamposService(repo.Object);
+        var request = BuildRequest();
+        request.FECHALIMITERESPUESTA = "2026-12-31";
+
+        var result = await service.ValidaDimensionCamposAsync(request, "DA", []);
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "FECHALIMITERESPUESTA"
+            && e.Message.Contains("Fecha Límite Respuesta"));
+    }
+
     private static RegistrarRadicacionEntranteRequestDto BuildRequest()
     {
         return new RegistrarRadicacionEntranteRequestDto
