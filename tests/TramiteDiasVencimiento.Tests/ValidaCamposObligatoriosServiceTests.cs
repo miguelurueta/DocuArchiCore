@@ -44,6 +44,27 @@ public sealed class ValidaCamposObligatoriosServiceTests
     }
 
     [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltanCamposGeneradosBackend_NoFalla()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "Usuario_Radicador_id_usuario"
+                && c.NombreCampo != "Consecutivo_Rad"
+                && c.NombreCampo != "Consecutivo_CodBarra"
+                && c.NombreCampo != "Fecha_Radicado"
+                && c.NombreCampo != "Codigo_Sede"
+                && c.NombreCampo != "Id_area_remit_dest_interno"
+                && c.NombreCampo != "Area_remit_dest_interno"
+                && c.NombreCampo != "CARGO_DESTINATARIO")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.True(result.success);
+    }
+
+    [Fact]
     public async Task ValidaCamposObligatoriosAsync_CuandoExcepcion_RetornaErrorControlado()
     {
         var service = new ValidaCamposObligatoriosService();

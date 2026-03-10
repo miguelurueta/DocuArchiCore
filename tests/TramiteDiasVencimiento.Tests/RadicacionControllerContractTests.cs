@@ -94,6 +94,60 @@ public sealed class RadicacionControllerContractTests
     }
 
     [Fact]
+    public async Task RegistrarEntrante_CuandoServiceSinResultados_RetornaOkConDataNull()
+    {
+        var claimService = BuildClaimService("DA", "10");
+        var registrar = new Mock<IRegistrarRadicacionEntranteService>();
+
+        registrar
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
+            {
+                success = true,
+                message = "Sin resultados",
+                data = null!,
+                errors = []
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            registrar.Object,
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>(),
+            BuildIpHelper().Object);
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
+
+        Assert.True(payload.success);
+        Assert.Equal("Sin resultados", payload.message);
+        Assert.Null(payload.data);
+    }
+
+    [Fact]
+    public async Task RegistrarEntrante_CuandoServiceLanzaExcepcion_Retorna500Controlado()
+    {
+        var claimService = BuildClaimService("DA", "10");
+        var registrar = new Mock<IRegistrarRadicacionEntranteService>();
+        registrar
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            registrar.Object,
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>(),
+            BuildIpHelper().Object);
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var status = Assert.IsType<ObjectResult>(result.Result);
+
+        Assert.Equal(500, status.StatusCode);
+    }
+
+    [Fact]
     public async Task FlujoInicial_CuandoServiceOk_RetornaOkConContrato()
     {
         var claimService = BuildClaimService("DA", "10");
