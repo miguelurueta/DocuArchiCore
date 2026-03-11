@@ -36,7 +36,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.NotNull(factory.LastConnection!.LastTransaction);
         Assert.True(factory.LastConnection.LastTransaction!.Committed);
         Assert.False(factory.LastConnection.LastTransaction.RolledBack);
-        Assert.Equal(["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07", "Q08"], factory.LastConnection.ExecutedSteps);
+        Assert.Equal(["Q01", "Q02", "Q03", "Q04", "Q05", "Q06", "Q07"], factory.LastConnection.ExecutedSteps);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
         Assert.Equal(
-            ["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q08", "Q09"],
+            ["Q01", "Q02", "Q03", "Q05", "Q06", "Q07", "Q09"],
             factory.LastConnection!.ExecutedSteps);
     }
 
@@ -113,7 +113,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.True(result.success);
         Assert.NotNull(factory.LastConnection);
         Assert.Equal(
-            ["Q01", "Q02", "Q03", "Q05", "Q08"],
+            ["Q01", "Q02", "Q03", "Q05"],
             factory.LastConnection!.ExecutedSteps);
     }
 

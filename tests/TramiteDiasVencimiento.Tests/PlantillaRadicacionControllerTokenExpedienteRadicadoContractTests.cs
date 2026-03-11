@@ -12,39 +12,38 @@ using Xunit;
 
 namespace TramiteDiasVencimiento.Tests;
 
-public sealed class PlantillaRadicacionControllerTokenRadicadoContractTests
+public sealed class PlantillaRadicacionControllerTokenExpedienteRadicadoContractTests
 {
     [Fact]
-    public async Task SolicitaAutoCompleteTokenRadicado_CuandoClaimYServicioOk_RetornaOk()
+    public async Task SolicitaAutoCompleteTokenExpedienteRadicado_CuandoClaimYServicioOk_RetornaOk()
     {
         var claimService = BuildClaimService("DA");
-        var autoCompleteTokenService = new Mock<ISolicitaAutoCompleteTokenRadicadoService>();
+        var service = new Mock<ISolicitaAutoCompleteTokenExpedienteRadicadoService>();
 
-        autoCompleteTokenService
-            .Setup(s => s.ServiceSolicitaAutoCompleteTokenRadicadoAsync(It.IsAny<ParameterAutoComplete>(), "DA"))
+        service
+            .Setup(s => s.ServiceSolicitaAutoCompleteTokenExpedienteRadicadoAsync(It.IsAny<ParameterAutoComplete>(), "DA"))
             .ReturnsAsync(new AppResponses<List<rowTomSelect>>
             {
                 success = true,
                 message = "OK",
                 data =
                 [
-                    new rowTomSelect { texValue = "26000100010100001" }
+                    new rowTomSelect { idValue = 1, texValue = "EXP-001" }
                 ],
                 errors = []
             });
 
-        var controller = BuildController(claimService.Object, autoCompleteTokenService.Object);
-        var result = await controller.SolicitaAutoCompleteTokenRadicado(new ParameterAutoComplete { TextoBuscado = "260001" });
+        var controller = BuildController(claimService.Object, service.Object);
+        var result = await controller.SolicitaAutoCompleteTokenExpedienteRadicado(new ParameterAutoComplete { TextoBuscado = "EXP" });
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<AppResponses<List<rowTomSelect>>>(ok.Value);
         Assert.True(payload.success);
-        Assert.NotNull(payload.data);
         Assert.Single(payload.data);
     }
 
     [Fact]
-    public async Task SolicitaAutoCompleteTokenRadicado_CuandoFaltaClaimAlias_RetornaBadRequest()
+    public async Task SolicitaAutoCompleteTokenExpedienteRadicado_CuandoFaltaClaimAlias_RetornaBadRequest()
     {
         var claimService = new Mock<IClaimValidationService>();
         claimService
@@ -56,8 +55,8 @@ public sealed class PlantillaRadicacionControllerTokenRadicadoContractTests
                 Response = new AppResponses<string> { success = false, message = "sin alias", data = string.Empty }
             });
 
-        var controller = BuildController(claimService.Object, Mock.Of<ISolicitaAutoCompleteTokenRadicadoService>());
-        var result = await controller.SolicitaAutoCompleteTokenRadicado(new ParameterAutoComplete { TextoBuscado = "260001" });
+        var controller = BuildController(claimService.Object, Mock.Of<ISolicitaAutoCompleteTokenExpedienteRadicadoService>());
+        var result = await controller.SolicitaAutoCompleteTokenExpedienteRadicado(new ParameterAutoComplete { TextoBuscado = "EXP" });
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
@@ -73,10 +72,10 @@ public sealed class PlantillaRadicacionControllerTokenRadicadoContractTests
 
     private static PlantillaRadicacionController BuildController(
         IClaimValidationService claimValidationService,
-        ISolicitaAutoCompleteTokenRadicadoService autoCompleteTokenService)
+        ISolicitaAutoCompleteTokenExpedienteRadicadoService expedienteService)
     {
         return new PlantillaRadicacionController(
-            Mock.Of<MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim.ICurrentUserService>(),
+            Mock.Of<ICurrentUserService>(),
             Mock.Of<IPlantillaRadicacionL>(),
             claimValidationService,
             Mock.Of<MiApp.Repository.Repositorio.Radicador.PlantillaValidacion.IPlantillaValidacionR>(),
@@ -84,7 +83,7 @@ public sealed class PlantillaRadicacionControllerTokenRadicadoContractTests
             Mock.Of<IUsuarioCaracterizacionService>(),
             Mock.Of<IAutoCompleteDestinatarioRestriccionService>(),
             Mock.Of<ICamposDinamicosPlantillaService>(),
-            autoCompleteTokenService,
-            Mock.Of<ISolicitaAutoCompleteTokenExpedienteRadicadoService>());
+            Mock.Of<ISolicitaAutoCompleteTokenRadicadoService>(),
+            expedienteService);
     }
 }
