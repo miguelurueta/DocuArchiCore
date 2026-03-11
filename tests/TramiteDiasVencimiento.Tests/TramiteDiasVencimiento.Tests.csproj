@@ -56,6 +56,10 @@
     <None Update="Database\ValidaCamposObligatorios\seed.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Database\AutoCompleteTokenRadicado\schema.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Database\AutoCompleteTokenRadicado\seed.sql">
     <None Update="Database\ValidaDimensionCampos\schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
