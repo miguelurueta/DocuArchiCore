@@ -44,6 +44,46 @@ public sealed class ValidaCamposObligatoriosServiceTests
     }
 
     [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltanCamposGeneradosBackend_NoFalla()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "Usuario_Radicador_id_usuario"
+                && c.NombreCampo != "Consecutivo_Rad"
+                && c.NombreCampo != "Consecutivo_CodBarra"
+                && c.NombreCampo != "Fecha_Radicado"
+                && c.NombreCampo != "Codigo_Sede"
+                && c.NombreCampo != "Id_area_remit_dest_interno"
+                && c.NombreCampo != "Area_remit_dest_interno"
+                && c.NombreCampo != "CARGO_DESTINATARIO")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.True(result.success);
+    }
+
+    [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoDescripcionVieneEnTipoTramite_NoExigeDescripcionDocumentoEnCampos()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.Tipo_tramite = new TipoTramiteRadicacionDto
+        {
+            Descripcion = "DERECHOS DE PETECION",
+            tipo_doc_entrante = 1
+        };
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "Descripcion_Documento")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.True(result.success);
+    }
+
+    [Fact]
     public async Task ValidaCamposObligatoriosAsync_CuandoExcepcion_RetornaErrorControlado()
     {
         var service = new ValidaCamposObligatoriosService();
@@ -55,6 +95,44 @@ public sealed class ValidaCamposObligatoriosServiceTests
         Assert.False(result.success);
         Assert.Equal("Validacion fallida", result.message);
         Assert.NotNull(result.errors);
+    }
+
+    [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltaCampoFijo_UsaAliasEnMensaje()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        request.FECHALIMITERESPUESTA = null!;
+        request.Campos = request.Campos
+            .Where(c => c.NombreCampo != "FECHALIMITERESPUESTA")
+            .ToList();
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", []);
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "FECHALIMITERESPUESTA"
+            && e.Message == "Campo Fecha Límite Respuesta: requerido.");
+    }
+
+    [Fact]
+    public async Task ValidaCamposObligatoriosAsync_CuandoFaltaCampoDinamico_UsaAliasCampoPlantillaEnMensaje()
+    {
+        var service = new ValidaCamposObligatoriosService();
+        var request = BuildValidRequest();
+        var detalle = new List<DetallePlantillaRadicado>
+        {
+            BuildDetalle("CampoDinamicoObligatorio", 1, 1, "Nro Oficio")
+        };
+
+        var result = await service.ValidaCamposObligatoriosAsync(request, "DA", detalle);
+
+        Assert.False(result.success);
+        Assert.NotNull(result.data);
+        Assert.Contains(result.data!, e =>
+            e.Field == "CampoDinamicoObligatorio"
+            && e.Message == "Campo Nro Oficio: requerido.");
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildValidRequest()
@@ -92,7 +170,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
         return new CampoRadicacionDto { NombreCampo = nombre, Valor = valor };
     }
 
-    private static DetallePlantillaRadicado BuildDetalle(string campoPlantilla, int campoObligatorio, int estadoCampo)
+    private static DetallePlantillaRadicado BuildDetalle(string campoPlantilla, int campoObligatorio, int estadoCampo, string? aliasCampo = null)
     {
         return new DetallePlantillaRadicado
         {
@@ -100,7 +178,7 @@ public sealed class ValidaCamposObligatoriosServiceTests
             Campo_Plantilla = campoPlantilla,
             Tipo_Campo = "VARCHAR",
             Comportamiento_Campo = "DIGITACION",
-            Alias_Campo = campoPlantilla,
+            Alias_Campo = aliasCampo ?? campoPlantilla,
             Orden_Campo = 1,
             Estado_Campo = estadoCampo,
             Descripcion_Campo = campoPlantilla,
