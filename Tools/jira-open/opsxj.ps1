@@ -499,6 +499,18 @@ function Resolve-MigrationReadOnlyRepoPaths {
     return @($paths)
 }
 
+function Try-ResolveMigrationNetFunctionName {
+    param([hashtable]$Issue)
+
+    $text = ("{0}`n{1}" -f ([string]$Issue.summary), ([string]$Issue.description))
+    $match = [regex]::Match($text, '(?im)MIGRACION-NET\s*[:\-]?\s*([A-Za-z_][A-Za-z0-9_]*)')
+    if ($match.Success) {
+        return [string]$match.Groups[1].Value
+    }
+
+    return $null
+}
+
 function Resolve-ImpactReposForIssue {
     param(
         [hashtable]$Issue,
@@ -1722,7 +1734,8 @@ function Write-ChangeArtifacts {
         [string]$ChangeName,
         [hashtable]$Issue,
         [string[]]$SelectedRepos,
-        [string[]]$MigrationReadOnlyRepoPaths
+        [string[]]$MigrationReadOnlyRepoPaths,
+        [string]$MigrationFunctionName
     )
 
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$ChangeName"
@@ -1867,7 +1880,11 @@ function Write-ChangeArtifacts {
     }
     $sync = Apply-ImpactSelectionToSync -SyncText $sync -SelectedRepos $SelectedRepos
     if ($MigrationReadOnlyRepoPaths -and $MigrationReadOnlyRepoPaths.Count -gt 0) {
-        $migrationNotes = @("","## Migration Read-Only Repositories","")
+        $title = "## Migration Read-Only Repositories"
+        if (-not [string]::IsNullOrWhiteSpace($MigrationFunctionName)) {
+            $title = "## Migration Read-Only Repositories (`MIGRACION-NET $MigrationFunctionName`)"
+        }
+        $migrationNotes = @("", $title, "")
         foreach ($path in $MigrationReadOnlyRepoPaths) {
             $migrationNotes += ('- `solo consulta`: `{0}`' -f $path)
         }
@@ -1938,11 +1955,18 @@ function Invoke-New {
     $selectedRepos = Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog (Get-ImpactRepoCatalog) -SelectRepos:$SelectRepos
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) }
     $configPath = Join-Path $PSScriptRoot ".jira-open.env"
-    $migrationReadOnlyRepoPaths = Resolve-MigrationReadOnlyRepoPaths -ConfigPath $configPath
-    if ($migrationReadOnlyRepoPaths.Count -gt 0) {
-        Write-Output ("Migration read-only repositories: {0}" -f ($migrationReadOnlyRepoPaths -join " ; "))
+    $migrationFunctionName = Try-ResolveMigrationNetFunctionName -Issue $issue
+    $migrationReadOnlyRepoPaths = @()
+    if (-not [string]::IsNullOrWhiteSpace($migrationFunctionName)) {
+        $migrationReadOnlyRepoPaths = Resolve-MigrationReadOnlyRepoPaths -ConfigPath $configPath
+        if ($migrationReadOnlyRepoPaths.Count -gt 0) {
+            Write-Output ("Migration read-only repositories enabled for MIGRACION-NET {0}: {1}" -f $migrationFunctionName, ($migrationReadOnlyRepoPaths -join " ; "))
+        }
     }
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "migration_read_only_repos" -Status "ok" -Message "Migration read-only repositories resolved." -Data @{ paths = @($migrationReadOnlyRepoPaths) }
+    else {
+        Write-Output "Migration read-only repositories disabled (ticket does not include pattern: MIGRACION-NET <NombreFuncion>)."
+    }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "migration_read_only_repos" -Status "ok" -Message "Migration read-only repositories resolved." -Data @{ function = $migrationFunctionName; paths = @($migrationReadOnlyRepoPaths) }
 
     if (-not (Test-Path $changeRoot)) {
         New-Item -ItemType Directory -Path $changeRoot -Force | Out-Null
@@ -1957,7 +1981,7 @@ function Invoke-New {
         }
     }
 
-    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos -MigrationReadOnlyRepoPaths $migrationReadOnlyRepoPaths
+    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos -MigrationReadOnlyRepoPaths $migrationReadOnlyRepoPaths -MigrationFunctionName $migrationFunctionName
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_artifacts" -Status "ok" -Message "OpenSpec artifacts generated." -Data @{ change = $changeName }
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName }
