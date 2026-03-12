@@ -19,12 +19,13 @@
 `AppResponses<RaRadConfigPlantillaRadicacionDto?>`
 
 `RaRadConfigPlantillaRadicacionDto`:
-- `id_config_plantilla_radicacion` (`int`)
+- `id_rad_config_plantilla_radicacion` (`int`)
 - `system_plantilla_radicado_id_Plantilla` (`int`)
 - `Tipo_radicacion_plantilla` (`int`)
-- `requiere_respuesta` (`int?`)
-- `util_tipo_modulo_envio` (`int?`)
-- `estado` (`int?`)
+- `Descripcion_tipo_radicacion` (`string?`)
+- `util_notificacion_remitente` (`int`)
+- `util_notificacion_destinatario` (`int`)
+- `util_valida_restriccion_radicacion` (`int`)
 
 ## Ejemplo request
 ```http
@@ -38,12 +39,13 @@ Authorization: Bearer <token>
   "success": true,
   "message": "OK",
   "data": {
-    "id_config_plantilla_radicacion": 1,
+    "id_rad_config_plantilla_radicacion": 1,
     "system_plantilla_radicado_id_Plantilla": 67,
     "Tipo_radicacion_plantilla": 1,
-    "requiere_respuesta": 1,
-    "util_tipo_modulo_envio": 2,
-    "estado": 1
+    "Descripcion_tipo_radicacion": "Externa",
+    "util_notificacion_remitente": 1,
+    "util_notificacion_destinatario": 0,
+    "util_valida_restriccion_radicacion": 1
   },
   "meta": null,
   "errors": []
