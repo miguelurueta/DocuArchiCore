@@ -26,6 +26,7 @@ classDiagram
     class ConfiguracionPlantillaRepository
     class RaRadConfigPlantillaRadicacion
     class RaRadConfigPlantillaRadicacionDto
+    note for RaRadConfigPlantillaRadicacion "Campos reales: id_rad_config_plantilla_radicacion, Descripcion_tipo_radicacion, util_notificacion_remitente, util_notificacion_destinatario, util_valida_restriccion_radicacion"
 
     ConfiguracionPlantillaController --> IConfiguracionPlantillaService
     ConfiguracionPlantillaService ..|> IConfiguracionPlantillaService

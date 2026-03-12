@@ -66,6 +66,7 @@ public sealed class ConfiguracionPlantillaRepositoryIntegrationTests : IAsyncLif
         Assert.Equal("OK", result.message);
         Assert.NotNull(result.data);
         Assert.Equal(67, result.data!.system_plantilla_radicado_id_Plantilla);
+        Assert.Equal("Externa", result.data.Descripcion_tipo_radicacion);
     }
 
     [Fact]

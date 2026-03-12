@@ -1,15 +1,24 @@
 ## ADDED Requirements
 
-### Requirement: Traceability to Jira issue
-The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-58.
+### Requirement: Consulta configuracion plantilla alineada a estructura real
+La funcion `SolicitaConfiguracionPlantillaAsync` MUST reflejar la estructura real de `ra_rad_config_plantilla_radicacion` en el entorno configurado.
 
-#### Scenario: Change references Jira issue
-- **WHEN** a reviewer opens the change artifacts
-- **THEN** proposal and design identify Jira issue SCRUM-58
+#### Scenario: Consulta con estructura real
+- **WHEN** se consulta por `idPlantilla`, `tipoRadicacionPlantilla` y `defaultDbAlias`
+- **THEN** el modelo y DTO exponen `id_rad_config_plantilla_radicacion`, `Descripcion_tipo_radicacion`, `util_notificacion_remitente`, `util_notificacion_destinatario`, `util_valida_restriccion_radicacion`
+- **AND** la consulta sigue siendo parametrizada y envuelta en `AppResponses`
 
-### Requirement: Backend update rules baseline
-Backend update requests MUST follow repository, architecture and testing constraints defined in openspec/context/OPSXJ_BACKEND_RULES.md.
+#### Scenario: Sin resultados
+- **WHEN** no hay registros para los filtros
+- **THEN** retorna `success=true`, `message="Sin resultados"` y `data=null`
 
-#### Scenario: Missing implementation constraints
-- **WHEN** proposal/design/tasks are reviewed
-- **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+#### Scenario: Error controlado
+- **WHEN** ocurre una excepcion en Repository o Service
+- **THEN** retorna `success=false` con detalle en `errors` y sin romper contrato
+
+### Requirement: Reglas backend OPSXJ
+Las actualizaciones backend MUST cumplir `openspec/context/OPSXJ_BACKEND_RULES.md`.
+
+#### Scenario: Cumplimiento de arquitectura
+- **WHEN** se revisa el cambio
+- **THEN** mantiene patron Controller -> Service -> Repository, DI en `Program.cs`, y pruebas unitarias/integracion/contract
