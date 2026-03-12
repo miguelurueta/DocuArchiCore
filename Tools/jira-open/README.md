@@ -21,6 +21,9 @@ Guia recomendada de operacion multi-repo:
   - `GIT_BASE_BRANCH` (optional, overrides base branch auto-detection for PRs)
   - `GITHUB_TOKEN` (recommended; enables direct GitHub API auth for PR create/list/merge checks)
   - `GITHUBREPO` or `GITHUB_REPO` (optional). If empty, `opsxj` auto-detects `owner/repo` from `git remote get-url <GIT_REMOTE_NAME>`.
+  - `OPSXJ_IMPACT_REPOS` (optional, comma-separated repo names from catalog; forces impacted repos for `opsxj:new`)
+  - `OPSXJ_READONLY_REPOS` (optional, comma-separated repo names from catalog; marked as `solo consulta (sin cambios)` and excluded from impact)
+  - `OPSXJ_MIGRATION_READONLY_REPO_PATHS` (optional, semicolon-separated absolute paths to legacy/migration repos used only as reference)
 
 ## Commands
 
@@ -44,23 +47,10 @@ npm.cmd --prefix Tools/jira-open run opsxj:doctor -- [ISSUE-KEY]
 
 Repository target mode:
 
-- Auto-detection (default):
+- Auto-detection (default) or explicit configuration via `OPSXJ_IMPACT_REPOS`:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY>
-```
-
-- Manual selection (interactive list):
-
-```powershell
-npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> -SelectRepos
-```
-
-Examples:
-
-```powershell
-npm.cmd --prefix Tools/jira-open run opsxj:new -- OPSXJ-200
-npm.cmd --prefix Tools/jira-open run opsxj:new -- OPSXJ-200 -SelectRepos
 ```
 
 Run PR flow tests:
@@ -106,7 +96,9 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
 - `opsxj:jira-pending` lists pending Jira tickets (`statusCategory != Done`) for a project or custom JQL without changing Jira/Git/GitHub state.
 - Missing parameters are handled as strict validation errors (no auto-correction or fallback execution).
-- `opsxj:new -SelectRepos` asks interactively which repositories are impacted and pre-fills `sync.md` (`yes/no`, `pending/n/a`).
+- Interactive repo selection is disabled by policy. Use `OPSXJ_IMPACT_REPOS` and `OPSXJ_READONLY_REPOS` in `.jira-open.env`.
+- `OPSXJ_READONLY_REPOS` entries are forced as non-impacted in `sync.md` with reason `solo consulta (sin cambios)`.
+- `OPSXJ_MIGRATION_READONLY_REPO_PATHS` is appended to generated `sync.md` as traceable migration reference sources.
 - `opsxj:new` now includes backend update baseline rules in generated artifacts via `openspec/context/OPSXJ_BACKEND_RULES.md`.
 - PR title is based on Jira ticket `summary`.
 - GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
