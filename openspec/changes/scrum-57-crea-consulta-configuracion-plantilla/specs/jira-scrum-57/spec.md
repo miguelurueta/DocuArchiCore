@@ -1,15 +1,26 @@
 ## ADDED Requirements
 
-### Requirement: Traceability to Jira issue
-The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-57.
+### Requirement: Consulta configuracion plantilla radicacion
+The system MUST expose a plantilla configuration query filtered by `idPlantilla`, `tipoRadicacionPlantilla`, and `defaultDbAlias` using layered architecture.
 
-#### Scenario: Change references Jira issue
-- **WHEN** a reviewer opens the change artifacts
-- **THEN** proposal and design identify Jira issue SCRUM-57
+#### Scenario: Query with valid data
+- **WHEN** a consumer calls the endpoint with valid `idPlantilla`, `tipoRadicacionPlantilla`, and claim `defaulalias`
+- **THEN** backend queries `ra_rad_config_plantilla_radicacion` with parameterized filters
+- **AND** returns `AppResponses` with `success=true`, `message="OK"`, and matching `data`
 
-### Requirement: Backend update rules baseline
-Backend update requests MUST follow repository, architecture and testing constraints defined in openspec/context/OPSXJ_BACKEND_RULES.md.
+#### Scenario: Query without rows
+- **WHEN** no record matches the filters
+- **THEN** backend returns `success=true`, `message="Sin resultados"`, and `data=null`
 
-#### Scenario: Missing implementation constraints
-- **WHEN** proposal/design/tasks are reviewed
-- **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+#### Scenario: Controlled technical error
+- **WHEN** an exception occurs during repository/service/controller flow
+- **THEN** backend returns `success=false` with descriptive `errors` and keeps `AppResponses` contract
+
+### Requirement: Backend baseline OPSXJ rules
+Backend updates MUST follow `openspec/context/OPSXJ_BACKEND_RULES.md`.
+
+#### Scenario: Pattern and DI compliance
+- **WHEN** implementation is reviewed
+- **THEN** Controller -> Service -> Repository separation exists
+- **AND** interfaces and classes are registered in `Program.cs`
+- **AND** flow uses `try/catch` and `AppResponses` in all layers
