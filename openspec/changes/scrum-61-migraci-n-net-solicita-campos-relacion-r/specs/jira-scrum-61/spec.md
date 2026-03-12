@@ -13,3 +13,21 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Migrar consulta de campos relacionados plantilla-ruta
+El sistema MUST exponer una consulta para `solicita_campos_relacion_ruta_plantilla` usando arquitectura Controller -> Service -> Repository con `defaultDbAlias`.
+
+#### Scenario: Consulta exitosa
+- **GIVEN** `idPlantillaRadicado` y `idRuta` validos
+- **WHEN** se invoca el endpoint de consulta
+- **THEN** retorna `AppResponses<List<RelacionCamposRutaWorklflowDto>>` con `success=true` y `message=OK`
+
+#### Scenario: Sin resultados
+- **GIVEN** no existen filas para la plantilla y ruta solicitadas
+- **WHEN** se ejecuta la consulta
+- **THEN** retorna `success=true`, `message=\"Sin resultados\"` y `data=[]`
+
+#### Scenario: Error controlado
+- **GIVEN** ocurre una excepcion en el repositorio
+- **WHEN** se ejecuta la consulta
+- **THEN** retorna `success=false` y errores controlados en `AppResponses`
