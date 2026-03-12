@@ -99,6 +99,9 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - Interactive repo selection is disabled by policy. Use `OPSXJ_IMPACT_REPOS` and `OPSXJ_READONLY_REPOS` in `.jira-open.env`.
 - `OPSXJ_READONLY_REPOS` entries are forced as non-impacted in `sync.md` with reason `solo consulta (sin cambios)`.
 - `OPSXJ_MIGRATION_READONLY_REPO_PATHS` is appended to generated `sync.md` only when Jira ticket text contains `MIGRACION-NET <NombreFuncion>`.
+- Trigger example:
+  - `MIGRACION-NET ExecuteQ07InsertLogRespuestaAsync`
+  - `MIGRACION-NET: RegistrarRadicacionEntranteAsync`
 - `opsxj:new` now includes backend update baseline rules in generated artifacts via `openspec/context/OPSXJ_BACKEND_RULES.md`.
 - PR title is based on Jira ticket `summary`.
 - GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
