@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-57
+- Jira summary: CREA-CONSULTA-CONFIGURACION-PLANTILLA
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-57
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO — Consulta Configuración Plantilla Radicación Rol esperado: Arquitecto de software senior y desarrollador backend .NET OBJETIVO Implementar la consulta de configuración de plantilla de radicación siguiendo el patrón Repository dentro de un proyecto multirepo con arquitectura por capas. Se debe consultar la configuración de una plantilla de radicación usando: - idPlantilla - tipoRadicacionPlantilla - defaultDbAlias Parámetros: idPlantilla tipoRadicacionPlantilla defaultDbAlias TABLA: ra_rad_config_plantilla_radicacion CONDICIONES system_plantilla_radicado_id_Plantilla = idPlantilla Tipo_radicacion_plantilla = tipoRadicacionPlantilla UBICACIÓN DE COMPONENTES Repositorio Proyecto: MiApp.Repository Ruta: /Repositorio/Radicador/Configuracion Modelo Proyecto: MiApp.Models Ruta: /Radicacion/Configuracion Documentación Repositorio: DocuArchiCore Ruta: /Docs/Radicacion/Configuracion FIRMA ESPERADA DEL MÉTODO Task<AppResponses<RaRadConfigPlantillaRadicacion?>> SolicitaConfiguracionPlantillaAsync( int idPlantilla, int tipoRadicacionPlantilla, string defaultDbAlias) Si la tabla puede retornar múltiples registros válidos, usar: Task<AppResponses<List>> REQUERIMIENTOS FUNCIONALES Implementar patrón: Repository La respuesta debe estar envuelta en: AppResponses La función debe estar envuelta en bloque try/catch. La consulta debe ser parametrizada para evitar SQL Injection. En QueryOptions agregar: DefaultAlias = defaultDbAlias Crear el modelo/mapeo de la tabla: ra_rad_config_plantilla_radicacion Si no existen registros: success = true data = null message = “Sin resultados” En caso de excepción: success = false message descriptivo errors o ErrorMessage = ex.Message REQUERIMIENTOS TÉCNICOS Crear interfaz del repositorio en el mismo archivo que la clase si es la convención del proyecto. Registrar interfaz y clase en Program.cs. Documentar con comentarios XML: propósito de la clase propósito del método descripción de parámetros valor de retorno comportamiento cuando no hay resultados comportamiento ante excepciones Mantener nombres consistentes con el estándar del proyecto. Usar DapperCrudEngine + QueryOptions si es la base actual del repositorio. DOCUMENTACIÓN TÉCNICA Ubicación: /Docs/Radicacion/Configuracion Archivos: SCRUM-[ID]-Diagramas.md Debe incluir: - diagrama de casos de uso - diagrama de clases - diagrama de secuencia - diagrama de estados (si aplica) SCRUM-[ID]-Integracion-Frontend.md Debe incluir: - descripción técnica del DTO de respuesta - parámetros requeridos para invocar el servicio o endpoint - origen de los parámetros - ejemplo de request - ejemplo de response - dirección de la API - consideraciones de consumo desde frontend DOCUMENTAR CONSUMO INTERNO Ejemplo de invocación: var result = await _configuracionPlantillaService .SolicitaConfiguracionPlantillaAsync( idPlantilla, tipoRadicacionPlantilla, defaultDbAlias); PRUEBAS PRUEBAS UNITARIAS Incluir pruebas para: - respuesta exitosa con datos - respuesta exitosa sin resultados - excepción controlada - mock de repositorio o dependencias PRUEBAS DE INTEGRACIÓN Usar: MySQL Testcontainers / Docker Validar: - consulta real a la tabla - filtros correctos - comportamiento sin registros - comportamiento con registros válidos ENTREGABLES Modelo de tabla ra_rad_config_plantilla_radicacion Interfaz y clase de repositorio Servicio que consume el repositorio Registro en Program.cs Comentarios XML completos Pruebas unitarias Pruebas de integración Documentación técnica en /Docs/Radicacion/Configuracion RESTRICCIONES No romper la arquitectura actual del proyecto. No usar SQL concatenado manualmente. Mantener consistencia con los patrones existentes. Usar AppResponses como wrapper estándar.
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-57-crea-consulta-configuracion-plantilla.
