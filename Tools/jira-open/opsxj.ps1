@@ -251,14 +251,23 @@ function Apply-ImpactSelectionToSync {
         }
     }
 
+    $configPath = Join-Path $PSScriptRoot ".jira-open.env"
+    $repoCatalog = Get-ImpactRepoCatalog
+    $readOnlyRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_READONLY_REPOS" -ConfigPath $configPath -RepoCatalog $repoCatalog
+    $readOnlySet = @{}
+    foreach ($repo in $readOnlyRepos) {
+        $readOnlySet[$repo.ToLowerInvariant()] = $true
+    }
+
     $lines = $SyncText -split "`r?`n"
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
         if ($line -match '^\|\s*(?<repo>[^|]+)\|') {
             $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
-            $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant())
+            $isReadOnly = $readOnlySet.ContainsKey($repo.ToLowerInvariant())
+            $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant()) -and (-not $isReadOnly)
             $impact = if ($isImpacted) { "yes" } else { "no" }
-            $motivo = if ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
+            $motivo = if ($isReadOnly) { "solo consulta (sin cambios)" } elseif ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
             $opsNew = if ($isImpacted) { "pending" } else { "n/a" }
             $pr = if ($isImpacted) { "pending" } else { "n/a" }
             $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
@@ -435,6 +444,45 @@ function Get-DetectedImpactRepos {
     }
 }
 
+function Resolve-ConfiguredRepoList {
+    param(
+        [string]$ConfigKey,
+        [string]$ConfigPath,
+        [string[]]$RepoCatalog
+    )
+
+    $raw = Get-FirstConfigValue -Keys @($ConfigKey) -ConfigPath $ConfigPath
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return @()
+    }
+
+    $configuredRepos = @(
+        $raw -split "," |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($configuredRepos.Count -eq 0) {
+        throw "$ConfigKey is configured but empty."
+    }
+
+    $catalogSet = @{}
+    foreach ($repo in $RepoCatalog) { $catalogSet[$repo.ToLowerInvariant()] = $repo }
+
+    $resolved = New-Object System.Collections.Generic.List[string]
+    foreach ($repo in $configuredRepos) {
+        $key = $repo.ToLowerInvariant()
+        if (-not $catalogSet.ContainsKey($key)) {
+            throw "$ConfigKey contains unknown repo '$repo'. Allowed values: $($RepoCatalog -join ', ')"
+        }
+        $canonical = $catalogSet[$key]
+        if (-not $resolved.Contains($canonical)) {
+            $resolved.Add($canonical)
+        }
+    }
+
+    return @($resolved)
+}
+
 function Resolve-ImpactReposForIssue {
     param(
         [hashtable]$Issue,
@@ -443,34 +491,31 @@ function Resolve-ImpactReposForIssue {
     )
 
     if ($SelectRepos) {
-        throw "Policy enforced: interactive repo selection is disabled. Use OPSXJ_IMPACT_REPOS in Tools/jira-open/.jira-open.env or environment variable."
+        throw "Policy enforced: interactive repo selection is disabled. Use OPSXJ_IMPACT_REPOS (and optional OPSXJ_READONLY_REPOS) in Tools/jira-open/.jira-open.env or environment variable."
     }
 
     $configPath = Join-Path $PSScriptRoot ".jira-open.env"
-    $configuredReposRaw = Get-FirstConfigValue -Keys @("OPSXJ_IMPACT_REPOS") -ConfigPath $configPath
-    if (-not [string]::IsNullOrWhiteSpace($configuredReposRaw)) {
-        $configuredRepos = @(
-            $configuredReposRaw -split "," |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-        )
-        if ($configuredRepos.Count -eq 0) {
-            throw "OPSXJ_IMPACT_REPOS is configured but empty."
+    $readOnlyRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_READONLY_REPOS" -ConfigPath $configPath -RepoCatalog $RepoCatalog
+    $readOnlySet = @{}
+    foreach ($repo in $readOnlyRepos) { $readOnlySet[$repo.ToLowerInvariant()] = $true }
+    if ($readOnlyRepos.Count -gt 0) {
+        Write-Output ("Read-only repos (solo consulta) from OPSXJ_READONLY_REPOS: {0}" -f ($readOnlyRepos -join ", "))
+    }
+
+    $configuredImpactRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_IMPACT_REPOS" -ConfigPath $configPath -RepoCatalog $RepoCatalog
+    if ($configuredImpactRepos.Count -gt 0) {
+        $resolved = New-Object System.Collections.Generic.List[string]
+        $excluded = New-Object System.Collections.Generic.List[string]
+        foreach ($repo in $configuredImpactRepos) {
+            if ($readOnlySet.ContainsKey($repo.ToLowerInvariant())) {
+                if (-not $excluded.Contains($repo)) { $excluded.Add($repo) }
+                continue
+            }
+            if (-not $resolved.Contains($repo)) { $resolved.Add($repo) }
         }
 
-        $catalogSet = @{}
-        foreach ($repo in $RepoCatalog) { $catalogSet[$repo.ToLowerInvariant()] = $repo }
-
-        $resolved = New-Object System.Collections.Generic.List[string]
-        foreach ($repo in $configuredRepos) {
-            $key = $repo.ToLowerInvariant()
-            if (-not $catalogSet.ContainsKey($key)) {
-                throw "OPSXJ_IMPACT_REPOS contains unknown repo '$repo'. Allowed values: $($RepoCatalog -join ', ')"
-            }
-            $canonical = $catalogSet[$key]
-            if (-not $resolved.Contains($canonical)) {
-                $resolved.Add($canonical)
-            }
+        if ($excluded.Count -gt 0) {
+            Write-Output ("Excluded read-only repos from impact selection: {0}" -f ($excluded -join ", "))
         }
 
         Write-Output ("Impacted repos from OPSXJ_IMPACT_REPOS: {0}" -f ($resolved -join ", "))
@@ -478,7 +523,7 @@ function Resolve-ImpactReposForIssue {
     }
 
     $detected = Get-DetectedImpactRepos -Issue $Issue -RepoCatalog $RepoCatalog
-    $repos = @($detected.repos)
+    $repos = @($detected.repos | Where-Object { -not $readOnlySet.ContainsKey($_.ToLowerInvariant()) })
     if ($repos.Count -gt 0) {
         Write-Output ("Auto-detected impacted repos: {0}" -f ($repos -join ", "))
         return $repos
