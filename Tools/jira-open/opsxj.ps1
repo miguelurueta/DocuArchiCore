@@ -483,6 +483,22 @@ function Resolve-ConfiguredRepoList {
     return @($resolved)
 }
 
+function Resolve-MigrationReadOnlyRepoPaths {
+    param([string]$ConfigPath)
+
+    $raw = Get-FirstConfigValue -Keys @("OPSXJ_MIGRATION_READONLY_REPO_PATHS") -ConfigPath $ConfigPath
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return @()
+    }
+
+    $paths = @(
+        $raw -split ";" |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    return @($paths)
+}
+
 function Resolve-ImpactReposForIssue {
     param(
         [hashtable]$Issue,
@@ -1705,7 +1721,8 @@ function Write-ChangeArtifacts {
         [string]$RepoRoot,
         [string]$ChangeName,
         [hashtable]$Issue,
-        [string[]]$SelectedRepos
+        [string[]]$SelectedRepos,
+        [string[]]$MigrationReadOnlyRepoPaths
     )
 
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$ChangeName"
@@ -1849,6 +1866,13 @@ function Write-ChangeArtifacts {
         ) -join "`n"
     }
     $sync = Apply-ImpactSelectionToSync -SyncText $sync -SelectedRepos $SelectedRepos
+    if ($MigrationReadOnlyRepoPaths -and $MigrationReadOnlyRepoPaths.Count -gt 0) {
+        $migrationNotes = @("","## Migration Read-Only Repositories","")
+        foreach ($path in $MigrationReadOnlyRepoPaths) {
+            $migrationNotes += ('- `solo consulta`: `{0}`' -f $path)
+        }
+        $sync = $sync + ("`n" + ($migrationNotes -join "`n"))
+    }
 
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($proposalPath, $proposal, $utf8NoBom)
@@ -1913,6 +1937,12 @@ function Invoke-New {
 
     $selectedRepos = Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog (Get-ImpactRepoCatalog) -SelectRepos:$SelectRepos
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) }
+    $configPath = Join-Path $PSScriptRoot ".jira-open.env"
+    $migrationReadOnlyRepoPaths = Resolve-MigrationReadOnlyRepoPaths -ConfigPath $configPath
+    if ($migrationReadOnlyRepoPaths.Count -gt 0) {
+        Write-Output ("Migration read-only repositories: {0}" -f ($migrationReadOnlyRepoPaths -join " ; "))
+    }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "migration_read_only_repos" -Status "ok" -Message "Migration read-only repositories resolved." -Data @{ paths = @($migrationReadOnlyRepoPaths) }
 
     if (-not (Test-Path $changeRoot)) {
         New-Item -ItemType Directory -Path $changeRoot -Force | Out-Null
@@ -1927,7 +1957,7 @@ function Invoke-New {
         }
     }
 
-    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos
+    Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos -MigrationReadOnlyRepoPaths $migrationReadOnlyRepoPaths
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_artifacts" -Status "ok" -Message "OpenSpec artifacts generated." -Data @{ change = $changeName }
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName }
