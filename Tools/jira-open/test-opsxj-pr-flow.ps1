@@ -147,14 +147,14 @@ try {
                     [string]$Method,
                     [string]$Uri,
                     [hashtable]$Headers,
-                    [string]$Body,
+                    [object]$Body,
                     [string]$ContentType
                 )
 
                 if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
                     return @{
                         fields = @{
-                            summary = "OPSXJ-1002 mock issue"
+                            summary = "MIGRACIÓN-NET-Formatea_fecha_time_framework"
                             description = @{
                                 type = "doc"
                                 content = @(
@@ -181,6 +181,19 @@ try {
                 }
 
                 if ($Method -ieq "Post" -and $Uri -like "https://api.github.com/repos/*/pulls") {
+                    if ($ContentType -ne "application/json; charset=utf-8") {
+                        throw "Expected UTF-8 GitHub content type. Actual: $ContentType"
+                    }
+
+                    $decodedBody = if ($Body -is [byte[]]) {
+                        [System.Text.Encoding]::UTF8.GetString($Body)
+                    }
+                    else {
+                        [string]$Body
+                    }
+
+                    Assert-Contains -Value $decodedBody -Expected "MIGRACIÓN-NET-Formatea_fecha_time_framework"
+
                     return @{
                         html_url = "https://github.com/example/repo/pull/1002"
                     }
