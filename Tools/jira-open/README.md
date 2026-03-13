@@ -39,10 +39,22 @@ Then create a change:
 npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY>
 ```
 
+Enterprise/headless mode:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> -NonInteractive
+```
+
 Run environment diagnostics before `new/archive`:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:doctor -- [ISSUE-KEY]
+```
+
+Validate non-interactive prerequisites:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:doctor -- [ISSUE-KEY] -NonInteractive
 ```
 
 Repository target mode:
@@ -71,6 +83,12 @@ Archive by issue key (or explicit change name):
 npm.cmd --prefix Tools/jira-open run opsxj:archive -- <ISSUE-KEY|CHANGE-NAME> [-Yes] [-SkipSpecs]
 ```
 
+Archive in enterprise/headless mode:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:archive -- <ISSUE-KEY|CHANGE-NAME> -NonInteractive [-Yes] [-SkipSpecs]
+```
+
 Example:
 
 ```powershell
@@ -92,8 +110,10 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 ## Notes
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, creates/pushes a branch, and opens a GitHub PR.
+- `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
+- `opsxj:doctor -NonInteractive` reports `execution_mode: noninteractive` and validates the same flow for headless use.
 - `opsxj:jira-pending` lists pending Jira tickets (`statusCategory != Done`) for a project or custom JQL without changing Jira/Git/GitHub state.
 - Missing parameters are handled as strict validation errors (no auto-correction or fallback execution).
 - Interactive repo selection is disabled by policy. Use `OPSXJ_IMPACT_REPOS` and `OPSXJ_READONLY_REPOS` in `.jira-open.env`.
@@ -105,9 +125,11 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - `opsxj:new` now includes backend update baseline rules in generated artifacts via `openspec/context/OPSXJ_BACKEND_RULES.md`.
 - PR title is based on Jira ticket `summary`.
 - GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
+- In `-NonInteractive`, GitHub auth is token-only: `GITHUB_TOKEN` is mandatory and `gh auth login` is not used as an operational fallback.
 - If a PR already exists for the change branch, `opsxj:new` reports that PR instead of creating a duplicate.
 - `opsxj:archive` enforces merge validations and Jira transition; policy blocks `-NoValidate` and `-SkipJira`.
 - `opsxj:archive` transitions Jira to done before local archive to avoid local/Jira drift.
 - `opsxj:jira-done` is available for explicit Jira-only transition.
+- Audit entries in `openspec/logs/*.log.jsonl` include the execution mode (`legacy` or `noninteractive`).
 - Tooling protection: changes under `Tools/jira-open/**` are blocked by CI unless PR/commit metadata includes `opsx:explore` and authorization key `Maria20230126*`.
 - In this environment, running via `npm --prefix Tools/jira-open` from repo root is more reliable than running from `Tools/jira-open` directly.

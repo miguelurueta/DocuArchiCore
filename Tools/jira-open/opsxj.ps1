@@ -11,7 +11,8 @@ param(
     [switch]$Yes,
     [switch]$SkipSpecs,
     [switch]$NoValidate,
-    [switch]$Reopen
+    [switch]$Reopen,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -160,6 +161,16 @@ function Get-ToolConfig {
     }
 }
 
+function Get-ExecutionMode {
+    param([switch]$NonInteractive)
+
+    if ($NonInteractive) {
+        return "noninteractive"
+    }
+
+    return "legacy"
+}
+
 function Get-IssueKeyFromChangeName {
     param([string]$ChangeName)
     if (-not $ChangeName) { return $null }
@@ -294,7 +305,8 @@ function Write-OpsxjLog {
         [string]$Step,
         [string]$Status,
         [string]$Message,
-        [hashtable]$Data
+        [hashtable]$Data,
+        [string]$Mode = "legacy"
     )
 
     if ([string]::IsNullOrWhiteSpace($RepoRoot)) { return }
@@ -310,6 +322,7 @@ function Write-OpsxjLog {
     $entry = @{
         timestampUtc = (Get-Date).ToUniversalTime().ToString("o")
         issueKey = $IssueKey.ToUpperInvariant()
+        mode = $Mode
         step = $Step
         status = $Status
         message = $Message
@@ -779,7 +792,8 @@ function Invoke-Preflight {
     param(
         [string]$RepoRoot,
         [string]$CommandName,
-        [string]$IssueOrChange
+        [string]$IssueOrChange,
+        [string]$Mode = "legacy"
     )
 
     if ([string]::IsNullOrWhiteSpace($RepoRoot) -or -not (Test-Path $RepoRoot)) {
@@ -804,7 +818,10 @@ function Invoke-Preflight {
     }
 
     if ($CommandName -in @("new", "archive")) {
-        if ([string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
+        if ($Mode -eq "noninteractive" -and [string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
+            throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
+        }
+        if ($Mode -ne "noninteractive" -and [string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
             throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required."
         }
     }
@@ -845,7 +862,8 @@ function Invoke-Preflight {
 function Invoke-Doctor {
     param(
         [string]$RepoRoot,
-        [string]$IssueOrChange
+        [string]$IssueOrChange,
+        [string]$Mode = "legacy"
     )
 
     $results = New-Object System.Collections.Generic.List[object]
@@ -904,6 +922,9 @@ function Invoke-Doctor {
     }
     Add-DoctorResult -Name "github_token" -Check {
         if ([string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
+            if ($Mode -eq "noninteractive") {
+                throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
+            }
             throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required."
         }
     }
@@ -942,6 +963,7 @@ function Invoke-Doctor {
     }
 
     Write-Output "opsxj doctor report:"
+    Write-Output ("execution_mode: {0}" -f $Mode)
     foreach ($item in $results) {
         if ($item.status -eq "ok") {
             Write-Output ("[ok]   {0}" -f $item.check)
@@ -1092,7 +1114,8 @@ function Resolve-GitHubRepoFromRemote {
 function Assert-GitHubPrerequisites {
     param(
         [switch]$SkipGhAuth,
-        [string]$RemoteName
+        [string]$RemoteName,
+        [string]$Mode = "legacy"
     )
 
     $toolConfig = Get-ToolConfig
@@ -1101,6 +1124,10 @@ function Assert-GitHubPrerequisites {
     $ghCommand = Get-Command gh -ErrorAction SilentlyContinue
     $ghFallback = "C:\\Program Files\\GitHub CLI\\gh.exe"
     $ghExists = [bool]$ghCommand -or (Test-Path $ghFallback)
+
+    if ($Mode -eq "noninteractive" -and [string]::IsNullOrWhiteSpace($githubToken)) {
+        throw "GitHub connection requires GITHUB_TOKEN in -NonInteractive mode."
+    }
 
     if ([string]::IsNullOrWhiteSpace($githubToken) -and -not $ghExists) {
         if (-not $SkipGhAuth) {
@@ -1116,6 +1143,10 @@ function Assert-GitHubPrerequisites {
     $originUrl = Invoke-Git -CliArgs @("remote", "get-url", $RemoteName) -IgnoreExitCode
     if (-not $originUrl) {
         throw "Git remote '$RemoteName' is not configured. Configure it before creating a PR."
+    }
+
+    if ($Mode -eq "noninteractive") {
+        return
     }
 
     if (-not $SkipGhAuth -and [string]::IsNullOrWhiteSpace($githubToken)) {
@@ -1179,11 +1210,16 @@ function Get-ExistingPullRequest {
         $head = [uri]::EscapeDataString("${owner}:$BranchName")
         $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
         $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
-        if ($items.Count -gt 0) {
+        foreach ($item in $items) {
+            $url = [string]$item.html_url
+            if ([string]::IsNullOrWhiteSpace($url)) {
+                continue
+            }
+
             return [pscustomobject]@{
-                number = [string]$items[0].number
-                title = [string]$items[0].title
-                url = [string]$items[0].html_url
+                number = [string]$item.number
+                title = [string]$item.title
+                url = $url
             }
         }
         return $null
@@ -1198,8 +1234,13 @@ function Get-ExistingPullRequest {
     if (-not $json) { return $null }
 
     $ghItems = @($json | ConvertFrom-Json)
-    if ($ghItems.Count -gt 0) {
-        return $ghItems[0]
+    foreach ($ghItem in $ghItems) {
+        $url = [string]$ghItem.url
+        if ([string]::IsNullOrWhiteSpace($url)) {
+            continue
+        }
+
+        return $ghItem
     }
 
     return $null
@@ -1209,7 +1250,8 @@ function Ensure-GitHubPullRequest {
     param(
         [string]$RepoRoot,
         [string]$ChangeName,
-        [hashtable]$Issue
+        [hashtable]$Issue,
+        [string]$Mode = "legacy"
     )
 
     Push-Location $RepoRoot
@@ -1224,7 +1266,7 @@ function Ensure-GitHubPullRequest {
         }
 
         $fakePrUrl = [string]$env:OPSXJ_TEST_FAKE_PR_URL
-        Assert-GitHubPrerequisites -SkipGhAuth:([bool]$fakePrUrl) -RemoteName $remoteName
+        Assert-GitHubPrerequisites -SkipGhAuth:([bool]$fakePrUrl) -RemoteName $remoteName -Mode $Mode
 
         $branchName = Ensure-ChangeBranch -BranchName $ChangeName
         $commitTitle = "$($Issue.key): $($Issue.summary)"
@@ -1944,7 +1986,8 @@ function Invoke-New {
         [string]$RepoRoot,
         [string]$IssueKey,
         [switch]$SelectRepos,
-        [switch]$Reopen
+        [switch]$Reopen,
+        [string]$Mode = "legacy"
     )
 
     if ($IssueKey -notmatch "^[A-Za-z]+-\d+$") {
@@ -1952,7 +1995,7 @@ function Invoke-New {
     }
 
     $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = $false }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_issue_loaded" -Status "ok" -Message "Jira issue loaded for new." -Data @{ skipJira = $false } -Mode $Mode
 
     $summarySlug = To-KebabCase $issue.summary
     if (-not $summarySlug) { $summarySlug = "change" }
@@ -1962,17 +2005,17 @@ function Invoke-New {
     $changeRoot = Join-Path $RepoRoot "openspec\\changes\\$changeName"
     $archivedPath = Get-ArchivedChangeDirectory -RepoRoot $RepoRoot -ChangeName $changeName
     if ($archivedPath -and -not $Reopen) {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_skipped_archived" -Status "skipped" -Message "Change already archived. Use -Reopen to regenerate artifacts." -Data @{ change = $changeName; archivePath = $archivedPath }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_skipped_archived" -Status "skipped" -Message "Change already archived. Use -Reopen to regenerate artifacts." -Data @{ change = $changeName; archivePath = $archivedPath } -Mode $Mode
         Write-Output "Change '$changeName' is already archived at '$archivedPath'. Use -Reopen to recreate artifacts."
         return
     }
     if ($archivedPath -and $Reopen) {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_reopen_archived" -Status "ok" -Message "Reopen requested for archived change." -Data @{ change = $changeName; archivePath = $archivedPath }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "new_reopen_archived" -Status "ok" -Message "Reopen requested for archived change." -Data @{ change = $changeName; archivePath = $archivedPath } -Mode $Mode
         Write-Output "Reopen flag detected. Regenerating archived change '$changeName'."
     }
 
     $selectedRepos = Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog (Get-ImpactRepoCatalog) -SelectRepos:$SelectRepos
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "repo_detection" -Status "ok" -Message "Impacted repositories resolved." -Data @{ repos = @($selectedRepos) } -Mode $Mode
     $configPath = Join-Path $PSScriptRoot ".jira-open.env"
     $migrationFunctionName = Try-ResolveMigrationNetFunctionName -Issue $issue
     $migrationReadOnlyRepoPaths = @()
@@ -1985,7 +2028,7 @@ function Invoke-New {
     else {
         Write-Output "Migration read-only repositories disabled (ticket does not include pattern: MIGRACION-NET <NombreFuncion>)."
     }
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "migration_read_only_repos" -Status "ok" -Message "Migration read-only repositories resolved." -Data @{ function = $migrationFunctionName; paths = @($migrationReadOnlyRepoPaths) }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "migration_read_only_repos" -Status "ok" -Message "Migration read-only repositories resolved." -Data @{ function = $migrationFunctionName; paths = @($migrationReadOnlyRepoPaths) } -Mode $Mode
 
     if (-not (Test-Path $changeRoot)) {
         New-Item -ItemType Directory -Path $changeRoot -Force | Out-Null
@@ -2001,18 +2044,18 @@ function Invoke-New {
     }
 
     Write-ChangeArtifacts -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -SelectedRepos $selectedRepos -MigrationReadOnlyRepoPaths $migrationReadOnlyRepoPaths -MigrationFunctionName $migrationFunctionName
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_artifacts" -Status "ok" -Message "OpenSpec artifacts generated." -Data @{ change = $changeName }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_artifacts" -Status "ok" -Message "OpenSpec artifacts generated." -Data @{ change = $changeName } -Mode $Mode
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName } -Mode $Mode
 
     try {
-        $pr = Ensure-GitHubPullRequest -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue
+        $pr = Ensure-GitHubPullRequest -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -Mode $Mode
     }
     catch {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "error" -Message "GitHub PR creation failed." -Data @{ error = $_.Exception.Message; change = $changeName }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "error" -Message "GitHub PR creation failed." -Data @{ error = $_.Exception.Message; change = $changeName } -Mode $Mode
         throw "OpenSpec artifacts were created, but GitHub PR creation failed. $($_.Exception.Message)"
     }
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "ok" -Message "PR ensured for change." -Data @{ url = $pr.url; branch = $pr.branch; created = [bool]$pr.created }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "ok" -Message "PR ensured for change." -Data @{ url = $pr.url; branch = $pr.branch; created = [bool]$pr.created } -Mode $Mode
 
     Write-Output "Created/updated OpenSpec change: $changeName"
     Write-Output "Path: openspec/changes/$changeName"
@@ -2032,7 +2075,8 @@ function Invoke-Archive {
         [switch]$Yes,
         [switch]$SkipSpecs,
         [switch]$NoValidate,
-        [switch]$SkipJira
+        [switch]$SkipJira,
+        [string]$Mode = "legacy"
     )
 
     $issueKey = if ($IssueOrChange -match "^[A-Za-z]+-\d+$") { $IssueOrChange.ToUpperInvariant() } else { $null }
@@ -2045,7 +2089,7 @@ function Invoke-Archive {
     }
 
     Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira } -Mode $Mode
 
     if ($NoValidate) {
         throw "Policy enforced: -NoValidate is not allowed in opsxj:archive."
@@ -2057,14 +2101,14 @@ function Invoke-Archive {
 
     $baseBranch = Assert-ChangeMergedInGit -RepoRoot $RepoRoot -ChangeName $changeName
     Write-Output "Git merge validation passed: '$changeName' merged into '$baseBranch'."
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "git_merge_validation" -Status "ok" -Message "Local git merge validation passed." -Data @{ change = $changeName; baseBranch = $baseBranch } -Mode $Mode
 
     try {
         $impactEntries = Assert-AllImpactedPullRequestsMerged -RepoRoot $RepoRoot -ChangeName $changeName
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "ok" -Message "Impacted PRs merged validation passed." -Data @{ change = $changeName; entries = @($impactEntries) }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "ok" -Message "Impacted PRs merged validation passed." -Data @{ change = $changeName; entries = @($impactEntries) } -Mode $Mode
     }
     catch {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "error" -Message "Impacted PR merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "pr_merge_validation" -Status "error" -Message "Impacted PR merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message } -Mode $Mode
         throw
     }
 
@@ -2074,18 +2118,18 @@ function Invoke-Archive {
 
     $issue = Get-JiraIssueData -IssueKey $issueKey
     Assert-IssueHasText -Issue $issue
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_text_validation" -Status "ok" -Message "Jira ticket text validation passed." -Data @{}
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_text_validation" -Status "ok" -Message "Jira ticket text validation passed." -Data @{} -Mode $Mode
 
     try {
         $doneState = Set-JiraIssueToDone -IssueKey $issueKey
     }
     catch {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "error" -Message "Jira transition failed." -Data @{ error = $_.Exception.Message }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "error" -Message "Jira transition failed." -Data @{ error = $_.Exception.Message } -Mode $Mode
         throw "Archive completed but Jira status update failed for '$issueKey'. $($_.Exception.Message)"
     }
 
     Write-Output "Jira issue transitioned: $issueKey -> $doneState"
-    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState }
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "jira_transition" -Status "ok" -Message "Jira issue transitioned." -Data @{ state = $doneState } -Mode $Mode
 
     # Always run archive in non-interactive mode to prevent CI/terminal prompt blocks.
     $args = @("archive", $changeName, "-y")
@@ -2095,7 +2139,7 @@ function Invoke-Archive {
     try {
         Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs $args
         Write-Output "Archived change: $changeName"
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "OpenSpec archive completed." -Data @{ change = $changeName } -Mode $Mode
     }
     catch {
         $archiveError = $_.Exception.Message
@@ -2106,7 +2150,7 @@ function Invoke-Archive {
             if (Test-Path $changePath) {
                 Remove-Item -Path $changePath -Recurse -Force
             }
-            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "Archive already existed; active change directory cleaned." -Data @{ change = $changeName }
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_local" -Status "ok" -Message "Archive already existed; active change directory cleaned." -Data @{ change = $changeName } -Mode $Mode
         }
         else {
             throw
@@ -2116,11 +2160,11 @@ function Invoke-Archive {
     $pushResult = Push-OrchestratorArchive -RepoRoot $RepoRoot -ChangeName $changeName
     if ($pushResult.pushed) {
         Write-Output "Orchestrator push completed: $($pushResult.remote)/$($pushResult.branch)"
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "ok" -Message "Orchestrator archive push completed." -Data $pushResult -Mode $Mode
     }
     else {
         $skipMessage = if ($archiveAlreadyExisted) { "Orchestrator push skipped after idempotent archive handling." } else { "Orchestrator push skipped." }
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message $skipMessage -Data $pushResult
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrator_push" -Status "skipped" -Message $skipMessage -Data $pushResult -Mode $Mode
     }
 }
 
@@ -2215,6 +2259,7 @@ function Invoke-JiraDone {
 }
 
 $repoRoot = Get-RepoRoot
+$executionMode = Get-ExecutionMode -NonInteractive:$NonInteractive
 $lockIssueKey = $null
 if (-not [string]::IsNullOrWhiteSpace($IssueOrChange) -and $IssueOrChange -match "^[A-Za-z]+-\d+$") {
     $lockIssueKey = $IssueOrChange.ToUpperInvariant()
@@ -2233,16 +2278,16 @@ if ([string]::IsNullOrWhiteSpace($lockIssueKey)) {
 
 Acquire-IssueLock -RepoRoot $repoRoot -IssueKey $lockIssueKey
 try {
-    Invoke-Preflight -RepoRoot $repoRoot -CommandName $Command -IssueOrChange $IssueOrChange
+    Invoke-Preflight -RepoRoot $repoRoot -CommandName $Command -IssueOrChange $IssueOrChange -Mode $executionMode
 
     if ($Command -eq "new") {
         if ($SkipJira) {
             throw "Policy enforced: -SkipJira is not allowed in opsxj:new."
         }
-        Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen
+        Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen -Mode $executionMode
     }
     elseif ($Command -eq "archive") {
-        Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira
+        Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
     }
     elseif ($Command -eq "jira-done") {
         Invoke-JiraDone -IssueKey $IssueOrChange
@@ -2251,7 +2296,7 @@ try {
         Invoke-JiraPending -Scope $IssueOrChange
     }
     elseif ($Command -eq "doctor") {
-        Invoke-Doctor -RepoRoot $repoRoot -IssueOrChange $IssueOrChange
+        Invoke-Doctor -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Mode $executionMode
     }
 }
 finally {

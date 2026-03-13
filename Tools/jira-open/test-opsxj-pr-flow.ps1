@@ -61,6 +61,9 @@ try {
     $env:PATH = "$fakeBin;$previousPath"
     $env:OPSXJ_TEST_SKIP_GIT_PUSH = "1"
     $env:OPSXJ_TEST_FAKE_PR_URL = "https://github.com/example/repo/pull/123"
+    $env:JIRA_BASE_URL = "https://example.atlassian.net"
+    $env:JIRA_EMAIL = "bot@example.com"
+    $env:JIRA_API_TOKEN = "token"
     $env:GITHUB_TOKEN = "test-token"
 
     function global:Invoke-RestMethod {
@@ -115,6 +118,79 @@ try {
 
             $secondRun = (& $scriptPath new OPSXJ-999 2>&1 | Out-String)
             Assert-Contains -Value $secondRun -Expected "Pull request already exists: https://github.com/example/repo/pull/123"
+
+            $thirdRun = (& $scriptPath new OPSXJ-1000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $thirdRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
+
+            $logPath = Join-Path $repoRoot "openspec/logs/OPSXJ-1000.log.jsonl"
+            if (-not (Test-Path $logPath)) {
+                throw "Expected log file not found: $logPath"
+            }
+
+            $logText = Get-Content -Path $logPath -Raw
+            Assert-Contains -Value $logText -Expected '"mode":"noninteractive"'
+
+            Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+            try {
+                & $scriptPath new OPSXJ-1001 -NonInteractive | Out-Null
+                throw "Expected -NonInteractive token validation error was not raised."
+            }
+            catch {
+                Assert-Contains -Value $_.Exception.Message -Expected "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
+            }
+
+            $env:GITHUB_TOKEN = "test-token"
+            Remove-Item Env:OPSXJ_TEST_FAKE_PR_URL -ErrorAction SilentlyContinue
+
+            function global:Invoke-RestMethod {
+                param(
+                    [string]$Method,
+                    [string]$Uri,
+                    [hashtable]$Headers,
+                    [string]$Body,
+                    [string]$ContentType
+                )
+
+                if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+                    return @{
+                        fields = @{
+                            summary = "OPSXJ-1002 mock issue"
+                            description = @{
+                                type = "doc"
+                                content = @(
+                                    @{
+                                        type = "paragraph"
+                                        content = @(
+                                            @{ type = "text"; text = "Mock description" }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if ($Method -ieq "Get" -and $Uri -like "https://api.github.com/repos/*/pulls?state=open*") {
+                    return @(
+                        @{
+                            number = ""
+                            title = ""
+                            html_url = ""
+                        }
+                    )
+                }
+
+                if ($Method -ieq "Post" -and $Uri -like "https://api.github.com/repos/*/pulls") {
+                    return @{
+                        html_url = "https://github.com/example/repo/pull/1002"
+                    }
+                }
+
+                throw "Unexpected Invoke-RestMethod call: $Method $Uri"
+            }
+
+            $fourthRun = (& $scriptPath new OPSXJ-1002 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $fourthRun -Expected "Pull request created: https://github.com/example/repo/pull/1002"
         }
         finally {
             Pop-Location
@@ -125,10 +201,13 @@ try {
         $env:PATH = $previousPath
         Remove-Item Env:OPSXJ_TEST_SKIP_GIT_PUSH -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_FAKE_PR_URL -ErrorAction SilentlyContinue
+        Remove-Item Env:JIRA_BASE_URL -ErrorAction SilentlyContinue
+        Remove-Item Env:JIRA_EMAIL -ErrorAction SilentlyContinue
+        Remove-Item Env:JIRA_API_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
     }
 
-    Write-Output "PASS: opsxj:new creates PR and avoids duplicates."
+    Write-Output "PASS: opsxj:new legacy and -NonInteractive flows create PRs and enforce token policy."
 }
 finally {
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
