@@ -997,8 +997,9 @@ function Invoke-GitHubApi {
         ErrorAction = "Stop"
     }
     if ($null -ne $Body) {
-        $request.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
-        $request.ContentType = "application/json"
+        $json = ($Body | ConvertTo-Json -Depth 10 -Compress)
+        $request.Body = [System.Text.Encoding]::UTF8.GetBytes($json)
+        $request.ContentType = "application/json; charset=utf-8"
     }
 
     try {
