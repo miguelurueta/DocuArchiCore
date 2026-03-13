@@ -38,13 +38,13 @@ public sealed class ConfiguracionPlantillaServiceTests
             .Setup(m => m.Map<RaRadConfigPlantillaRadicacionDto>(It.IsAny<RaRadConfigPlantillaRadicacion>()))
             .Returns(new RaRadConfigPlantillaRadicacionDto
             {
-                id_rad_config_plantilla_radicacion = 1,
+                id_config_plantilla_radicacion = 1,
                 system_plantilla_radicado_id_Plantilla = 67,
                 Tipo_radicacion_plantilla = 1,
                 Descripcion_tipo_radicacion = "Externa",
-                util_notificacion_remitente = 1,
-                util_notificacion_destinatario = 0,
-                util_valida_restriccion_radicacion = 1
+                requiere_respuesta = 1,
+                util_tipo_modulo_envio = 0,
+                estado = 1
             });
 
         var service = new ConfiguracionPlantillaService(repository.Object, mapper.Object);
