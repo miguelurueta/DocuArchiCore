@@ -138,6 +138,59 @@ try {
             catch {
                 Assert-Contains -Value $_.Exception.Message -Expected "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
             }
+
+            $env:GITHUB_TOKEN = "test-token"
+            Remove-Item Env:OPSXJ_TEST_FAKE_PR_URL -ErrorAction SilentlyContinue
+
+            function global:Invoke-RestMethod {
+                param(
+                    [string]$Method,
+                    [string]$Uri,
+                    [hashtable]$Headers,
+                    [string]$Body,
+                    [string]$ContentType
+                )
+
+                if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+                    return @{
+                        fields = @{
+                            summary = "OPSXJ-1002 mock issue"
+                            description = @{
+                                type = "doc"
+                                content = @(
+                                    @{
+                                        type = "paragraph"
+                                        content = @(
+                                            @{ type = "text"; text = "Mock description" }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if ($Method -ieq "Get" -and $Uri -like "https://api.github.com/repos/*/pulls?state=open*") {
+                    return @(
+                        @{
+                            number = ""
+                            title = ""
+                            html_url = ""
+                        }
+                    )
+                }
+
+                if ($Method -ieq "Post" -and $Uri -like "https://api.github.com/repos/*/pulls") {
+                    return @{
+                        html_url = "https://github.com/example/repo/pull/1002"
+                    }
+                }
+
+                throw "Unexpected Invoke-RestMethod call: $Method $Uri"
+            }
+
+            $fourthRun = (& $scriptPath new OPSXJ-1002 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $fourthRun -Expected "Pull request created: https://github.com/example/repo/pull/1002"
         }
         finally {
             Pop-Location

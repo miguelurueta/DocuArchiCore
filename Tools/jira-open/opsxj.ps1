@@ -1210,11 +1210,16 @@ function Get-ExistingPullRequest {
         $head = [uri]::EscapeDataString("${owner}:$BranchName")
         $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
         $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
-        if ($items.Count -gt 0) {
+        foreach ($item in $items) {
+            $url = [string]$item.html_url
+            if ([string]::IsNullOrWhiteSpace($url)) {
+                continue
+            }
+
             return [pscustomobject]@{
-                number = [string]$items[0].number
-                title = [string]$items[0].title
-                url = [string]$items[0].html_url
+                number = [string]$item.number
+                title = [string]$item.title
+                url = $url
             }
         }
         return $null
@@ -1229,8 +1234,13 @@ function Get-ExistingPullRequest {
     if (-not $json) { return $null }
 
     $ghItems = @($json | ConvertFrom-Json)
-    if ($ghItems.Count -gt 0) {
-        return $ghItems[0]
+    foreach ($ghItem in $ghItems) {
+        $url = [string]$ghItem.url
+        if ([string]::IsNullOrWhiteSpace($url)) {
+            continue
+        }
+
+        return $ghItem
     }
 
     return $null
