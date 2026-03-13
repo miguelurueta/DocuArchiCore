@@ -4,3 +4,4 @@
 {"timestampUtc":"2026-03-12T21:36:55.4243790Z","step":"openspec_artifacts","data":{"change":"scrum-61-migraci-n-net-solicita-campos-relacion-r"},"message":"OpenSpec artifacts generated.","issueKey":"SCRUM-61","status":"ok"}
 {"timestampUtc":"2026-03-12T21:36:56.7104975Z","step":"openspec_validate","data":{"change":"scrum-61-migraci-n-net-solicita-campos-relacion-r"},"message":"OpenSpec validation passed.","issueKey":"SCRUM-61","status":"ok"}
 {"timestampUtc":"2026-03-12T21:36:59.5446505Z","step":"pr_create","data":{"branch":"scrum-61-migraci-n-net-solicita-campos-relacion-r","created":false,"url":""},"message":"PR ensured for change.","issueKey":"SCRUM-61","status":"ok"}
+{"timestampUtc":"2026-03-13T01:01:33.5954366Z","step":"archive_start","data":{"change":"scrum-61-migraci-n-net-solicita-campos-relacion-r","noValidate":false,"skipJira":false},"message":"Archive flow started.","issueKey":"SCRUM-61","status":"ok"}
