@@ -10,16 +10,16 @@ Use this template at the start of each Jira ticket (`SCRUM-61`) to decide exactl
 
 ## Impact Matrix
 
-| $(Repo) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(---) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchi.Api) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(DocuArchiCore.Abstractions) | $(no) | $(fuera de alcance) | $(n/a) | $(n/a) | $(n/a) | $(n_a) |
-| $(DocuArchiCore.Web) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.DTOs) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Services) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Repository) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
-| $(MiApp.Models) | $(yes) | $(<definir alcance>) | $(pending) | $(pending) | $(pending) | $(todo) |
+| Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DocuArchi.Api` | `yes` | endpoint/DI de consulta migrada | `done` | `pushed` | `pending` | `in_review` |
+| `DocuArchiCore` | `yes` | coordinacion openspec/docs/tests del cambio | `done` | `pushed` | `pending` | `in_review` |
+| `DocuArchiCore.Abstractions` | `no` | solo consulta (sin cambios) | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Web` | `no` | solo consulta (sin cambios) | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.DTOs` | `yes` | DTO de salida de consulta migrada | `done` | `pushed` | `pending` | `in_review` |
+| `MiApp.Services` | `yes` | service/mapping de consulta migrada | `done` | `pushed` | `pending` | `in_review` |
+| `MiApp.Repository` | `yes` | repository de consulta migrada | `done` | `pushed` | `pending` | `in_review` |
+| `MiApp.Models` | `yes` | model de consulta migrada | `done` | `pushed` | `pending` | `in_review` |
 
 ## Operating Rule
 
