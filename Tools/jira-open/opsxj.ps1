@@ -1622,6 +1622,14 @@ function Get-PullRequestMergeStatus {
     }
 
     $trimmed = $PrReference.Trim()
+    if ($trimmed -eq "pushed") {
+        return @{
+            merged = $true
+            state = "pushed"
+            url = "pushed"
+        }
+    }
+
     if ($trimmed -in @("pending", "n/a", "na", "-", "")) {
         return @{
             merged = $false
