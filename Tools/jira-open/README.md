@@ -109,7 +109,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 ## Notes
 
-- `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, creates/pushes a branch, and opens a GitHub PR.
+- `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, creates/pushes a branch, opens a GitHub PR, transitions Jira to `En Revision` when the PR is newly created, and adds a Jira comment with the PR URL plus the manual-merge reminder.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
@@ -127,7 +127,9 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - GitHub auth priority is `GITHUB_TOKEN` first, then `gh` CLI as fallback.
 - In `-NonInteractive`, GitHub auth is token-only: `GITHUB_TOKEN` is mandatory and `gh auth login` is not used as an operational fallback.
 - If a PR already exists for the change branch, `opsxj:new` reports that PR instead of creating a duplicate.
+- Pull requests created by `opsxj` are never merged automatically; merge remains a manual reviewer action.
 - `opsxj:archive` enforces merge validations and Jira transition; policy blocks `-NoValidate` and `-SkipJira`.
+- `opsxj:archive` can only finish after all PRs associated in `sync.md` are effectively merged.
 - `opsxj:archive` transitions Jira to done before local archive to avoid local/Jira drift.
 - `opsxj:jira-done` is available for explicit Jira-only transition.
 - Audit entries in `openspec/logs/*.log.jsonl` include the execution mode (`legacy` or `noninteractive`).

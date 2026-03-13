@@ -65,6 +65,8 @@ try {
     $env:JIRA_EMAIL = "bot@example.com"
     $env:JIRA_API_TOKEN = "token"
     $env:GITHUB_TOKEN = "test-token"
+    $global:ReviewTransitionCount = 0
+    $global:JiraCommentCount = 0
 
     function global:Invoke-RestMethod {
         param(
@@ -93,6 +95,29 @@ try {
             }
         }
 
+        if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+            return @{
+                transitions = @(
+                    @{
+                        id = "21"
+                        to = @{ name = "En Revision" }
+                    }
+                )
+            }
+        }
+
+        if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+            $global:ReviewTransitionCount++
+            return @{}
+        }
+
+        if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/comment") {
+            $global:JiraCommentCount++
+            Assert-Contains -Value $Body -Expected "Merge requerido: manual."
+            Assert-Contains -Value $Body -Expected "https://github.com/example/repo/pull/123"
+            return @{ id = "10001" }
+        }
+
         throw "Unexpected Invoke-RestMethod call: $Method $Uri"
     }
 
@@ -102,6 +127,8 @@ try {
         try {
             $firstRun = (& $scriptPath new OPSXJ-999 2>&1 | Out-String)
             Assert-Contains -Value $firstRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
+            Assert-Contains -Value $firstRun -Expected "Jira issue transitioned: OPSXJ-999 -> En Revision"
+            Assert-Contains -Value $firstRun -Expected "Jira comment added: OPSXJ-999"
 
             $changeName = $null
             if ($firstRun -match "Created/updated OpenSpec change:\s*(?<name>[A-Za-z0-9-]+)") {
@@ -121,6 +148,8 @@ try {
 
             $thirdRun = (& $scriptPath new OPSXJ-1000 -NonInteractive 2>&1 | Out-String)
             Assert-Contains -Value $thirdRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
+            Assert-Contains -Value $thirdRun -Expected "Jira issue transitioned: OPSXJ-1000 -> En Revision"
+            Assert-Contains -Value $thirdRun -Expected "Jira comment added: OPSXJ-1000"
 
             $logPath = Join-Path $repoRoot "openspec/logs/OPSXJ-1000.log.jsonl"
             if (-not (Test-Path $logPath)) {
@@ -170,6 +199,35 @@ try {
                     }
                 }
 
+                if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+                    return @{
+                        transitions = @(
+                            @{
+                                id = "21"
+                                to = @{ name = "En Revision" }
+                            }
+                        )
+                    }
+                }
+
+                if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+                    $global:ReviewTransitionCount++
+                    return @{}
+                }
+
+                if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/comment") {
+                    $global:JiraCommentCount++
+                    $bodyText = if ($Body -is [byte[]]) {
+                        [System.Text.Encoding]::UTF8.GetString($Body)
+                    }
+                    else {
+                        [string]$Body
+                    }
+                    Assert-Contains -Value $bodyText -Expected "Merge requerido: manual."
+                    Assert-Contains -Value $bodyText -Expected "https://github.com/example/repo/pull/1002"
+                    return @{ id = "10002" }
+                }
+
                 if ($Method -ieq "Get" -and $Uri -like "https://api.github.com/repos/*/pulls?state=open*") {
                     return @(
                         @{
@@ -204,6 +262,15 @@ try {
 
             $fourthRun = (& $scriptPath new OPSXJ-1002 -NonInteractive 2>&1 | Out-String)
             Assert-Contains -Value $fourthRun -Expected "Pull request created: https://github.com/example/repo/pull/1002"
+            Assert-Contains -Value $fourthRun -Expected "Jira issue transitioned: OPSXJ-1002 -> En Revision"
+            Assert-Contains -Value $fourthRun -Expected "Jira comment added: OPSXJ-1002"
+
+            if ($global:ReviewTransitionCount -lt 3) {
+                throw "Expected Jira review transition to run for each newly created PR. Count: $global:ReviewTransitionCount"
+            }
+            if ($global:JiraCommentCount -lt 3) {
+                throw "Expected Jira PR comment to run for each newly created PR. Count: $global:JiraCommentCount"
+            }
         }
         finally {
             Pop-Location
