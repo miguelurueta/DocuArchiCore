@@ -259,11 +259,19 @@ function Apply-ImpactSelectionToSync {
         $readOnlySet[$repo.ToLowerInvariant()] = $true
     }
 
+    $repoCatalogSet = @{}
+    foreach ($repoName in $repoCatalog) {
+        $repoCatalogSet[$repoName.ToLowerInvariant()] = $true
+    }
+
     $lines = $SyncText -split "`r?`n"
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
         if ($line -match '^\|\s*(?<repo>[^|]+)\|') {
             $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
+            if (-not $repoCatalogSet.ContainsKey($repo.ToLowerInvariant())) {
+                continue
+            }
             $isReadOnly = $readOnlySet.ContainsKey($repo.ToLowerInvariant())
             $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant()) -and (-not $isReadOnly)
             $impact = if ($isImpacted) { "yes" } else { "no" }
@@ -503,7 +511,10 @@ function Try-ResolveMigrationNetFunctionName {
     param([hashtable]$Issue)
 
     $text = ("{0}`n{1}" -f ([string]$Issue.summary), ([string]$Issue.description))
-    $match = [regex]::Match($text, '(?im)MIGRACION-NET\s*[:\-]?\s*([A-Za-z_][A-Za-z0-9_]*)')
+    $match = [regex]::Match(
+        $text,
+        '(?im)MIGRACI(?:O|Ó)N\s*[-_.]?\s*NET\s*[:\-]?\s*([A-Za-z_][A-Za-z0-9_]*)'
+    )
     if ($match.Success) {
         return [string]$match.Groups[1].Value
     }
