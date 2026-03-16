@@ -8,6 +8,7 @@ using MiApp.Repository.ErrorController;
 using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using MiApp.Services.Service.Radicacion.Configuracion;
+using MiApp.Services.Service.Radicacion.RelacionCamposRutaWorklflow;
 using MiApp.Services.Service.Radicacion.PlantillaRadicado;
 using MiApp.Services.Service.Radicacion.Tramite;
 using MiApp.Services.Service.Usuario;
@@ -29,6 +30,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
         var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -148,7 +150,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             configuracionPlantillaService.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object);
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -178,7 +181,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Mock.Of<IConfiguracionPlantillaService>(),
             Mock.Of<ISolicitaParametrosRadicadosService>(),
             Mock.Of<ITipoDocEntranteR>(),
-            Mock.Of<IValidaCamposRadicacionService>());
+            Mock.Of<IValidaCamposRadicacionService>(),
+            Mock.Of<IValidaPreRegistroWorkflowService>());
 
         var result = await service.RegistrarRadicacionEntranteAsync(
             new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 },
@@ -201,6 +205,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
         var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(25, "DA"))
@@ -312,7 +317,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             configuracionPlantillaService.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object);
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
         var request = new RegistrarRadicacionEntranteRequestDto
         {
             IdPlantilla = 10,
@@ -353,6 +359,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
         var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -389,7 +396,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             configuracionPlantillaService.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object);
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -428,6 +436,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
         var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -464,7 +473,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             configuracionPlantillaService.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object);
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -504,6 +514,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
         var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
         var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
 
         remitRepo
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -535,7 +546,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             configuracionPlantillaService.Object,
             parametrosService.Object,
             tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object);
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
 
         var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
         {
@@ -562,6 +574,144 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<ParametrosRadicadosDto>(),
             It.IsAny<TipoDocEntrante>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloEnvioNoEsWorkflow_NoConsultaServiciosWorkflow()
+    {
+        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
+        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
+        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
+        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
+        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
+
+        remitRepo
+            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
+            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+        detalleRepo
+            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
+            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
+        tipoDocEntranteRepo
+            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
+        parametrosService
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
+            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
+        validaCamposRadicacionService
+            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
+        configuracionPlantillaService
+            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
+            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
+        registrarRepo
+            .Setup(r => r.RegistrarRadicacionEntranteAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                55,
+                10,
+                "DA",
+                It.IsAny<string>(),
+                "RADICACION",
+                It.IsAny<SystemPlantillaRadicado>(),
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+                It.IsAny<ParametrosRadicadosDto>(),
+                It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto> { success = true, data = new RegistrarRadicacionEntranteResponseDto() });
+
+        var service = new RegistrarRadicacionEntranteService(
+            detalleRepo.Object,
+            remitRepo.Object,
+            plantillaRepo.Object,
+            registrarRepo.Object,
+            configuracionPlantillaService.Object,
+            parametrosService.Object,
+            tipoDocEntranteRepo.Object,
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
+
+        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1");
+
+        Assert.True(result.success);
+        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoWorkflowYNoExisteClaimDefaulaliaswf_RetornaValidacionYNoRegistra()
+    {
+        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
+        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
+        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
+        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
+        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
+
+        remitRepo
+            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
+            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+        detalleRepo
+            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
+            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
+        tipoDocEntranteRepo
+            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
+        parametrosService
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
+            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
+        validaCamposRadicacionService
+            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
+        configuracionPlantillaService
+            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
+            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
+        validaPreRegistroWorkflowService
+            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = false,
+                message = "Claim defaulaliaswf requerido para continuar con workflow",
+                data = null!,
+                errors = []
+            });
+
+        var service = new RegistrarRadicacionEntranteService(
+            detalleRepo.Object,
+            remitRepo.Object,
+            plantillaRepo.Object,
+            registrarRepo.Object,
+            configuracionPlantillaService.Object,
+            parametrosService.Object,
+            tipoDocEntranteRepo.Object,
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object);
+
+        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1");
+
+        Assert.False(result.success);
+        Assert.Equal("Claim defaulaliaswf requerido para continuar con workflow", result.message);
+        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<SystemPlantillaRadicado>(),
+            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+            It.IsAny<ParametrosRadicadosDto>(),
+            It.IsAny<TipoDocEntrante>()), Times.Never);
+        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()), Times.Once);
     }
 
     private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)
@@ -635,7 +785,21 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         };
     }
 
-    private static TipoDocEntrante BuildTipoDocEntrante(int idTipoDocEntrante, int idPlantilla)
+    private static RegistrarRadicacionEntranteRequestDto BuildRequest(int idPlantilla, int tipoDocEntrante, int idDestinatario)
+    {
+        return new RegistrarRadicacionEntranteRequestDto
+        {
+            IdPlantilla = idPlantilla,
+            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
+            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
+            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = tipoDocEntrante, Descripcion = "TRAMITE" },
+            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = idDestinatario },
+            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
+            ASUNTO = "A"
+        };
+    }
+
+    private static TipoDocEntrante BuildTipoDocEntrante(int idTipoDocEntrante, int idPlantilla, int utilTipoModuloEnvio = 1)
     {
         return new TipoDocEntrante
         {
@@ -652,7 +816,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             estado_ruta_open_close = 1,
             obliga_exp_radicado = 0,
             activo_modulo_respuesta = 1,
-            util_tipo_modulo_envio = 1,
+            util_tipo_modulo_envio = utilTipoModuloEnvio,
             util_producion_documental = 0,
             tipo_tramite_entrante_saliente = 1,
             wf_copia_doc_expediente_actualiza_exped_gabinete = 0,
