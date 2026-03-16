@@ -13,3 +13,25 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Claims architecture documentation
+The system MUST document the current claims-based security architecture of DocuArchiCore using only behavior verified in the codebase.
+
+#### Scenario: Document security architecture
+- **WHEN** a reviewer opens the claims documentation package
+- **THEN** it explains JWT configuration, token creation, core claim types, claim consumption, and authorization flow
+- **AND** it references the real files where each behavior is implemented
+
+### Requirement: Backend claims usage documentation
+The system MUST document how claims are consumed in controllers, services, and permission-based logic.
+
+#### Scenario: Document backend claim consumption
+- **WHEN** a reviewer inspects the backend usage guide
+- **THEN** it includes examples of `ICurrentUserService`, `IClaimValidationService`, and endpoints that validate `defaulalias` or `usuarioid`
+
+### Requirement: Authorization flow diagrams
+The system MUST provide textual diagrams that describe the authentication and authorization flow based on the current implementation.
+
+#### Scenario: Document authorization flow
+- **WHEN** a reviewer opens the flow document
+- **THEN** it includes the path login -> JWT -> claims -> middleware -> controller/service consumption

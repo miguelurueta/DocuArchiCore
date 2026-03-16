@@ -1,23 +1,23 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-69 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el issue Jira SCRUM-69 y confirmar alcance.
+- [x] 1.2 Confirmar repos impactados y rutas destino antes de crear artefactos.
+- [x] 1.3 Confirmar que no se requieren cambios de código ni modelos nuevos.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-69/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Completar specs/jira-scrum-69/spec.md con requisitos finales.
+- [x] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
+- [x] 2.3 Verificar escenarios testables por requisito.
 
-## 3. Application
+## 3. Documentation
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Documentar arquitectura de claims y generación de JWT basada en el código actual.
+- [x] 3.2 Documentar consumo de claims en controllers, services y lógica funcional.
+- [x] 3.3 Documentar el flujo de autenticación/autorización con diagramas textuales.
 
-## 4. Test
+## 4. Validation
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
+- [x] 4.1 Documentar evidencia y archivos fuente usados para la documentación.
+- [x] 4.2 Ejecutar validación OpenSpec del change.
 - [ ] 4.3 Validar y archivar con OpenSpec.
