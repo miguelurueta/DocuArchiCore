@@ -13,3 +13,23 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Query active workflow route structure
+The system MUST expose a backend flow that queries active rows from `rutas_workflow` using `defaultDbAlias` and returns the result wrapped in `AppResponses`.
+
+#### Scenario: Active routes exist
+- **WHEN** the repository is executed with a valid `defaultDbAlias`
+- **THEN** it queries `rutas_workflow` with filter `Estado_Ruta = 1`
+- **AND** the service/controller return `success = true`
+- **AND** the payload contains the active routes
+
+#### Scenario: No active routes exist
+- **WHEN** the repository finds no rows matching `Estado_Ruta = 1`
+- **THEN** the response returns `success = true`
+- **AND** `message = "Sin resultados"`
+- **AND** `data = null`
+
+#### Scenario: Alias is missing or query fails
+- **WHEN** `defaultDbAlias` is empty or the query layer fails
+- **THEN** the response returns `success = false`
+- **AND** the error is wrapped in `AppResponses`
