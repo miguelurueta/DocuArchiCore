@@ -291,11 +291,27 @@ function Apply-ImpactSelectionToSync {
             $pr = if ($isImpacted) { "pending" } else { "n/a" }
             $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
             $status = if ($isImpacted) { "todo" } else { "n_a" }
-            $lines[$i] = "| `$($repo)` | `$($impact)` | `$($motivo)` | `$($opsNew)` | `$($pr)` | `$($opsArchive)` | `$($status)` |"
+            $lines[$i] = "| `$repo` | `$impact` | `$motivo` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
         }
     }
 
     return ($lines -join "`n")
+}
+
+function Normalize-SyncCellValue {
+    param([string]$Value)
+
+    $text = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return ""
+    }
+
+    $normalized = $text.Trim().Replace([string][char]96, "")
+    if ($normalized -match '^\$\((?<value>.*)\)$') {
+        $normalized = [string]$Matches["value"]
+    }
+
+    return $normalized.Trim()
 }
 
 function Write-OpsxjLog {
@@ -1490,6 +1506,105 @@ function Get-JiraDoneTransition {
     return $null
 }
 
+function Get-JiraReviewTransition {
+    param(
+        [array]$Transitions
+    )
+
+    $reviewNames = @(
+        "en revision", "en revisión", "in review", "review", "code review", "revision", "revisión"
+    )
+
+    foreach ($t in $Transitions) {
+        $toName = [string]$t.to.name
+        if (-not $toName) { continue }
+        $normalized = $toName.Trim().ToLowerInvariant()
+        if ($reviewNames -contains $normalized) {
+            return $t
+        }
+    }
+
+    return $null
+}
+
+function Set-JiraIssueToReview {
+    param([string]$IssueKey)
+
+    $ctx = Get-JiraAuthContext
+    $transitionsUri = "$($ctx.baseUrl)/rest/api/3/issue/$IssueKey/transitions"
+
+    try {
+        $transitionsResponse = Invoke-JiraRestMethod -Method "Get" -Uri $transitionsUri -Headers $ctx.headers -Body ""
+    }
+    catch {
+        throw "Jira transitions query failed for '$IssueKey'. $($_.Exception.Message)"
+    }
+
+    $transitions = @($transitionsResponse.transitions)
+    if ($transitions.Count -eq 0) {
+        throw "No transitions available for Jira issue '$IssueKey'."
+    }
+
+    $reviewTransition = Get-JiraReviewTransition -Transitions $transitions
+    if (-not $reviewTransition) {
+        $available = $transitions | ForEach-Object { [string]$_.to.name } | Where-Object { $_ } | Sort-Object -Unique
+        throw "No review transition found for '$IssueKey'. Available states: $($available -join ', ')"
+    }
+
+    $payload = @{
+        transition = @{
+            id = [string]$reviewTransition.id
+        }
+    } | ConvertTo-Json -Depth 5
+
+    try {
+        Invoke-JiraRestMethod -Method "Post" -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
+    }
+    catch {
+        throw "Jira transition to review failed for '$IssueKey'. $($_.Exception.Message)"
+    }
+
+    return [string]$reviewTransition.to.name
+}
+
+function Add-JiraIssueComment {
+    param(
+        [string]$IssueKey,
+        [string]$CommentText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CommentText)) {
+        throw "Jira comment text cannot be empty."
+    }
+
+    $ctx = Get-JiraAuthContext
+    $commentUri = "$($ctx.baseUrl)/rest/api/3/issue/$IssueKey/comment"
+    $payload = @{
+        body = @{
+            type = "doc"
+            version = 1
+            content = @(
+                @{
+                    type = "paragraph"
+                    content = @(
+                        @{
+                            type = "text"
+                            text = $CommentText
+                        }
+                    )
+                }
+            )
+        }
+    } | ConvertTo-Json -Depth 8
+
+    try {
+        Invoke-JiraRestMethod -Method "Post" -Uri $commentUri -Headers $ctx.headers -Body $payload | Out-Null
+    }
+    catch {
+        throw "Jira comment creation failed for '$IssueKey'. $($_.Exception.Message)"
+    }
+}
+
 function Set-JiraIssueToDone {
     param([string]$IssueKey)
 
@@ -1636,13 +1751,13 @@ function Get-SyncImpactEntries {
     $lines = Get-Content -Path $syncPath
     foreach ($line in $lines) {
         if ($line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<motivo>[^|]*)\|\s*(?<opsnew>[^|]*)\|\s*(?<pr>[^|]*)\|\s*(?<opsarchive>[^|]*)\|\s*(?<status>[^|]*)\|') {
-            $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
+            $repo = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
             if ($repo -eq "Repo") { continue }
             [void]$entries.Add([pscustomobject]@{
                     repo = $repo.Trim()
-                    impact = ([string]$Matches["impact"]).Trim().Replace([string][char]96, "").ToLowerInvariant()
-                    pr = ([string]$Matches["pr"]).Trim().Replace([string][char]96, "")
-                    status = ([string]$Matches["status"]).Trim().Replace([string][char]96, "")
+                    impact = (Normalize-SyncCellValue -Value ([string]$Matches["impact"])).ToLowerInvariant()
+                    pr = Normalize-SyncCellValue -Value ([string]$Matches["pr"])
+                    status = Normalize-SyncCellValue -Value ([string]$Matches["status"])
                 })
         }
     }
@@ -2057,6 +2172,34 @@ function Invoke-New {
         throw "OpenSpec artifacts were created, but GitHub PR creation failed. $($_.Exception.Message)"
     }
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "ok" -Message "PR ensured for change." -Data @{ url = $pr.url; branch = $pr.branch; created = [bool]$pr.created } -Mode $Mode
+
+    if ($pr.created) {
+        try {
+            $reviewState = Set-JiraIssueToReview -IssueKey $issue.key
+            Write-Output "Jira issue transitioned: $($issue.key) -> $reviewState"
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "ok" -Message "Jira issue transitioned to review after PR creation." -Data @{ state = $reviewState; url = $pr.url } -Mode $Mode
+        }
+        catch {
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "error" -Message "Jira review transition failed after PR creation." -Data @{ error = $_.Exception.Message; url = $pr.url } -Mode $Mode
+            throw "Pull request was created, but Jira status update to review failed for '$($issue.key)'. $($_.Exception.Message)"
+        }
+
+        $commentText = @(
+            "PR creado: $($pr.url)",
+            "Merge requerido: manual.",
+            "El ticket no debe archivarse ni cerrarse hasta que todos los PR asociados esten en estado MERGED."
+        ) -join " "
+
+        try {
+            Add-JiraIssueComment -IssueKey $issue.key -CommentText $commentText
+            Write-Output "Jira comment added: $($issue.key)"
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_comment_pr" -Status "ok" -Message "Jira comment added after PR creation." -Data @{ url = $pr.url } -Mode $Mode
+        }
+        catch {
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_comment_pr" -Status "error" -Message "Jira comment failed after PR creation." -Data @{ error = $_.Exception.Message; url = $pr.url } -Mode $Mode
+            throw "Pull request was created, but Jira comment update failed for '$($issue.key)'. $($_.Exception.Message)"
+        }
+    }
 
     Write-Output "Created/updated OpenSpec change: $changeName"
     Write-Output "Path: openspec/changes/$changeName"
