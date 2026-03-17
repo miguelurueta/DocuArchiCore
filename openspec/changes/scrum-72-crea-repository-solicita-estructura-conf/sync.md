@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-72`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| `MiApp.Models` | `yes` | Se actualiza el modelo `ConfiguracionListadoRuta` para mapear explicitamente `configuracion_listado_ruta`. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Repository` | `yes` | Se crea el repository `SolicitaEstructuraConfiguracionListadoRutaRepository` con consulta parametrizada por ruta. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `DocuArchi.Api` | `yes` | Solo registra el repository en DI para mantener el wiring del backend consistente. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Services` | `no` | El diseño final no requiere servicio intermedio; el alcance es repository-only. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `MiApp.DTOs` | `no` | No se agregan DTOs; el repository devuelve entidades `ConfiguracionListadoRuta`. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore` | `yes` | Coordinador: pruebas del repository, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/60` | `pending` | `ready_for_git_flow` |
+| `DocuArchiCore.Web` | `no` | No se expone endpoint ni cambio frontend para esta consulta interna. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore.Abstractions` | `no` | No se requiere contrato compartido adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 
 ## Operating Rule
 
