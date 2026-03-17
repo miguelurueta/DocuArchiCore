@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-71`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| `MiApp.DTOs` | `yes` | Se extiende contrato `DynamicUiActionRequestDto` para acciones de tabla dinamica. | `pending` | `pending` | `pending` | `todo` |
+| `MiApp.Services` | `yes` | `ListaRadicadosPendientesService` ahora construye `DynamicUiTableDto` y define accion `asignacion-tarea`. | `pending` | `pending` | `pending` | `todo` |
+| `DocuArchi.Api` | `yes` | `TramiteController` deja hardcode y usa claims reales para devolver `DynamicUiTableDto`. | `pending` | `pending` | `pending` | `todo` |
+| `MiApp.Repository` | `no` | La consulta actual parametrizada sigue vigente; no requirio cambios de codigo. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `MiApp.Models` | `no` | El modelo `raradestadosmoduloradicacion` ya cubre la estructura usada por el flujo. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore` | `yes` | Coordinador: tests, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/56` | `pending` | `en progreso` |
+| `DocuArchiCore.Web` | `no` | El ticket solo ajusta contrato backend/documentacion; no se cambió frontend. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore.Abstractions` | `no` | No se requirio contrato compartido fuera de DTOs existentes. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 
 ## Operating Rule
 
