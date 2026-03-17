@@ -9,7 +9,8 @@ flowchart LR
     S --> UG[SolicitaEstructuraIdUsuarioGestion]
     S --> PL[SolicitaEstructuraPlantillaRadicacionDefault]
     S --> RP[SolicitaListaRadicadosPendientes]
-    RP --> R[AppResponses<ListaRadicadosPendientesDto>]
+    RP --> B[DynamicUiTableBuilder]
+    B --> R[AppResponses<DynamicUiTableDto>]
 ```
 
 ## Diagrama de clases
@@ -19,29 +20,30 @@ classDiagram
     class TramiteController {
       +ApListaRadicadosPendientes()
     }
-    class IServiceListaRadicadosPendientes {
-      +ServiceListaRadicadosPendientes(string defaultDbAlias)
+    class IListaRadicadosPendientesService {
+      +SolicitaListaRadicadosPendientes(int idUsuarioGestion, string defaultDbAlias)
     }
-    class ServiceListaRadicadosPendientes
-    class ISolicitaEstructuraIdUsuarioGestionRepository
+    class ListaRadicadosPendientesService
+    class IRemitDestInternoR
     class ISystemPlantillaRadicadoR
     class IListaRadicadosPendientesRepository
-    class ListaRadicadosPendientesDto {
-      +int id_estado_radicado
-      +string consecutivo_radicado
-      +string remitente
-      +DateTime fecha_registro
-      +object opciones
+    class IDynamicUiTableBuilder
+    class DynamicUiTableDto
+    class DynamicUiActionRequestDto {
+      +string RowIdField
+      +Dictionary~string,string~ PayloadFields
     }
     class raradestadosmoduloradicacion
 
-    TramiteController --> IServiceListaRadicadosPendientes
-    ServiceListaRadicadosPendientes ..|> IServiceListaRadicadosPendientes
-    ServiceListaRadicadosPendientes --> ISolicitaEstructuraIdUsuarioGestionRepository
-    ServiceListaRadicadosPendientes --> ISystemPlantillaRadicadoR
-    ServiceListaRadicadosPendientes --> IListaRadicadosPendientesRepository
+    TramiteController --> IListaRadicadosPendientesService
+    ListaRadicadosPendientesService ..|> IListaRadicadosPendientesService
+    ListaRadicadosPendientesService --> IRemitDestInternoR
+    ListaRadicadosPendientesService --> ISystemPlantillaRadicadoR
+    ListaRadicadosPendientesService --> IListaRadicadosPendientesRepository
+    ListaRadicadosPendientesService --> IDynamicUiTableBuilder
     IListaRadicadosPendientesRepository --> raradestadosmoduloradicacion
-    ServiceListaRadicadosPendientes --> ListaRadicadosPendientesDto
+    IDynamicUiTableBuilder --> DynamicUiTableDto
+    DynamicUiTableDto --> DynamicUiActionRequestDto
 ```
 
 ## Diagrama de secuencia
@@ -50,23 +52,26 @@ classDiagram
 sequenceDiagram
     participant U as Frontend
     participant C as TramiteController
-    participant S as ServiceListaRadicadosPendientes
+    participant S as ListaRadicadosPendientesService
     participant G as UsuarioGestionRepository
     participant P as PlantillaRepository
     participant R as RadicadosPendientesRepository
+    participant B as DynamicUiTableBuilder
 
     U->>C: GET /api/tramite/tramites/apListaRadicadosPendientes (Bearer token)
     C->>C: ValidateClaim("defaulalias")
     C->>C: ValidateClaim("usuarioid")
-    C->>S: ServiceListaRadicadosPendientes(defaultDbAlias)
-    S->>G: SolicitaEstructuraIdUsuarioGestion(defaultDbAlias)
+    C->>S: SolicitaListaRadicadosPendientes(idUsuarioGestion, defaultDbAlias)
+    S->>G: SolicitaEstructuraIdUsuarioGestion(idUsuarioGestion, defaultDbAlias)
     G-->>S: Relacion_Id_Usuario_Radicacion
     S->>S: validar Relacion_Id_Usuario_Radicacion > 0
     S->>P: SolicitaEstructuraPlantillaRadicacionDefault(defaultDbAlias)
     P-->>S: idPlantilla
     S->>R: SolicitaListaRadicadosPendientes(idPlantilla, idUsuarioRadicacion, defaultDbAlias)
     R-->>S: lista pendiente
-    S-->>C: AppResponses<ListaRadicadosPendientesDto>
+    S->>B: BuildAsync(rows, columns, action request)
+    B-->>S: DynamicUiTableDto
+    S-->>C: AppResponses<DynamicUiTableDto>
     C-->>U: 200 + payload
 ```
 
@@ -83,9 +88,11 @@ stateDiagram-v2
     ResolviendoPlantilla --> ConsultandoPendientes
     ResolviendoPlantilla --> SinResultados: sin plantilla
     ResolviendoPlantilla --> ErrorControlado: excepcion
-    ConsultandoPendientes --> Exitoso: hay registros
+    ConsultandoPendientes --> ConstruyendoTabla: hay registros
     ConsultandoPendientes --> SinResultados: lista vacia
     ConsultandoPendientes --> ErrorControlado: excepcion
+    ConstruyendoTabla --> Exitoso: DynamicUiTableDto listo
+    ConstruyendoTabla --> ErrorControlado: excepcion builder
     Exitoso --> [*]
     SinResultados --> [*]
     ErrorControlado --> [*]
