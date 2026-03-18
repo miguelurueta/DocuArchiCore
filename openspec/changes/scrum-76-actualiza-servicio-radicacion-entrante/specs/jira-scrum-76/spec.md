@@ -13,3 +13,31 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: RegistrarEntrante request without IdPlantilla
+`POST /api/radicacion/registrar-entrante` MUST NOT require or serialize `IdPlantilla` in the public request contract.
+
+#### Scenario: Request DTO serialization
+- **WHEN** frontend serializes `RegistrarRadicacionEntranteRequestDto`
+- **THEN** the payload does not include `IdPlantilla`
+
+### Requirement: Default template resolution in backend
+`RegistrarRadicacionEntranteAsync` MUST resolve the filing template using `SolicitaEstructuraPlantillaRadicacionDefault(defaultDbAlias)` instead of consuming a client-provided `IdPlantilla`.
+
+#### Scenario: Default template available
+- **WHEN** `RegistrarRadicacionEntranteAsync` executes with valid claims and request body
+- **THEN** the service consults `SolicitaEstructuraPlantillaRadicacionDefault(defaultDbAlias)`
+- **AND** uses the resolved `id_Plantilla` for downstream validation and persistence
+
+#### Scenario: Default template not available
+- **WHEN** `SolicitaEstructuraPlantillaRadicacionDefault(defaultDbAlias)` returns `success=false` or `data=null`
+- **THEN** the process stops with controlled `AppResponses`
+- **AND** no registration repository call is executed
+
+### Requirement: Registration flow uses resolved template internally
+The registration flow MUST preserve internal use of the resolved template id for dynamic fields, validation, configuration lookup and persistence.
+
+#### Scenario: Successful registration with default template
+- **WHEN** the default template is resolved successfully
+- **THEN** `SolicitaCamposDnamicos`, `SolicitaConfiguracionPlantillaAsync` and `RegistrarRadicacionEntranteAsync` use that internal template id
+- **AND** the response remains wrapped in `AppResponses<RegistrarRadicacionEntranteResponseDto>`

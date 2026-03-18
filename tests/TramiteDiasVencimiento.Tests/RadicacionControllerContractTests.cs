@@ -6,6 +6,7 @@ using MiApp.Services.Service.SessionHelper;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace TramiteDiasVencimiento.Tests;
@@ -34,7 +35,7 @@ public sealed class RadicacionControllerContractTests
             });
 
         var controller = new RadicacionController(claimService.Object, registrar.Object, validar.Object, flujo.Object, BuildIpHelper().Object);
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 1);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
@@ -64,7 +65,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 2);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 2);
 
         Assert.IsType<OkObjectResult>(result.Result);
         registrar.Verify(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 2), Times.Once);
@@ -90,7 +91,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 1);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -117,7 +118,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 1);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -144,7 +145,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 1);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
 
@@ -169,10 +170,23 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto(), 1);
         var status = Assert.IsType<ObjectResult>(result.Result);
 
         Assert.Equal(500, status.StatusCode);
+    }
+
+    [Fact]
+    public void RegistrarEntranteRequestDto_NoSerializaIdPlantilla()
+    {
+        var json = JsonSerializer.Serialize(new RegistrarRadicacionEntranteRequestDto
+        {
+            IdPlantilla = 100,
+            ASUNTO = "Prueba"
+        });
+
+        Assert.DoesNotContain("IdPlantilla", json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ASUNTO", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
