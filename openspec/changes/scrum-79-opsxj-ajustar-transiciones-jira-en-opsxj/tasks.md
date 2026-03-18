@@ -1,23 +1,21 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-79 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el flujo actual de `opsxj:new` y ubicar donde se crean artefactos OpenSpec, se valida el change y se asegura el PR.
+- [x] 1.2 Confirmar el comportamiento actual de Jira: hoy solo pasa a `En revisión` cuando el PR es creado en esa misma ejecución.
 
-## 2. Specs
+## 2. Implementation
 
-- [ ] 2.1 Completar specs/jira-scrum-79/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Agregar transición Jira a `En curso` después de generar y validar artefactos OpenSpec.
+- [x] 2.2 Ajustar `opsxj:new` para mover Jira a `En revisión` cuando el PR exista o sea creado, sin degradar estados ya en revisión/done.
+- [x] 2.3 Registrar el estado actual del issue en la carga de Jira para soportar re-ejecuciones idempotentes.
 
-## 3. Application
+## 3. Verification
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Actualizar la documentación de `Tools/jira-open/README.md` con el nuevo flujo de estados.
+- [x] 3.2 Ajustar `Tools/jira-open/test-opsxj-pr-flow.ps1` para cubrir transición a `En curso`, PR nuevo y PR existente.
+- [x] 3.3 Ejecutar `Tools/jira-open/test-opsxj-pr-flow.ps1` y verificar resultado `PASS`.
 
-## 4. Test
+## 4. Release
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [ ] 4.1 Hacer commit, push y actualizar el PR del cambio.
+- [ ] 4.2 Marcar/archivar el change en OpenSpec cuando el PR sea mergeado.

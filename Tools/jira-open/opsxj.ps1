@@ -1527,6 +1527,81 @@ function Get-JiraReviewTransition {
     return $null
 }
 
+function Get-JiraInProgressTransition {
+    param(
+        [array]$Transitions
+    )
+
+    $inProgressNames = @(
+        "en curso", "in progress", "doing", "desarrollo", "development"
+    )
+
+    foreach ($t in $Transitions) {
+        $toName = [string]$t.to.name
+        if (-not $toName) { continue }
+        $normalized = $toName.Trim().ToLowerInvariant()
+        if ($inProgressNames -contains $normalized) {
+            return $t
+        }
+    }
+
+    return $null
+}
+
+function Test-JiraStateMatch {
+    param(
+        [string]$State,
+        [string[]]$Candidates
+    )
+
+    if ([string]::IsNullOrWhiteSpace($State)) {
+        return $false
+    }
+
+    $normalizedState = $State.Trim().ToLowerInvariant()
+    return $Candidates -contains $normalizedState
+}
+
+function Set-JiraIssueToInProgress {
+    param([string]$IssueKey)
+
+    $ctx = Get-JiraAuthContext
+    $transitionsUri = "$($ctx.baseUrl)/rest/api/3/issue/$IssueKey/transitions"
+
+    try {
+        $transitionsResponse = Invoke-JiraRestMethod -Method "Get" -Uri $transitionsUri -Headers $ctx.headers -Body ""
+    }
+    catch {
+        throw "Jira transitions query failed for '$IssueKey'. $($_.Exception.Message)"
+    }
+
+    $transitions = @($transitionsResponse.transitions)
+    if ($transitions.Count -eq 0) {
+        throw "No transitions available for Jira issue '$IssueKey'."
+    }
+
+    $inProgressTransition = Get-JiraInProgressTransition -Transitions $transitions
+    if (-not $inProgressTransition) {
+        $available = $transitions | ForEach-Object { [string]$_.to.name } | Where-Object { $_ } | Sort-Object -Unique
+        throw "No in-progress transition found for '$IssueKey'. Available states: $($available -join ', ')"
+    }
+
+    $payload = @{
+        transition = @{
+            id = [string]$inProgressTransition.id
+        }
+    } | ConvertTo-Json -Depth 5
+
+    try {
+        Invoke-JiraRestMethod -Method "Post" -Uri $transitionsUri -Headers $ctx.headers -Body $payload | Out-Null
+    }
+    catch {
+        throw "Jira transition to in progress failed for '$IssueKey'. $($_.Exception.Message)"
+    }
+
+    return [string]$inProgressTransition.to.name
+}
+
 function Set-JiraIssueToReview {
     param([string]$IssueKey)
 
@@ -1685,7 +1760,7 @@ function Get-JiraIssueData {
     }
 
     $baseUrl = $baseUrl.TrimEnd("/")
-    $uri = "$baseUrl/rest/api/3/issue/${IssueKey}?fields=summary,description"
+    $uri = "$baseUrl/rest/api/3/issue/${IssueKey}?fields=summary,description,status"
 
     $rawAuth = "$email`:$token"
     $authBytes = [System.Text.Encoding]::UTF8.GetBytes($rawAuth)
@@ -1722,6 +1797,7 @@ function Get-JiraIssueData {
         key         = $IssueKey
         summary     = $summary.Trim()
         description = $description.Trim()
+        status      = [string]$response.fields.status.name
         url         = "$baseUrl/browse/$IssueKey"
     }
 }
@@ -2164,6 +2240,26 @@ function Invoke-New {
     Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "openspec_validate" -Status "ok" -Message "OpenSpec validation passed." -Data @{ change = $changeName } -Mode $Mode
 
+    $currentJiraState = [string]$issue.status
+    $reviewStates = @("en revision", "en revisión", "in review", "review", "code review", "revision", "revisión")
+    $doneStates = @("done", "terminado", "terminada", "hecho", "closed", "cerrado", "cerrada", "resolved", "resuelto", "completado", "completada", "finalizado", "finalizada")
+
+    if (-not (Test-JiraStateMatch -State $currentJiraState -Candidates ($reviewStates + $doneStates))) {
+        try {
+            $inProgressState = Set-JiraIssueToInProgress -IssueKey $issue.key
+            $currentJiraState = $inProgressState
+            Write-Output "Jira issue transitioned: $($issue.key) -> $inProgressState"
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_in_progress" -Status "ok" -Message "Jira issue transitioned to in progress after OpenSpec validation." -Data @{ state = $inProgressState; change = $changeName } -Mode $Mode
+        }
+        catch {
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_in_progress" -Status "error" -Message "Jira in-progress transition failed after OpenSpec validation." -Data @{ error = $_.Exception.Message; change = $changeName } -Mode $Mode
+            throw "OpenSpec artifacts were created and validated, but Jira status update to in progress failed for '$($issue.key)'. $($_.Exception.Message)"
+        }
+    }
+    else {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_in_progress" -Status "skipped" -Message "Jira in-progress transition skipped because issue is already in review or done." -Data @{ state = $currentJiraState; change = $changeName } -Mode $Mode
+    }
+
     try {
         $pr = Ensure-GitHubPullRequest -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -Mode $Mode
     }
@@ -2173,17 +2269,23 @@ function Invoke-New {
     }
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "pr_create" -Status "ok" -Message "PR ensured for change." -Data @{ url = $pr.url; branch = $pr.branch; created = [bool]$pr.created } -Mode $Mode
 
-    if ($pr.created) {
+    if (-not (Test-JiraStateMatch -State $currentJiraState -Candidates ($reviewStates + $doneStates))) {
         try {
             $reviewState = Set-JiraIssueToReview -IssueKey $issue.key
+            $currentJiraState = $reviewState
             Write-Output "Jira issue transitioned: $($issue.key) -> $reviewState"
-            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "ok" -Message "Jira issue transitioned to review after PR creation." -Data @{ state = $reviewState; url = $pr.url } -Mode $Mode
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "ok" -Message "Jira issue transitioned to review after PR availability." -Data @{ state = $reviewState; url = $pr.url; created = [bool]$pr.created } -Mode $Mode
         }
         catch {
-            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "error" -Message "Jira review transition failed after PR creation." -Data @{ error = $_.Exception.Message; url = $pr.url } -Mode $Mode
-            throw "Pull request was created, but Jira status update to review failed for '$($issue.key)'. $($_.Exception.Message)"
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "error" -Message "Jira review transition failed after PR availability." -Data @{ error = $_.Exception.Message; url = $pr.url; created = [bool]$pr.created } -Mode $Mode
+            throw "Pull request is available, but Jira status update to review failed for '$($issue.key)'. $($_.Exception.Message)"
         }
+    }
+    else {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "jira_transition_review" -Status "skipped" -Message "Jira review transition skipped because issue is already in review or done." -Data @{ state = $currentJiraState; url = $pr.url; created = [bool]$pr.created } -Mode $Mode
+    }
 
+    if ($pr.created) {
         $commentText = @(
             "PR creado: $($pr.url)",
             "Merge requerido: manual.",
