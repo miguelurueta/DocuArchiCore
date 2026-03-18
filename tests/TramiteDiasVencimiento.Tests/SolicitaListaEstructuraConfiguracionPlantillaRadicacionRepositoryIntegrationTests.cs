@@ -2,7 +2,7 @@ using System.Data;
 using MiApp.Models.Models.Radicacion.Configuracion;
 using MiApp.Repository.DataAccess;
 using MiApp.Repository.Repositorio.DataAccess;
-using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
+using MiApp.Repository.Repositorio.Configuracion;
 using MySql.Data.MySqlClient;
 using Testcontainers.MySql;
 using Xunit;

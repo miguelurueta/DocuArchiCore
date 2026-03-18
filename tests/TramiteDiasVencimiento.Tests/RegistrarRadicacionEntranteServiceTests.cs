@@ -107,6 +107,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 10,
                 "DA",
                 It.IsAny<string>(),
+                1,
                 It.IsAny<string>(),
                 It.IsAny<SystemPlantillaRadicado>(),
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -162,7 +163,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1");
+        }, 10, "DA", "127.0.0.1", 1);
 
         Assert.True(result.success);
         Assert.NotNull(result.data);
@@ -188,7 +189,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 },
             10,
             string.Empty,
-            "127.0.0.1");
+            "127.0.0.1",
+            1);
 
         Assert.False(result.success);
         Assert.Equal("DefaultDbAlias requerido", result.message);
@@ -274,6 +276,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 25,
                 "DA",
                 It.IsAny<string>(),
+                2,
                 It.IsAny<string>(),
                 It.IsAny<SystemPlantillaRadicado>(),
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -330,15 +333,16 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             ASUNTO = "A"
         };
 
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 25, "DA", "127.0.0.1");
+        var result = await service.RegistrarRadicacionEntranteAsync(request, 25, "DA", "127.0.0.1", 2);
 
         Assert.True(result.success);
         registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.Is<RegistrarRadicacionEntranteRequestDto>(x => x.IdPlantilla == request.IdPlantilla),
+            It.Is<RegistrarRadicacionEntranteRequestDto>(x => x.IdPlantilla == request.IdPlantilla && x.tipoModuloRadicacion == 2),
             77,
             25,
             "DA",
             It.IsAny<string>(),
+            2,
             "CORRESPONDENCIA",
             It.IsAny<SystemPlantillaRadicado>(),
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -407,7 +411,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1");
+        }, 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible obtener parámetros backend", result.message);
@@ -417,6 +421,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
+            It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<SystemPlantillaRadicado>(),
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -485,7 +490,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1");
+        }, 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
         Assert.Contains("No existe configuración", result.message);
@@ -495,6 +500,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
+            It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<SystemPlantillaRadicado>(),
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -558,7 +564,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
             Remitente = new RemitenteRadicacionDto { Nombre = "R" },
             ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1");
+        }, 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
         Assert.Equal("Error de configuración", result.message);
@@ -568,6 +574,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
+            It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<SystemPlantillaRadicado>(),
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -617,6 +624,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 10,
                 "DA",
                 It.IsAny<string>(),
+                1,
                 "RADICACION",
                 It.IsAny<SystemPlantillaRadicado>(),
                 It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -635,7 +643,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             validaCamposRadicacionService.Object,
             validaPreRegistroWorkflowService.Object);
 
-        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1");
+        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1", 1);
 
         Assert.True(result.success);
         validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
@@ -696,7 +704,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             validaCamposRadicacionService.Object,
             validaPreRegistroWorkflowService.Object);
 
-        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1");
+        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1", 2);
 
         Assert.False(result.success);
         Assert.Equal("Claim defaulaliaswf requerido para continuar con workflow", result.message);
@@ -706,6 +714,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
+            It.IsAny<int>(),
             It.IsAny<string>(),
             It.IsAny<SystemPlantillaRadicado>(),
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),

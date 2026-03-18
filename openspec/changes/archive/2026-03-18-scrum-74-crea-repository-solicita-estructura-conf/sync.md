@@ -12,12 +12,12 @@ Use this template at the start of each Jira ticket (`SCRUM-74`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| `MiApp.Repository` | `yes` | Se crea un repository dedicado para consultar `ra_rad_config_plantilla_radicacion` por `idPlantilla`. | `pending` | `pending` | `n/a` | `implementado_local` |
-| `DocuArchi.Api` | `yes` | Solo registra el repository en DI para consumo interno. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Repository` | `yes` | Se crea un repository dedicado para consultar `ra_rad_config_plantilla_radicacion` por `idPlantilla`. | `done` | `https://github.com/miguelurueta/MiApp.Repository/pull/17` | `n/a` | `merged` |
+| `DocuArchi.Api` | `yes` | Solo registra el repository en DI para consumo interno. | `done` | `https://github.com/miguelurueta/DocuArchi.Api/pull/26` | `n/a` | `merged` |
 | `MiApp.Models` | `no` | Se reutiliza el modelo existente `RaRadConfigPlantillaRadicacion`; no requiere cambios. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `MiApp.DTOs` | `no` | No se agregan DTOs nuevos; la respuesta usa el modelo existente en lista. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `MiApp.Services` | `no` | El ticket prohíbe crear service adicional para esta función. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
-| `DocuArchiCore` | `yes` | Coordinador: pruebas, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/65` | `pending` | `ready_for_validation` |
+| `DocuArchiCore` | `yes` | Coordinador: pruebas, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/65` | `pending` | `ready_to_archive` |
 | `DocuArchiCore.Web` | `no` | No hay frontend nuevo en alcance; solo documentación de consumo interno. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `DocuArchiCore.Abstractions` | `no` | No se requiere contrato compartido adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 

@@ -25,6 +25,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             10,
             "DA",
             "127.0.0.1",
+            1,
             "RADICACION",
             BuildPlantilla(100),
             [],
@@ -51,6 +52,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             10,
             "DA",
             "127.0.0.1",
+            1,
             "RADICACION",
             BuildPlantilla(100),
             [],
@@ -77,6 +79,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             10,
             "DA",
             "127.0.0.1",
+            1,
             "RADICACION",
             BuildPlantilla(100),
             [],
@@ -104,6 +107,7 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
             10,
             "DA",
             "127.0.0.1",
+            1,
             "RADICACION",
             BuildPlantilla(100),
             [],
@@ -115,6 +119,31 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
         Assert.Equal(
             ["Q01", "Q02", "Q03", "Q05"],
             factory.LastConnection!.ExecutedSteps);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloRadicacionEsWorkflow_EjecutaQ08()
+    {
+        var factory = new FakeDbConnectionFactory();
+        var repository = new RegistrarRadicacionEntranteRepository(factory);
+        var tipoDoc = BuildTipoDocEntrante(302, 100);
+        tipoDoc.util_tipo_modulo_envio = 1;
+
+        var result = await repository.RegistrarRadicacionEntranteAsync(
+            BuildRequest("ENTRANTE"),
+            55,
+            10,
+            "DA",
+            "127.0.0.1",
+            2,
+            "RADICACION",
+            BuildPlantilla(100),
+            [],
+            BuildBackendParams(),
+            tipoDoc);
+
+        Assert.True(result.success);
+        Assert.Contains("Q08", factory.LastConnection!.ExecutedSteps);
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion, bool esRelacionado = false)
