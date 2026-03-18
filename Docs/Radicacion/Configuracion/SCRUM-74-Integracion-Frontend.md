@@ -6,7 +6,7 @@ Consultar la estructura de `ra_rad_config_plantilla_radicacion` por `idPlantilla
 
 ## Componente principal
 
-- Repository: [SolicitaListaEstructuraConfiguracionPlantillaRadicacionRepository.cs](D:/imagenesda/GestorDocumental/DocuArchiCore/MiApp.Repository/Repositorio/Radicador/PlantillaRadicado/SolicitaListaEstructuraConfiguracionPlantillaRadicacionRepository.cs)
+- Repository: [SolicitaListaEstructuraConfiguracionPlantillaRadicacionRepository.cs](D:/imagenesda/GestorDocumental/DocuArchiCore/MiApp.Repository/Repositorio/Configuracion/SolicitaListaEstructuraConfiguracionPlantillaRadicacionRepository.cs)
 - Modelo reutilizado: [RaRadConfigPlantillaRadicacion.cs](D:/imagenesda/GestorDocumental/DocuArchiCore/MiApp.Models/Models/Radicacion/Configuracion/RaRadConfigPlantillaRadicacion.cs)
 
 ## Firma implementada
