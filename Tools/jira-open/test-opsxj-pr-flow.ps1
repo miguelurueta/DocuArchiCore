@@ -65,6 +65,8 @@ try {
     $env:JIRA_EMAIL = "bot@example.com"
     $env:JIRA_API_TOKEN = "token"
     $env:GITHUB_TOKEN = "test-token"
+    $global:IssueStates = @{}
+    $global:InProgressTransitionCount = 0
     $global:ReviewTransitionCount = 0
     $global:JiraCommentCount = 0
 
@@ -76,7 +78,14 @@ try {
             [string]$Body
         )
 
-        if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+        if ($Uri -match "/rest/api/3/issue/(?<issue>[A-Z]+-\d+)") {
+            $issueKey = $Matches["issue"]
+        }
+
+        if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description,status") {
+            if (-not $global:IssueStates.ContainsKey($issueKey)) {
+                $global:IssueStates[$issueKey] = "Por hacer"
+            }
             return @{
                 fields = @{
                     summary = "OPSXJ-999 mock issue"
@@ -91,13 +100,32 @@ try {
                             }
                         )
                     }
+                    status = @{
+                        name = $global:IssueStates[$issueKey]
+                    }
                 }
             }
         }
 
         if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+            $currentState = [string]$global:IssueStates[$issueKey]
+            if ($currentState -eq "En curso") {
+                return @{
+                    transitions = @(
+                        @{
+                            id = "21"
+                            to = @{ name = "En Revision" }
+                        }
+                    )
+                }
+            }
+
             return @{
                 transitions = @(
+                    @{
+                        id = "11"
+                        to = @{ name = "En curso" }
+                    }
                     @{
                         id = "21"
                         to = @{ name = "En Revision" }
@@ -107,7 +135,18 @@ try {
         }
 
         if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
-            $global:ReviewTransitionCount++
+            if ($Body -like '*"11"*') {
+                $global:IssueStates[$issueKey] = "En curso"
+                $global:InProgressTransitionCount++
+                return @{}
+            }
+
+            if ($Body -like '*"21"*') {
+                $global:IssueStates[$issueKey] = "En Revision"
+                $global:ReviewTransitionCount++
+                return @{}
+            }
+
             return @{}
         }
 
@@ -126,6 +165,7 @@ try {
         Push-Location $repoRoot
         try {
             $firstRun = (& $scriptPath new OPSXJ-999 2>&1 | Out-String)
+            Assert-Contains -Value $firstRun -Expected "Jira issue transitioned: OPSXJ-999 -> En curso"
             Assert-Contains -Value $firstRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
             Assert-Contains -Value $firstRun -Expected "Jira issue transitioned: OPSXJ-999 -> En Revision"
             Assert-Contains -Value $firstRun -Expected "Jira comment added: OPSXJ-999"
@@ -147,6 +187,7 @@ try {
             Assert-Contains -Value $secondRun -Expected "Pull request already exists: https://github.com/example/repo/pull/123"
 
             $thirdRun = (& $scriptPath new OPSXJ-1000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $thirdRun -Expected "Jira issue transitioned: OPSXJ-1000 -> En curso"
             Assert-Contains -Value $thirdRun -Expected "Pull request created: https://github.com/example/repo/pull/123"
             Assert-Contains -Value $thirdRun -Expected "Jira issue transitioned: OPSXJ-1000 -> En Revision"
             Assert-Contains -Value $thirdRun -Expected "Jira comment added: OPSXJ-1000"
@@ -180,7 +221,14 @@ try {
                     [string]$ContentType
                 )
 
-                if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description") {
+                if ($Uri -match "/rest/api/3/issue/(?<issue>[A-Z]+-\d+)") {
+                    $issueKey = $Matches["issue"]
+                }
+
+                if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*?fields=summary,description,status") {
+                    if (-not $global:IssueStates.ContainsKey($issueKey)) {
+                        $global:IssueStates[$issueKey] = "Por hacer"
+                    }
                     return @{
                         fields = @{
                             summary = "MIGRACIÓN-NET-Formatea_fecha_time_framework"
@@ -195,13 +243,32 @@ try {
                                     }
                                 )
                             }
+                            status = @{
+                                name = $global:IssueStates[$issueKey]
+                            }
                         }
                     }
                 }
 
                 if ($Method -ieq "Get" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
+                    $currentState = [string]$global:IssueStates[$issueKey]
+                    if ($currentState -eq "En curso") {
+                        return @{
+                            transitions = @(
+                                @{
+                                    id = "21"
+                                    to = @{ name = "En Revision" }
+                                }
+                            )
+                        }
+                    }
+
                     return @{
                         transitions = @(
+                            @{
+                                id = "11"
+                                to = @{ name = "En curso" }
+                            }
                             @{
                                 id = "21"
                                 to = @{ name = "En Revision" }
@@ -211,7 +278,25 @@ try {
                 }
 
                 if ($Method -ieq "Post" -and $Uri -like "*/rest/api/3/issue/*/transitions") {
-                    $global:ReviewTransitionCount++
+                    $bodyText = if ($Body -is [byte[]]) {
+                        [System.Text.Encoding]::UTF8.GetString($Body)
+                    }
+                    else {
+                        [string]$Body
+                    }
+
+                    if ($bodyText -like '*"11"*') {
+                        $global:IssueStates[$issueKey] = "En curso"
+                        $global:InProgressTransitionCount++
+                        return @{}
+                    }
+
+                    if ($bodyText -like '*"21"*') {
+                        $global:IssueStates[$issueKey] = "En Revision"
+                        $global:ReviewTransitionCount++
+                        return @{}
+                    }
+
                     return @{}
                 }
 
@@ -261,12 +346,16 @@ try {
             }
 
             $fourthRun = (& $scriptPath new OPSXJ-1002 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $fourthRun -Expected "Jira issue transitioned: OPSXJ-1002 -> En curso"
             Assert-Contains -Value $fourthRun -Expected "Pull request created: https://github.com/example/repo/pull/1002"
             Assert-Contains -Value $fourthRun -Expected "Jira issue transitioned: OPSXJ-1002 -> En Revision"
             Assert-Contains -Value $fourthRun -Expected "Jira comment added: OPSXJ-1002"
 
             if ($global:ReviewTransitionCount -lt 3) {
                 throw "Expected Jira review transition to run for each newly created PR. Count: $global:ReviewTransitionCount"
+            }
+            if ($global:InProgressTransitionCount -lt 3) {
+                throw "Expected Jira in-progress transition to run for each new validated change before review. Count: $global:InProgressTransitionCount"
             }
             if ($global:JiraCommentCount -lt 3) {
                 throw "Expected Jira PR comment to run for each newly created PR. Count: $global:JiraCommentCount"

@@ -109,7 +109,7 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 ## Notes
 
-- `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, creates/pushes a branch, opens a GitHub PR, transitions Jira to `En Revision` when the PR is newly created, and adds a Jira comment with the PR URL plus the manual-merge reminder.
+- `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
