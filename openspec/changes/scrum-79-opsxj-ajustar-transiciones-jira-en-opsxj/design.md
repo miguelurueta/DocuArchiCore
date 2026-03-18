@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-79
+- Jira summary: OPSXJ: ajustar transiciones Jira en opsxj:new para usar En curso y En revisión según avance real
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-79
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+Descripción: Se requiere ajustar el flujo de opsxj:new para que las transiciones de estado en Jira reflejen mejor el avance real del proceso. Actualmente opsxj:new crea/actualiza artefactos OpenSpec, asegura un PR en GitHub y mueve el issue a En revisión únicamente cuando el PR es creado en esa ejecución. Esto deja dos problemas: el ticket no pasa por un estado intermedio de ejecución cuando ya existen artefactos OpenSpec válidos si el PR ya existía de una ejecución anterior, el ticket puede quedarse sin transición a En revisión Se requiere incorporar un estado En curso después de crear y validar los artefactos OpenSpec, y ajustar la lógica de En revisión para que se aplique cuando el PR ya exista o sea creado en la ejecución actual. Objetivo: Alinear las transiciones Jira de opsxj:new con el avance operativo real del flujo: En curso cuando el cambio OpenSpec ya fue generado y validado En revisión cuando el PR ya está disponible para revisión Alcance: actualizar lógica de transición Jira en Tools/jira-open/opsxj.ps1 agregar soporte de transición a En curso ajustar transición a En revisión mantener comportamiento idempotente en re-ejecuciones actualizar documentación y pruebas relacionadas Flujo actual: cargar issue Jira -> generar artefactos OpenSpec -> validar OpenSpec -> crear/asegurar PR -> si PR fue creado en esta ejecución: mover a En revisión Flujo deseado: cargar issue Jira -> generar artefactos OpenSpec -> validar OpenSpec -> mover a En curso -> crear/asegurar PR -> si PR existe o fue creado: mover a En revisión Reglas de negocio: si el issue ya está en En curso, no repetir transición innecesaria si el issue ya está en En revisión, no regresarlo a En curso si el issue ya está en Done/Finalizado, no degradar el estado si el PR ya existe y el issue no está en review, debe poder moverse a En revisión la resolución de transiciones Jira debe seguir basándose en nombres de estado normalizados, no en IDs fijos Estados a reconocer para En curso: en curso in progress doing desarrollo development Criterios de aceptación: opsxj:new debe mover el issue Jira a En curso después de generar y validar correctamente los artefactos OpenSpec. opsxj:new debe mover el issue Jira a En revisión cuando exista un PR asociado, aunque no haya sido creado en esa misma ejecución. El flujo debe ser idempotente al re-ejecutar opsxj:new. Si no existe transición compatible a En curso, el error debe listar estados disponibles. Si no existe transición compatible a En revisión, el error debe listar estados disponibles. La documentación en Tools/jira-open/README.md debe reflejar el nuevo flujo. Las pruebas automatizadas del flujo opsxj:new deben cubrir: transición a En curso después de OpenSpec válido transición a En revisión cuando PR es nuevo transición a En revisión cuando PR ya existía no degradación de estado en re-ejecuciones Subtareas sugeridas: Crear helper Get-JiraInProgressTransition Crear helper Set-JiraIssueToInProgress Insertar transición a En curso después de OpenSpec validate Ajustar transición a En revisión para PR nuevo o existente Hacer la lógica idempotente para evitar degradación de estado Actualizar logs operativos (jira_transition_in_progress, jira_transition_review) Actualizar Tools/jira-open/README.md Actualizar o agregar pruebas del flujo opsxj:new Impacto esperado: mejor trazabilidad del avance real del ticket en Jira menor inconsistencia entre estado Jira y estado operativo real mejor comportamiento en re-ejecuciones de opsxj:new menor dependencia de si el PR fue creado “justo en esa corrida” o ya existía
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-79-opsxj-ajustar-transiciones-jira-en-opsxj.
