@@ -42,12 +42,13 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             });
 
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado>
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado>
             {
-                Success = true,
-                Message = "YES",
-                Data = BuildPlantilla(100)
+                success = true,
+                message = "YES",
+                data = BuildPlantilla(100),
+                errors = []
             });
 
         detalleRepo
@@ -186,7 +187,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             Mock.Of<IValidaPreRegistroWorkflowService>());
 
         var result = await service.RegistrarRadicacionEntranteAsync(
-            new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 },
+            new RegistrarRadicacionEntranteRequestDto(),
             10,
             string.Empty,
             "127.0.0.1",
@@ -219,12 +220,13 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             });
 
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(10, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado>
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado>
             {
-                Success = true,
-                Message = "YES",
-                Data = BuildPlantilla(10)
+                success = true,
+                message = "YES",
+                data = BuildPlantilla(10),
+                errors = []
             });
 
         detalleRepo
@@ -311,6 +313,15 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 },
                 errors = []
             });
+        validaPreRegistroWorkflowService
+            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                message = "OK",
+                data = new ValidaPreRegistroWorkflowResultDto(),
+                errors = []
+            });
 
         var service = new RegistrarRadicacionEntranteService(
             detalleRepo.Object,
@@ -337,7 +348,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
 
         Assert.True(result.success);
         registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.Is<RegistrarRadicacionEntranteRequestDto>(x => x.IdPlantilla == request.IdPlantilla && x.tipoModuloRadicacion == 2),
+            It.Is<RegistrarRadicacionEntranteRequestDto>(x => x.IdPlantilla == 10 && x.tipoModuloRadicacion == 2),
             77,
             25,
             "DA",
@@ -452,8 +463,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 data = BuildRemitDestInterno(55)
             });
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
         detalleRepo
             .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
             .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
@@ -526,8 +537,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
         detalleRepo
             .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
             .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
@@ -600,8 +611,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
         detalleRepo
             .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
             .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
@@ -666,8 +677,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
         plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacion(100, "DA"))
-            .ReturnsAsync(new AppResponse<SystemPlantillaRadicado> { Success = true, Data = BuildPlantilla(100) });
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
         detalleRepo
             .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
             .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
