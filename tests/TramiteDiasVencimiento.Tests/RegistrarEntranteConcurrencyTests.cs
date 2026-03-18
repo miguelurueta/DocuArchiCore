@@ -23,7 +23,7 @@ public sealed class RegistrarEntranteConcurrencyTests
         var secuencia = 0;
 
         registrar
-            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 1))
             .ReturnsAsync(() =>
             {
                 var correlativo = Interlocked.Increment(ref secuencia);
@@ -49,7 +49,7 @@ public sealed class RegistrarEntranteConcurrencyTests
                 Mock.Of<IFlujoInicialRadicacionService>(),
                 ipHelper.Object);
 
-            var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 67 });
+            var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 67 }, 1);
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
             consecutivos.Add(payload.data.ConsecutivoRadicado);

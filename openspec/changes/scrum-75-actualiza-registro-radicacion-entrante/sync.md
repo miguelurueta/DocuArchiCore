@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-75`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| `MiApp.DTOs` | `yes` | Se agrega `tipoModuloRadicacion` al request de registrar entrante. | `pending` | `pending` | `n/a` | `implementando` |
+| `MiApp.Repository` | `yes` | Se ajusta el repository y la policy para usar `tipoModuloRadicacion` en el registro atomico. | `pending` | `pending` | `n/a` | `implementando` |
+| `MiApp.Services` | `yes` | El service de registro debe propagar el nuevo parametro y decidir la prevalidacion workflow con ese valor. | `pending` | `pending` | `n/a` | `implementando` |
+| `DocuArchi.Api` | `yes` | El controller `registrar-entrante` expone `tipoModuloRadicacion=1` por query string. | `pending` | `pending` | `n/a` | `implementando` |
+| `MiApp.Models` | `no` | No se requiere nuevo modelo; el cambio usa contratos y entidades existentes. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore` | `yes` | Coordinador: tests, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/66` | `pending` | `implementando` |
+| `DocuArchiCore.Web` | `no` | No hay frontend nuevo; solo actualizacion de contrato documental. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore.Abstractions` | `no` | No se requiere contrato compartido adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 
 ## Operating Rule
 

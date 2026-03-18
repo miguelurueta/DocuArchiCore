@@ -21,7 +21,7 @@ public sealed class RadicacionControllerContractTests
         var flujo = new Mock<IFlujoInicialRadicacionService>();
 
         registrar
-            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 1))
             .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
             {
                 success = true,
@@ -34,12 +34,40 @@ public sealed class RadicacionControllerContractTests
             });
 
         var controller = new RadicacionController(claimService.Object, registrar.Object, validar.Object, flujo.Object, BuildIpHelper().Object);
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
         Assert.True(payload.success);
         Assert.Equal("RAD-001", payload.data.ConsecutivoRadicado);
+    }
+
+    [Fact]
+    public async Task RegistrarEntrante_CuandoRecibeTipoModuloRadicacion_LoPropagaAlServicio()
+    {
+        var claimService = BuildClaimService("DA", "10");
+        var registrar = new Mock<IRegistrarRadicacionEntranteService>();
+
+        registrar
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 2))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
+            {
+                success = true,
+                message = "OK",
+                data = new RegistrarRadicacionEntranteResponseDto()
+            });
+
+        var controller = new RadicacionController(
+            claimService.Object,
+            registrar.Object,
+            Mock.Of<IValidarRadicacionEntranteService>(),
+            Mock.Of<IFlujoInicialRadicacionService>(),
+            BuildIpHelper().Object);
+
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 2);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        registrar.Verify(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 2), Times.Once);
     }
 
     [Fact]
@@ -62,7 +90,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -89,7 +117,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -100,7 +128,7 @@ public sealed class RadicacionControllerContractTests
         var registrar = new Mock<IRegistrarRadicacionEntranteService>();
 
         registrar
-            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 1))
             .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
             {
                 success = true,
@@ -116,7 +144,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<AppResponses<RegistrarRadicacionEntranteResponseDto>>(ok.Value);
 
@@ -131,7 +159,7 @@ public sealed class RadicacionControllerContractTests
         var claimService = BuildClaimService("DA", "10");
         var registrar = new Mock<IRegistrarRadicacionEntranteService>();
         registrar
-            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>()))
+            .Setup(s => s.RegistrarRadicacionEntranteAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 10, "DA", It.IsAny<string>(), 1))
             .ThrowsAsync(new InvalidOperationException("boom"));
 
         var controller = new RadicacionController(
@@ -141,7 +169,7 @@ public sealed class RadicacionControllerContractTests
             Mock.Of<IFlujoInicialRadicacionService>(),
             BuildIpHelper().Object);
 
-        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 });
+        var result = await controller.RegistrarEntrante(new RegistrarRadicacionEntranteRequestDto { IdPlantilla = 100 }, 1);
         var status = Assert.IsType<ObjectResult>(result.Result);
 
         Assert.Equal(500, status.StatusCode);
