@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-73`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| `MiApp.DTOs` | `yes` | Se agrega `RegistroTareaWorkflowResultDto` para retornar el `idTareaWorkflow` generado. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Models` | `yes` | Se agregan modelos workflow para `INICIO_TAREAS_WORKFLOW` y `ESTADOS_TAREA_WORKFLOW`. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Repository` | `yes` | Se crea `RegistroRadicadoTareaWorkflowRepository` con transaccion atomica y validacion de ruta. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `DocuArchi.Api` | `yes` | Solo registra el repository en DI. No expone endpoint nuevo. | `pending` | `pending` | `n/a` | `implementado_local` |
+| `MiApp.Services` | `no` | El ticket prohíbe crear service adicional para esta función. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore` | `yes` | Coordinador: pruebas, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/63` | `pending` | `ready_for_validation` |
+| `DocuArchiCore.Web` | `no` | No hay frontend ni API publica en alcance. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
+| `DocuArchiCore.Abstractions` | `no` | No se requiere contrato compartido adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 
 ## Operating Rule
 
