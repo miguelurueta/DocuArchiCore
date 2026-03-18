@@ -12,12 +12,12 @@ Use this template at the start of each Jira ticket (`SCRUM-76`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| `MiApp.DTOs` | `yes` | El request `RegistrarRadicacionEntranteRequestDto` deja de exponer `IdPlantilla` en el contrato JSON. | `pending` | `pending` | `n/a` | `implementando` |
-| `MiApp.Services` | `yes` | `RegistrarRadicacionEntranteAsync` resuelve la plantilla default y propaga el id interno al flujo de registro. | `pending` | `pending` | `n/a` | `implementando` |
+| `MiApp.DTOs` | `yes` | El request `RegistrarRadicacionEntranteRequestDto` deja de exponer `IdPlantilla` en el contrato JSON. | `done` | `https://github.com/miguelurueta/MiApp.DTOs/pull/13` | `n/a` | `mergeado` |
+| `MiApp.Services` | `yes` | `RegistrarRadicacionEntranteAsync` resuelve la plantilla default y propaga el id interno al flujo de registro. | `done` | `https://github.com/miguelurueta/MiApp.Services/pull/33` | `n/a` | `mergeado` |
 | `MiApp.Repository` | `no` | Ya existia `SolicitaEstructuraPlantillaRadicacionDefault`; no fue necesario cambio fuente adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `DocuArchi.Api` | `no` | El endpoint mantiene firma; el cambio contractual llega por el DTO compartido sin editar controller. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `MiApp.Models` | `no` | No se requiere nuevo modelo. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
-| `DocuArchiCore` | `yes` | Coordinador: tests, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/68` | `pending` | `implementando` |
+| `DocuArchiCore` | `yes` | Coordinador: tests, docs, spec, tasks y validacion OpenSpec. | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/68` | `pending` | `mergeado` |
 | `DocuArchiCore.Web` | `no` | No hay cambio de frontend dentro del repo web. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 | `DocuArchiCore.Abstractions` | `no` | No se requiere contrato compartido adicional. | `n/a` | `n/a` | `n/a` | `fuera de alcance` |
 
