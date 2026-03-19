@@ -30,6 +30,10 @@ C:\SalidaApiCore
 - `DocuArchi.Api.runtimeconfig.json`
 - `web.config` opcional
 
+Alternativa automatizada:
+
+En lugar de generar primero una carpeta publish manual, ahora se puede usar `opsxdeploy:publish-package` con `-ProjectPath` para que el tool ejecute `dotnet publish` y arme el paquete final listo para IIS.
+
 ### 3. Validacion del publish
 
 Ejecutar:
@@ -74,12 +78,20 @@ Ejecutar:
 npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath C:\SalidaApiCore -OutputPath C:\Entrega\DocuArchiApi-ready
 ```
 
+O publicar directamente desde el proyecto:
+
+```powershell
+npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -ProjectPath D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchi.Api\DocuArchi.Api.csproj -OutputPath C:\Entrega\DocuArchiApi-ready
+```
+
 Este paso:
 - valida de nuevo la publicacion
+- puede ejecutar `dotnet publish` internamente cuando se usa `-ProjectPath`
 - excluye `appsettings.Development.json`
 - excluye `Tools\`
 - genera `web.config` base si falta
 - conserva `web.config` existente si ya venia en el publish
+- sanea claves sensibles conocidas en `appsettings.json` del paquete final
 - deja una carpeta limpia lista para copiar al servidor
 
 La plantilla base generada incluye:
@@ -109,6 +121,8 @@ No dejar secretos reales en `appsettings.json`.
 Si `opsxdeploy` genero `web.config`, completar o reemplazar los placeholders antes de habilitar el trafico del sitio.
 
 Si `opsxdeploy` preservo un `web.config` existente, revisar las advertencias reportadas y completar manualmente el bloque `environmentVariables` cuando falte.
+
+Si `opsxdeploy` saneo `appsettings.json`, reemplazar `__SET_IN_IIS__` por variables de entorno reales en IIS o completar manualmente el archivo final fuera del repositorio.
 
 Definir en `web.config` o en el sitio IIS:
 - `ASPNETCORE_ENVIRONMENT=Production`

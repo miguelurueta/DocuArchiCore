@@ -4,9 +4,11 @@ param(
     [string]$Command,
 
     [string]$PublishPath,
+    [string]$ProjectPath,
     [string]$OutputPath,
     [string]$SitePath,
     [string]$DataPath,
+    [string]$ProjectConfiguration = "Release",
     [switch]$WhatIf,
     [switch]$AllowSecrets
 )
@@ -21,6 +23,15 @@ function Assert-RequiredArgument {
 
     if ([string]::IsNullOrWhiteSpace($Value)) {
         throw "Missing required parameter --$Name."
+    }
+}
+
+function Assert-ProjectFileExists {
+    param([string]$Path)
+
+    Assert-RequiredArgument -Name "projectPath" -Value $Path
+    if (-not (Test-Path $Path -PathType Leaf)) {
+        throw "Project file not found: $Path"
     }
 }
 
@@ -90,6 +101,46 @@ function Get-ForbiddenArtifacts {
     }
 
     return $findings
+}
+
+function New-TemporaryDirectory {
+    param([string]$Prefix = "opsxdeploy")
+
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("{0}-{1}" -f $Prefix, [System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
+    return $path
+}
+
+function Invoke-ProjectPublish {
+    param(
+        [string]$ProjectPath,
+        [string]$PublishPath,
+        [string]$Configuration,
+        [switch]$WhatIf
+    )
+
+    Assert-ProjectFileExists -Path $ProjectPath
+
+    if ($WhatIf) {
+        Write-Output "[WHATIF] dotnet publish $ProjectPath -c $Configuration -o $PublishPath"
+        return
+    }
+
+    $testPublishSource = $env:OPSXDEPLOY_TEST_PUBLISH_SOURCE
+    if (-not [string]::IsNullOrWhiteSpace($testPublishSource)) {
+        if (-not (Test-Path $testPublishSource -PathType Container)) {
+            throw "OPSXDEPLOY_TEST_PUBLISH_SOURCE does not exist: $testPublishSource"
+        }
+
+        Copy-Item -Path (Join-Path $testPublishSource "*") -Destination $PublishPath -Recurse -Force
+        Write-Output "[PASS] Test publish source copied to staging: $PublishPath"
+        return
+    }
+
+    & dotnet publish $ProjectPath -c $Configuration -o $PublishPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for $ProjectPath"
+    }
 }
 
 function Get-PublishAssemblyName {
@@ -302,8 +353,8 @@ function Get-AppSettingsSecretFindings {
     $findings = New-Object System.Collections.ArrayList
 
     $patterns = @(
-        @{ name = "jwt_key"; pattern = '"Key"\s*:\s*"(?!\s*")[^"]+'; message = "Jwt.Key appears populated." },
-        @{ name = "permission_secret"; pattern = '"Secret"\s*:\s*"(?!\s*")[^"]+'; message = "A Secret field appears populated." },
+        @{ name = "jwt_key"; pattern = '"Key"\s*:\s*"(?!\s*"|__SET_IN_IIS__)[^"]+'; message = "Jwt.Key appears populated." },
+        @{ name = "permission_secret"; pattern = '"Secret"\s*:\s*"(?!\s*"|__SET_IN_IIS__)[^"]+'; message = "A Secret field appears populated." },
         @{ name = "mysql_password"; pattern = '(pwd|password)\s*='; message = "Connection string contains password or pwd." },
         @{ name = "mysql_root"; pattern = 'uid\s*=\s*root'; message = "Connection string uses root user." }
     )
@@ -320,16 +371,19 @@ function Get-AppSettingsSecretFindings {
     return $findings
 }
 
-function Invoke-Doctor {
-    param([string]$PublishPath, [switch]$AllowSecrets)
+function Get-PublishValidationItems {
+    param(
+        [string]$Path,
+        [switch]$AllowSecrets,
+        [switch]$IncludeForbiddenArtifacts = $true,
+        [switch]$IncludeSecretFindings = $true
+    )
 
-    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
-    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
     $items = New-Object System.Collections.ArrayList
 
-    Add-ReportItem -Items $items -Level "pass" -Name "publish_path" -Message "Publish path resolved: $resolvedPublishPath"
+    Add-ReportItem -Items $items -Level "pass" -Name "publish_path" -Message "Publish path resolved: $Path"
 
-    $missing = Test-PublishFileRequirements -Path $resolvedPublishPath
+    $missing = Test-PublishFileRequirements -Path $Path
     if ($missing.Count -gt 0) {
         foreach ($entry in $missing) {
             Add-ReportItem -Items $items -Level "fail" -Name "required_files" -Message "Missing required pattern: $entry"
@@ -339,31 +393,105 @@ function Invoke-Doctor {
         Add-ReportItem -Items $items -Level "pass" -Name "required_files" -Message "Required runtime files found."
     }
 
-    $forbidden = Get-ForbiddenArtifacts -Path $resolvedPublishPath
-    if ($forbidden.Count -gt 0) {
-        foreach ($entry in $forbidden) {
-            Add-ReportItem -Items $items -Level "fail" -Name "forbidden_artifact" -Message $entry
+    if ($IncludeForbiddenArtifacts) {
+        $forbidden = Get-ForbiddenArtifacts -Path $Path
+        if ($forbidden.Count -gt 0) {
+            foreach ($entry in $forbidden) {
+                Add-ReportItem -Items $items -Level "fail" -Name "forbidden_artifact" -Message $entry
+            }
+        }
+        else {
+            Add-ReportItem -Items $items -Level "pass" -Name "forbidden_artifact" -Message "No forbidden development/tooling artifacts found."
         }
     }
-    else {
-        Add-ReportItem -Items $items -Level "pass" -Name "forbidden_artifact" -Message "No forbidden development/tooling artifacts found."
-    }
 
-    $secretFindings = Get-AppSettingsSecretFindings -Path $resolvedPublishPath
-    if ($secretFindings.Count -gt 0) {
-        $level = if ($AllowSecrets) { "warn" } else { "fail" }
-        foreach ($finding in $secretFindings) {
-            Add-ReportItem -Items $items -Level $level -Name $finding.name -Message $finding.message
+    if ($IncludeSecretFindings) {
+        $secretFindings = Get-AppSettingsSecretFindings -Path $Path
+        if ($secretFindings.Count -gt 0) {
+            $level = if ($AllowSecrets) { "warn" } else { "fail" }
+            foreach ($finding in $secretFindings) {
+                Add-ReportItem -Items $items -Level $level -Name $finding.name -Message $finding.message
+            }
+        }
+        else {
+            Add-ReportItem -Items $items -Level "pass" -Name "appsettings" -Message "No obvious secrets found in appsettings.json."
         }
     }
-    else {
-        Add-ReportItem -Items $items -Level "pass" -Name "appsettings" -Message "No obvious secrets found in appsettings.json."
-    }
 
-    $webConfigItems = Test-WebConfigMinimumStructure -Path (Join-Path $resolvedPublishPath "web.config")
+    $webConfigItems = Test-WebConfigMinimumStructure -Path (Join-Path $Path "web.config")
     foreach ($item in $webConfigItems) {
         [void]$items.Add($item)
     }
+
+    return $items
+}
+
+function Get-AppSettingsSanitizationReplacements {
+    return @(
+        @{
+            pattern = '("Key"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized Jwt.Key.'
+        },
+        @{
+            pattern = '("Secret"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized Secret field.'
+        },
+        @{
+            pattern = '("MySqlConnection_[^"]*"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized MySQL connection string.'
+        }
+    )
+}
+
+function Protect-PackageAppSettings {
+    param(
+        [string]$OutputPath,
+        [switch]$WhatIf
+    )
+
+    $appSettingsPath = Join-Path $OutputPath "appsettings.json"
+    if (-not (Test-Path $appSettingsPath)) {
+        return
+    }
+
+    $raw = Get-Content -Path $appSettingsPath -Raw
+    $sanitized = $raw
+    $applied = New-Object System.Collections.ArrayList
+
+    foreach ($entry in Get-AppSettingsSanitizationReplacements) {
+        $updated = [regex]::Replace($sanitized, $entry.pattern, $entry.replacement)
+        if ($updated -ne $sanitized) {
+            [void]$applied.Add($entry.message)
+            $sanitized = $updated
+        }
+    }
+
+    if ($applied.Count -eq 0) {
+        return
+    }
+
+    if ($WhatIf) {
+        foreach ($message in $applied) {
+            Write-Output "[WHATIF] $message"
+        }
+        return
+    }
+
+    Set-Content -Path $appSettingsPath -Value $sanitized -Encoding UTF8
+    foreach ($message in $applied) {
+        Write-Output "[PASS] $message"
+    }
+}
+
+function Invoke-Doctor {
+    param([string]$PublishPath, [switch]$AllowSecrets)
+
+    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
+    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
+    $items = Get-PublishValidationItems -Path $resolvedPublishPath -AllowSecrets:$AllowSecrets -IncludeForbiddenArtifacts -IncludeSecretFindings
 
     Write-Section "opsxdeploy doctor report"
     Write-Report -Items $items
@@ -459,32 +587,81 @@ function Copy-PublishPackage {
 function Invoke-PublishPackage {
     param(
         [string]$PublishPath,
+        [string]$ProjectPath,
         [string]$OutputPath,
+        [string]$ProjectConfiguration,
         [switch]$WhatIf,
         [switch]$AllowSecrets
     )
 
-    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
     Assert-RequiredArgument -Name "outputPath" -Value $OutputPath
+    if ([string]::IsNullOrWhiteSpace($PublishPath) -and [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        throw "Missing required parameter --publishPath or --projectPath."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($PublishPath) -and -not [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        throw "Use either --publishPath or --projectPath, not both."
+    }
 
-    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
-    Invoke-Doctor -PublishPath $resolvedPublishPath -AllowSecrets:$AllowSecrets
+    $stagingPath = $null
+    $inputPublishPath = $null
 
-    Write-Section "opsxdeploy publish-package"
-
-    if (-not $WhatIf) {
-        if (Test-Path $OutputPath) {
-            Remove-Item -Path $OutputPath -Recurse -Force
+    try {
+        if (-not [string]::IsNullOrWhiteSpace($ProjectPath)) {
+            $resolvedProjectPath = (Resolve-Path -Path $ProjectPath).Path
+            $stagingPath = New-TemporaryDirectory -Prefix "opsxdeploy-publish"
+            Write-Output "Using project source: $resolvedProjectPath"
+            Write-Output "Staging publish path: $stagingPath"
+            Invoke-ProjectPublish -ProjectPath $resolvedProjectPath -PublishPath $stagingPath -Configuration $ProjectConfiguration -WhatIf:$WhatIf
+            $inputPublishPath = $stagingPath
         }
-        New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
-    }
-    else {
-        Write-Output "[WHATIF] Recreate output folder: $OutputPath"
-    }
+        else {
+            $inputPublishPath = (Resolve-Path -Path $PublishPath).Path
+        }
 
-    Copy-PublishPackage -PublishPath $resolvedPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
-    Ensure-PackageWebConfig -PublishPath $resolvedPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
-    Write-Output "Publish package ready: $OutputPath"
+        if (-not $WhatIf) {
+            $precheckItems = Get-PublishValidationItems -Path $inputPublishPath -AllowSecrets:$true
+            $blockingItems = @($precheckItems | Where-Object {
+                $_.level -eq "fail" -and
+                $_.name -ne "forbidden_artifact" -and
+                $_.name -notlike "jwt_*" -and
+                $_.name -ne "permission_secret" -and
+                $_.name -notlike "mysql_*"
+            })
+
+            if ($blockingItems.Count -gt 0) {
+                Write-Section "opsxdeploy publish-source precheck"
+                Write-Report -Items $precheckItems
+                throw "Publish source failed blocking checks before packaging."
+            }
+        }
+
+        Write-Section "opsxdeploy publish-package"
+
+        if (-not $WhatIf) {
+            if (Test-Path $OutputPath) {
+                Remove-Item -Path $OutputPath -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
+        }
+        else {
+            Write-Output "[WHATIF] Recreate output folder: $OutputPath"
+        }
+
+        Copy-PublishPackage -PublishPath $inputPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
+        Protect-PackageAppSettings -OutputPath $OutputPath -WhatIf:$WhatIf
+        Ensure-PackageWebConfig -PublishPath $inputPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
+
+        if (-not $WhatIf) {
+            Invoke-Doctor -PublishPath $OutputPath -AllowSecrets:$AllowSecrets
+        }
+
+        Write-Output "Publish package ready: $OutputPath"
+    }
+    finally {
+        if (($null -ne $stagingPath) -and (Test-Path $stagingPath) -and -not $WhatIf) {
+            Remove-Item -Path $stagingPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 switch ($Command) {
@@ -495,6 +672,6 @@ switch ($Command) {
         Invoke-Prepare -SitePath $SitePath -DataPath $DataPath -WhatIf:$WhatIf
     }
     "publish-package" {
-        Invoke-PublishPackage -PublishPath $PublishPath -OutputPath $OutputPath -WhatIf:$WhatIf -AllowSecrets:$AllowSecrets
+        Invoke-PublishPackage -PublishPath $PublishPath -ProjectPath $ProjectPath -OutputPath $OutputPath -ProjectConfiguration $ProjectConfiguration -WhatIf:$WhatIf -AllowSecrets:$AllowSecrets
     }
 }

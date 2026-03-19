@@ -18,6 +18,10 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:prepare -- -SitePath C:\inetpub
 npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath C:\SalidaApiCore -OutputPath C:\Entrega\DocuArchiApi-ready
 ```
 
+```powershell
+npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -ProjectPath D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchi.Api\DocuArchi.Api.csproj -OutputPath C:\Entrega\DocuArchiApi-ready
+```
+
 ## Flujo recomendado
 
 1. Publicar desde Visual Studio a una carpeta local.
@@ -25,6 +29,9 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath
 3. Ejecutar `opsxdeploy:prepare` para crear estructura del sitio y storage.
 4. Ejecutar `opsxdeploy:publish-package` para generar un paquete limpio listo para IIS.
 5. Aplicar el paquete al servidor o al sitio IIS de forma manual o con un paso posterior.
+
+Alternativa:
+1. Ejecutar `opsxdeploy:publish-package` con `-ProjectPath` para que el tool haga `dotnet publish` a un staging temporal y construya directamente el paquete final limpio.
 
 ## Alcance del MVP
 
@@ -39,11 +46,20 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath
   - crea carpeta del sitio
   - crea carpetas operativas bajo `dataPath`
 - `publish-package`
-  - genera una copia limpia del publish
+  - genera una copia limpia del publish o publica directamente desde un `.csproj`
   - genera un `web.config` base para IIS si el publish no lo trae
   - preserva `web.config` existente sin sobreescribirlo automaticamente
   - valida `aspNetCore/processPath`, `aspNetCore/arguments` y reporta advertencias sobre `environmentVariables`
   - excluye archivos de desarrollo y tooling no productivo
+  - sanea `appsettings.json` del paquete final para no transportar secretos conocidos
+
+## Modo ProjectPath
+
+- `publish-package` acepta `-ProjectPath <ruta.csproj>` como alternativa a `-PublishPath`.
+- En ese modo el tool ejecuta `dotnet publish` con `-ProjectConfiguration Release` por defecto.
+- El publish bruto va a una carpeta temporal de staging y el paquete final se arma desde esa salida.
+- El paquete final sigue excluyendo `appsettings.Development.json` y `Tools/**`.
+- El `appsettings.json` final reemplaza secretos conocidos por `__SET_IN_IIS__` sin modificar el proyecto fuente.
 
 ## Manejo de web.config
 
@@ -65,6 +81,16 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath
 - Si el publish ya trae `web.config`, el tool no lo reescribe en esta fase.
 - Si falta `aspNetCore/processPath` o `aspNetCore/arguments`, `doctor` y `publish-package` fallan.
 - Si falta el bloque `environmentVariables` o los placeholders esperados, el tool emite advertencias para correccion manual.
+
+## Sanitizacion de appsettings.json
+
+- `doctor` sigue fallando si inspecciona una carpeta publish con secretos reales.
+- `publish-package` sanea la salida final aunque el publish de origen tenga valores reales conocidos.
+- Claves saneadas actualmente:
+  - `Jwt.Key`
+  - campos `Secret`
+  - `ConnectionStrings.MySqlConnection_*`
+- El saneamiento ocurre solo en el paquete final; el repo y el publish bruto no se modifican.
 
 ## Manual obligatorio
 
