@@ -28,7 +28,7 @@ C:\SalidaApiCore
 - `DocuArchi.Api.dll`
 - `DocuArchi.Api.deps.json`
 - `DocuArchi.Api.runtimeconfig.json`
-- `web.config`
+- `web.config` opcional
 
 ### 3. Validacion del publish
 
@@ -42,6 +42,13 @@ El publish no debe incluir:
 - `appsettings.Development.json`
 - `Tools\...`
 - secretos reales en `appsettings.json`
+
+Si el publish ya incluye `web.config`, `opsxdeploy:doctor` valida como minimo:
+- `aspNetCore/processPath`
+- `aspNetCore/arguments`
+- bloque `environmentVariables` o advertencia si falta
+
+Si el publish no incluye `web.config`, el doctor informa que `opsxdeploy:publish-package` generara uno base.
 
 ### 4. Preparar estructura del servidor
 
@@ -71,7 +78,15 @@ Este paso:
 - valida de nuevo la publicacion
 - excluye `appsettings.Development.json`
 - excluye `Tools\`
+- genera `web.config` base si falta
+- conserva `web.config` existente si ya venia en el publish
 - deja una carpeta limpia lista para copiar al servidor
+
+La plantilla base generada incluye:
+- `AspNetCoreModuleV2`
+- `processPath="dotnet"`
+- `arguments=".\DocuArchi.Api.dll"` o el ensamblado principal detectado
+- placeholders para variables de entorno operativas obligatorias
 
 ### 6. Crear App Pool y sitio IIS
 
@@ -90,6 +105,10 @@ Configurar manualmente en IIS:
 ### 7. Configuracion por variables de entorno
 
 No dejar secretos reales en `appsettings.json`.
+
+Si `opsxdeploy` genero `web.config`, completar o reemplazar los placeholders antes de habilitar el trafico del sitio.
+
+Si `opsxdeploy` preservo un `web.config` existente, revisar las advertencias reportadas y completar manualmente el bloque `environmentVariables` cuando falte.
 
 Definir en `web.config` o en el sitio IIS:
 - `ASPNETCORE_ENVIRONMENT=Production`
@@ -124,11 +143,14 @@ Si la app no arranca:
 - habilitar temporalmente `stdoutLogEnabled="true"` en `web.config`
 - crear `logs` bajo el sitio
 - revisar errores de arranque
+- confirmar que `processPath` y `arguments` siguen apuntando al ensamblado publicado correcto
+- confirmar que las variables placeholder del `web.config` generado fueron reemplazadas por valores reales en IIS o en el archivo
 
 ### 11. Checklist final
 
 - publish validado
 - carpeta limpia lista para IIS
+- `web.config` generado o validado
 - `appsettings.Development.json` excluido
 - secretos fuera del repo
 - App Pool en `No Managed Code`

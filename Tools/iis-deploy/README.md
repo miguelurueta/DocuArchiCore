@@ -31,6 +31,7 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath
 - `doctor`
   - valida carpeta publish
   - revisa archivos obligatorios
+  - no exige `web.config`, pero valida su estructura minima si existe
   - bloquea `appsettings.Development.json`
   - detecta artefactos prohibidos
   - detecta secretos evidentes en `appsettings.json`
@@ -39,7 +40,31 @@ npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath
   - crea carpetas operativas bajo `dataPath`
 - `publish-package`
   - genera una copia limpia del publish
+  - genera un `web.config` base para IIS si el publish no lo trae
+  - preserva `web.config` existente sin sobreescribirlo automaticamente
+  - valida `aspNetCore/processPath`, `aspNetCore/arguments` y reporta advertencias sobre `environmentVariables`
   - excluye archivos de desarrollo y tooling no productivo
+
+## Manejo de web.config
+
+- Si el publish no contiene `web.config`, `opsxdeploy:publish-package` genera uno base compatible con `AspNetCoreModuleV2`.
+- El `arguments` generado intenta derivarse del ensamblado principal publicado, por ejemplo `.\DocuArchi.Api.dll`.
+- La plantilla base incluye placeholders para:
+  - `ASPNETCORE_ENVIRONMENT`
+  - `ConnectionStrings__MySqlConnection_DA`
+  - `ConnectionStrings__MySqlConnection_WFR`
+  - `ConnectionStrings__MySqlConnection_WF`
+  - `Jwt__Key`
+  - `Jwt__Issuer`
+  - `Jwt__Audience`
+  - `StoragePaths__Temp`
+  - `StoragePaths__Uploads`
+  - `StoragePaths__Avatars`
+  - `StoragePaths__Exports`
+  - `StoragePaths__Logs`
+- Si el publish ya trae `web.config`, el tool no lo reescribe en esta fase.
+- Si falta `aspNetCore/processPath` o `aspNetCore/arguments`, `doctor` y `publish-package` fallan.
+- Si falta el bloque `environmentVariables` o los placeholders esperados, el tool emite advertencias para correccion manual.
 
 ## Manual obligatorio
 
