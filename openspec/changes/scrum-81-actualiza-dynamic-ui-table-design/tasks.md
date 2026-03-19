@@ -1,23 +1,23 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-81 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el issue Jira SCRUM-81 y confirmar que el alcance real es compatibilidad contractual/documental MUI + Ant Design.
+- [x] 1.2 Confirmar repos impactados y rutas reales (`MiApp.DTOs`, `DocuArchiCore/docs`, `tests`).
+- [x] 1.3 Confirmar que no se requieren Controllers/Repositories nuevos ni cambios disruptivos en payload.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-81/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Completar `specs/jira-scrum-81/spec.md` con requisitos finales orientados a compatibilidad MUI/AntD.
+- [x] 2.2 Mantener referencia explicita a `openspec/context/OPSXJ_BACKEND_RULES.md`.
+- [x] 2.3 Verificar escenarios testables por requisito.
 
 ## 3. Application
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Ajustar comentarios/metadata del contrato para expresar neutralidad de framework en `DynamicUiTableDtos.cs`.
+- [x] 3.2 Actualizar documentacion tecnica y de integracion frontend con mapping MUI + Ant Design.
+- [x] 3.3 Mantener compatibilidad con el payload actual sin introducir cambios disruptivos.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Agregar prueba unitaria/contractual para validar que el payload sigue siendo apto para adapter Ant Design.
+- [ ] 4.2 Ejecutar `dotnet test` y registrar evidencia o bloqueo.
+- [x] 4.3 Validar OpenSpec del cambio.

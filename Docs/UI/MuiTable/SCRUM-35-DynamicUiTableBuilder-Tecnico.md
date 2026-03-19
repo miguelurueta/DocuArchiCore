@@ -6,6 +6,7 @@ Este documento describe el comportamiento tecnico de `DynamicUiTableBuilder` y c
 - construccion de columnas para `FixedColumns`
 - definicion de eventos/acciones (`UiActionDto` / `UiCellActionDto`)
 - ejemplo end-to-end con datos de `ra_rad_estados_modulo_radicacion`
+- lineamientos para adaptar el payload a MUI DataGrid y Ant Design Table
 
 ## Ubicacion del componente
 
@@ -36,6 +37,7 @@ Este documento describe el comportamiento tecnico de `DynamicUiTableBuilder` y c
 Notas de comportamiento:
 - Si `UseColumnConfigFromDb=true`, consulta columnas en `IUiTableConfigRepository` usando `DefaultDbAlias` + `TableId`.
 - Si no existe columna de acciones, agrega automaticamente `actions` (`Opciones`).
+- El payload devuelto es metadata de UI; no contiene componentes de un framework especifico.
 
 ### `BuildRowsOnlyAsync(DynamicUiTableBuildInput input)`
 
@@ -155,6 +157,12 @@ var req = new DynamicUiTableQueryRequestDto
 };
 ```
 
+Compatibilidad de columnas:
+- `Key`: identificador estable para la columna. En MUI suele mapear a `field`; en AntD a `key`.
+- `ColumnName`: nombre real del campo en el payload/DB. En AntD normalmente se usa como `dataIndex`.
+- `HeaderName`: texto visible. En AntD se usa como `title`.
+- `RenderType`: hint semantico. Los valores actuales (`grid_text`, `grid_datetime`, `grid_chip`) siguen siendo validos como aliases soportados.
+
 ## Como crear el campo de evento (acciones)
 
 En el modelo actual, el "campo de evento" se modela con `UiActionDto`:
@@ -162,6 +170,10 @@ En el modelo actual, el "campo de evento" se modela con `UiActionDto`:
 - `BehaviorConfig`: configuracion del evento
 - `Placement`: donde se muestra (`toolbar`, `bulk`, `row`)
 - `Presentation`: como se pinta (`button`, `menu_item`, `icon`)
+
+Estas propiedades son agnosticas del framework:
+- MUI puede resolverlas con `DataGrid`, `GridActionsCellItem` o botones externos.
+- Ant Design puede resolverlas con `Button`, `Dropdown`, `Menu`, `Space` o `render` de columna.
 
 ### Tipos de evento recomendados (convencion)
 
@@ -377,6 +389,36 @@ public sealed class RadicadosPendientesHandler : IDynamicUiTableHandler
   "useColumnConfigFromDb": false
 }
 ```
+
+## Adaptacion a Ant Design Table
+
+El payload actual ya cubre el mapping base requerido por AntD:
+
+```text
+DynamicUiTableDto
+  ├─ Columns -----------------> Table.columns
+  ├─ Rows[].Values -----------> Table.dataSource
+  ├─ Rows[].Id ---------------> rowKey
+  ├─ Pagination -------------> pagination
+  ├─ Sorting ----------------> sorter/control remoto
+  ├─ ToolbarActions ---------> botones externos
+  ├─ RowActions -------------> columna render / Dropdown
+  └─ CellActions ------------> render por columnKey
+```
+
+Mapping recomendado:
+- `UiColumnDto.Key` -> `columns[].key`
+- `UiColumnDto.ColumnName` -> `columns[].dataIndex`
+- `UiColumnDto.HeaderName` -> `columns[].title`
+- `UiColumnDto.Width` -> `columns[].width`
+- `UiColumnDto.Align` -> `columns[].align`
+- `UiRowDto.Values` -> `dataSource`
+- `UiRowDto.Id` -> `rowKey`
+
+Notas:
+- Si `IsActionColumn=true`, AntD suele resolverla con `render`.
+- `RenderType` debe interpretarse como metadata semantica; el adapter decide si usa `Tag`, `Typography.Text`, fechas formateadas o render custom.
+- `Placement` y `Presentation` no obligan un componente concreto; solo expresan intencion de UI.
 
 ### Response
 

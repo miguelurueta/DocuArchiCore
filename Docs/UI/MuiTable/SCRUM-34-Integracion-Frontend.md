@@ -168,6 +168,31 @@ Notas:
 - `sorting` -> estado de ordenamiento en UI.
 - Campos base de ejemplo para pendientes: `id_estado_radicado`, `consecutivo_radicado`, `remitente`, `fecha_registro`, `estado`.
 
+## Metadata UI agnostica
+
+`DynamicUiTableDto` no devuelve componentes MUI ni AntD; devuelve metadata para que cada frontend la adapte.
+
+- `UiColumnDto.key`:
+  - MUI: `field`
+  - AntD: `key`
+- `UiColumnDto.columnName`:
+  - backend/source field
+  - AntD: normalmente `dataIndex`
+- `UiColumnDto.headerName`:
+  - MUI: `headerName`
+  - AntD: `title`
+- `UiColumnDto.renderType`:
+  - convención semántica
+  - ejemplos actuales: `grid_text`, `grid_datetime`, `grid_chip`, `custom`
+- `UiActionDto.placement`:
+  - `toolbar`, `bulk`, `row`
+- `UiActionDto.presentation`:
+  - `button`, `menu_item`, `icon`
+- `UiActionDto.behavior`:
+  - `api_call`, `navigate`, `modal`, `download`, `emit`, `custom`
+
+Los valores actuales permanecen compatibles con MUI y deben interpretarse como aliases soportados, no como acoplamiento rígido a DataGrid.
+
 ## Ejemplo de consumo (TypeScript)
 
 ```ts
@@ -225,6 +250,117 @@ export function RadicadosPendientesGrid({ token }: { token: string }) {
   return <DataGrid rows={rows} columns={columns} autoHeight disableRowSelectionOnClick />;
 }
 ```
+
+## Ejemplo React + Ant Design Table
+
+```tsx
+import { Button, Dropdown, Space, Table, type TableColumnsType } from "antd";
+import { useEffect, useState } from "react";
+
+type DynamicColumn = {
+  key: string;
+  columnName: string;
+  headerName: string;
+  visible: boolean;
+  width?: number;
+  align?: "left" | "center" | "right";
+  isActionColumn?: boolean;
+};
+
+type DynamicAction = {
+  actionId: string;
+  label: string;
+  placement: "toolbar" | "bulk" | "row";
+  presentation: "button" | "menu_item" | "icon";
+};
+
+export function RadicadosPendientesAntTable({ token }: { token: string }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [columns, setColumns] = useState<TableColumnsType<any>>([]);
+  const [toolbarActions, setToolbarActions] = useState<DynamicAction[]>([]);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 25, total: 0 });
+
+  useEffect(() => {
+    queryDynamicTable(token, {
+      tableId: "radicadosPendientes",
+      page: 1,
+      pageSize: 25,
+      sortField: "fecha_registro",
+      sortDir: "asc",
+      includeConfig: true
+    }).then((data: any) => {
+      const nextRows = (data.rows || []).map((r: any) => ({ key: r.id, id: r.id, ...r.values }));
+      const nextColumns = (data.columns || [])
+        .filter((c: DynamicColumn) => c.visible)
+        .map((c: DynamicColumn) => {
+          if (c.isActionColumn) {
+            return {
+              key: c.key,
+              title: c.headerName,
+              width: c.width,
+              align: c.align,
+              render: (_: unknown, record: any) => {
+                const rowActions = (data.rowActions || []).filter((a: DynamicAction) => a.placement === "row");
+                const menuItems = rowActions.map((action: DynamicAction) => ({
+                  key: action.actionId,
+                  label: action.label
+                }));
+
+                if (menuItems.length === 0) return null;
+                return <Dropdown menu={{ items: menuItems }} trigger={["click"]}><Button>Opciones</Button></Dropdown>;
+              }
+            };
+          }
+
+          return {
+            key: c.key,
+            dataIndex: c.columnName || c.key,
+            title: c.headerName,
+            width: c.width,
+            align: c.align
+          };
+        });
+
+      setRows(nextRows);
+      setColumns(nextColumns);
+      setToolbarActions(data.toolbarActions || []);
+      setPagination({
+        current: data.pagination?.page ?? 1,
+        pageSize: data.pagination?.pageSize ?? 25,
+        total: data.pagination?.total ?? nextRows.length
+      });
+    });
+  }, [token]);
+
+  return (
+    <Space direction="vertical" style={{ width: "100%" }}>
+      <Space>
+        {toolbarActions.map((action) => (
+          <Button key={action.actionId}>{action.label}</Button>
+        ))}
+      </Space>
+      <Table rowKey="id" dataSource={rows} columns={columns} pagination={pagination} />
+    </Space>
+  );
+}
+```
+
+## Mapping Ant Design
+
+- `data.rows[].values` -> `dataSource`
+- `data.rows[].id` -> `rowKey`
+- `column.key` -> `columns[].key`
+- `column.columnName` -> `columns[].dataIndex`
+- `column.headerName` -> `columns[].title`
+- `column.width` -> `columns[].width`
+- `column.align` -> `columns[].align`
+- `column.isActionColumn=true` -> columna con `render`
+- `toolbarActions` -> botones fuera del `Table`
+- `rowActions` -> `Dropdown`, `Space`, `Button` o `Menu`
+- `bulkActions` -> toolbar contextual cuando haya selección
+- `cellActions` -> `render` condicionado por `columnKey`
+- `pagination.page/pageSize/total` -> `Table.pagination`
+- `sorting.sortField/sortDir` -> estado de sorter/control remoto
 
 ## Requisitos desde frontend
 
