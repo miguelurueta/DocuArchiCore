@@ -50,7 +50,7 @@ El publish no debe incluir:
 Si el publish ya incluye `web.config`, `opsxdeploy:doctor` valida como minimo:
 - `aspNetCore/processPath`
 - `aspNetCore/arguments`
-- bloque `environmentVariables` o advertencia si falta
+- bloque `environmentVariables`
 
 Si el publish no incluye `web.config`, el doctor informa que `opsxdeploy:publish-package` generara uno base.
 
@@ -91,6 +91,7 @@ Este paso:
 - excluye `Tools\`
 - genera `web.config` base si falta
 - conserva `web.config` existente si ya venia en el publish
+- agrega `environmentVariables` con placeholders si el `web.config` existente no los trae o los trae incompletos
 - sanea claves sensibles conocidas en `appsettings.json` del paquete final
 - deja una carpeta limpia lista para copiar al servidor
 
@@ -120,7 +121,7 @@ No dejar secretos reales en `appsettings.json`.
 
 Si `opsxdeploy` genero `web.config`, completar o reemplazar los placeholders antes de habilitar el trafico del sitio.
 
-Si `opsxdeploy` preservo un `web.config` existente, revisar las advertencias reportadas y completar manualmente el bloque `environmentVariables` cuando falte.
+Si `opsxdeploy` preservo un `web.config` existente, revisar que el bloque `environmentVariables` agregado o completado tenga los valores finales correctos para el ambiente.
 
 Si `opsxdeploy` saneo `appsettings.json`, reemplazar `__SET_IN_IIS__` por variables de entorno reales en IIS o completar manualmente el archivo final fuera del repositorio.
 

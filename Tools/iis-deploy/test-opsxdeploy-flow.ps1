@@ -130,9 +130,8 @@ try {
     Assert-Contains -Value $existingPackageOutput -Expected "Publish package ready:"
 
     $copiedWebConfig = Get-Content -Path (Join-Path $existingOutputPath "web.config") -Raw
-    if ($copiedWebConfig -ne $validWebConfig) {
-        throw "Expected existing web.config to be preserved in package output."
-    }
+    Assert-Contains -Value $copiedWebConfig -Expected 'name="ASPNETCORE_ENVIRONMENT"'
+    Assert-Contains -Value $copiedWebConfig -Expected 'name="ConnectionStrings__MySqlConnection_DA"'
 
     $sanitizedAppSettings = Get-Content -Path (Join-Path $existingOutputPath "appsettings.json") -Raw
     Assert-Contains -Value $sanitizedAppSettings -Expected "__SET_IN_IIS__"

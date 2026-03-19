@@ -48,8 +48,8 @@ Alternativa:
 - `publish-package`
   - genera una copia limpia del publish o publica directamente desde un `.csproj`
   - genera un `web.config` base para IIS si el publish no lo trae
-  - preserva `web.config` existente sin sobreescribirlo automaticamente
-  - valida `aspNetCore/processPath`, `aspNetCore/arguments` y reporta advertencias sobre `environmentVariables`
+  - preserva `web.config` existente y completa el bloque `environmentVariables` con placeholders cuando falte o esté incompleto
+  - valida `aspNetCore/processPath` y `aspNetCore/arguments`
   - excluye archivos de desarrollo y tooling no productivo
   - sanea `appsettings.json` del paquete final para no transportar secretos conocidos
 
@@ -79,8 +79,10 @@ Alternativa:
   - `StoragePaths__Exports`
   - `StoragePaths__Logs`
 - Si el publish ya trae `web.config`, el tool no lo reescribe en esta fase.
+- Si el `web.config` existente no trae `environmentVariables`, el tool inserta el bloque con placeholders en el paquete final.
+- Si el bloque existe pero faltan placeholders esperados, el tool agrega los faltantes en el paquete final.
 - Si falta `aspNetCore/processPath` o `aspNetCore/arguments`, `doctor` y `publish-package` fallan.
-- Si falta el bloque `environmentVariables` o los placeholders esperados, el tool emite advertencias para correccion manual.
+- Si el bloque ya quedó completado automaticamente, la validacion final pasa con placeholders listos para reemplazo en IIS.
 
 ## Sanitizacion de appsettings.json
 

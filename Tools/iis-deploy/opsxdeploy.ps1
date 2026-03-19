@@ -181,6 +181,18 @@ function Get-ExpectedWebConfigEnvironmentVariableNames {
     )
 }
 
+function Add-ExpectedEnvironmentVariablesXml {
+    param([System.Xml.XmlElement]$Parent)
+
+    $document = $Parent.OwnerDocument
+    foreach ($name in Get-ExpectedWebConfigEnvironmentVariableNames) {
+        $envNode = $document.CreateElement("environmentVariable")
+        $null = $envNode.SetAttribute("name", $name)
+        $null = $envNode.SetAttribute("value", "__SET_IN_IIS__")
+        [void]$Parent.AppendChild($envNode)
+    }
+}
+
 function New-BaseWebConfigContent {
     param([string]$AssemblyName)
 
@@ -321,6 +333,48 @@ function Ensure-PackageWebConfig {
     $targetWebConfig = Join-Path $OutputPath "web.config"
 
     if (Test-Path $sourceWebConfig) {
+        if (-not $WhatIf) {
+            [xml]$xml = Get-Content -Path $targetWebConfig -Raw
+            $configuration = $xml.configuration
+            $systemWebServer = $configuration.SelectSingleNode("location/system.webServer")
+            if (-not $systemWebServer) {
+                $systemWebServer = $configuration.SelectSingleNode("system.webServer")
+            }
+
+            $aspNetCore = $systemWebServer.SelectSingleNode("aspNetCore")
+            $environmentVariables = $aspNetCore.SelectSingleNode("environmentVariables")
+
+            if (-not $environmentVariables) {
+                $environmentVariables = $xml.CreateElement("environmentVariables")
+                Add-ExpectedEnvironmentVariablesXml -Parent $environmentVariables
+                [void]$aspNetCore.AppendChild($environmentVariables)
+                $xml.Save($targetWebConfig)
+                Write-Output "[PASS] Added environmentVariables block to existing web.config."
+            }
+            else {
+                $actualNames = @(
+                    $environmentVariables.SelectNodes("environmentVariable") |
+                    ForEach-Object { $_.GetAttribute("name") } |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                )
+
+                $missingNames = @(Get-ExpectedWebConfigEnvironmentVariableNames | Where-Object { $_ -notin $actualNames })
+                if ($missingNames.Count -gt 0) {
+                    foreach ($name in $missingNames) {
+                        $envNode = $xml.CreateElement("environmentVariable")
+                        $null = $envNode.SetAttribute("name", $name)
+                        $null = $envNode.SetAttribute("value", "__SET_IN_IIS__")
+                        [void]$environmentVariables.AppendChild($envNode)
+                    }
+                    $xml.Save($targetWebConfig)
+                    Write-Output ("[PASS] Added missing web.config placeholders: {0}" -f ($missingNames -join ", "))
+                }
+            }
+        }
+        else {
+            Write-Output "[WHATIF] Ensure environmentVariables block and placeholders in existing web.config."
+        }
+
         $items = Test-WebConfigMinimumStructure -Path $targetWebConfig
         Write-WebConfigReport -Title "opsxdeploy web.config report" -Items $items
         Assert-NoFailingReportItems -Items $items -FailureMessage "web.config validation found failing checks."
