@@ -1,23 +1,27 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-78 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Confirmar que el alcance real de `SCRUM-78` es una herramienta nueva en `Tools/` para preparar publicaciones orientadas a IIS.
+- [x] 1.2 Delimitar el MVP para no hacer obligatorio el despliegue directo a IIS.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-78/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Reemplazar la spec generica por requisitos concretos para `doctor`, `prepare`, `publish-package` y manual obligatorio.
+- [x] 2.2 Alinear `tasks.md` con el alcance real del MVP.
 
 ## 3. Application
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Crear `Tools/iis-deploy` con `package.json`, `opsxdeploy.ps1` y README.
+- [x] 3.2 Implementar `doctor` para validar publish, bloquear artifacts de desarrollo y detectar secretos evidentes.
+- [x] 3.3 Implementar `prepare` para crear carpeta del sitio y storage paths operativos.
+- [x] 3.4 Implementar `publish-package` para generar una carpeta limpia lista para IIS sin desplegar al sitio.
 
-## 4. Test
+## 4. Verification
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Agregar prueba automatizada del flujo MVP.
+- [x] 4.2 Ejecutar la prueba del tool y documentar resultado.
+- [x] 4.3 Validar el change con `openspec.cmd validate`.
+
+## 5. Documentation
+
+- [x] 5.1 Agregar manual operativo completo desde Visual Studio hasta IIS.
+- [x] 5.2 Documentar el uso del tool y aclarar que el despliegue directo a IIS no es obligatorio.

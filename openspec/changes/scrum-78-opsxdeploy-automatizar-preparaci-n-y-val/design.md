@@ -18,4 +18,6 @@ Descripción: Se requiere crear una herramienta interna de despliegue para IIS, 
 - Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
 - Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
 - Definir alcance y no-alcance antes de implementar.
+- Acotar el MVP a `doctor`, `prepare`, `publish-package` y manual obligatorio.
+- Dejar despliegue directo a IIS, App Pool y sitio IIS como automatizacion futura, no obligatoria en esta entrega.
 - Validar con openspec.cmd validate scrum-78-opsxdeploy-automatizar-preparaci-n-y-val.

@@ -1,0 +1,12 @@
+{
+  "name": "iis-deploy-tools",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "opsxdeploy:iis": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxdeploy.ps1",
+    "opsxdeploy:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxdeploy.ps1 doctor",
+    "opsxdeploy:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxdeploy.ps1 prepare",
+    "opsxdeploy:publish-package": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxdeploy.ps1 publish-package",
+    "opsxdeploy:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./test-opsxdeploy-flow.ps1"
+  }
+}
