@@ -4,9 +4,11 @@ param(
     [string]$Command,
 
     [string]$PublishPath,
+    [string]$ProjectPath,
     [string]$OutputPath,
     [string]$SitePath,
     [string]$DataPath,
+    [string]$ProjectConfiguration = "Release",
     [switch]$WhatIf,
     [switch]$AllowSecrets
 )
@@ -21,6 +23,15 @@ function Assert-RequiredArgument {
 
     if ([string]::IsNullOrWhiteSpace($Value)) {
         throw "Missing required parameter --$Name."
+    }
+}
+
+function Assert-ProjectFileExists {
+    param([string]$Path)
+
+    Assert-RequiredArgument -Name "projectPath" -Value $Path
+    if (-not (Test-Path $Path -PathType Leaf)) {
+        throw "Project file not found: $Path"
     }
 }
 
@@ -54,7 +65,7 @@ function Write-Report {
 }
 
 function Get-RequiredPublishFiles {
-    return @("*.dll", "*.deps.json", "*.runtimeconfig.json", "web.config")
+    return @("*.dll", "*.deps.json", "*.runtimeconfig.json")
 }
 
 function Test-PublishFileRequirements {
@@ -92,6 +103,298 @@ function Get-ForbiddenArtifacts {
     return $findings
 }
 
+function New-TemporaryDirectory {
+    param([string]$Prefix = "opsxdeploy")
+
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("{0}-{1}" -f $Prefix, [System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
+    return $path
+}
+
+function Invoke-ProjectPublish {
+    param(
+        [string]$ProjectPath,
+        [string]$PublishPath,
+        [string]$Configuration,
+        [switch]$WhatIf
+    )
+
+    Assert-ProjectFileExists -Path $ProjectPath
+
+    if ($WhatIf) {
+        Write-Output "[WHATIF] dotnet publish $ProjectPath -c $Configuration -o $PublishPath"
+        return
+    }
+
+    $testPublishSource = $env:OPSXDEPLOY_TEST_PUBLISH_SOURCE
+    if (-not [string]::IsNullOrWhiteSpace($testPublishSource)) {
+        if (-not (Test-Path $testPublishSource -PathType Container)) {
+            throw "OPSXDEPLOY_TEST_PUBLISH_SOURCE does not exist: $testPublishSource"
+        }
+
+        Copy-Item -Path (Join-Path $testPublishSource "*") -Destination $PublishPath -Recurse -Force
+        Write-Output "[PASS] Test publish source copied to staging: $PublishPath"
+        return
+    }
+
+    & dotnet publish $ProjectPath -c $Configuration -o $PublishPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for $ProjectPath"
+    }
+}
+
+function Get-PublishAssemblyName {
+    param([string]$Path)
+
+    $runtimeConfig = Get-ChildItem -Path $Path -Filter "*.runtimeconfig.json" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($runtimeConfig) {
+        return $runtimeConfig.BaseName -replace '\.runtimeconfig$', ''
+    }
+
+    $deps = Get-ChildItem -Path $Path -Filter "*.deps.json" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($deps) {
+        return $deps.BaseName -replace '\.deps$', ''
+    }
+
+    $dll = Get-ChildItem -Path $Path -Filter "*.dll" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($dll) {
+        return $dll.BaseName
+    }
+
+    throw "Unable to derive assembly name from publish path: $Path"
+}
+
+function Get-ExpectedWebConfigEnvironmentVariableNames {
+    return @(
+        "ASPNETCORE_ENVIRONMENT",
+        "ConnectionStrings__MySqlConnection_DA",
+        "ConnectionStrings__MySqlConnection_WFR",
+        "ConnectionStrings__MySqlConnection_WF",
+        "Jwt__Key",
+        "Jwt__Issuer",
+        "Jwt__Audience",
+        "StoragePaths__Temp",
+        "StoragePaths__Uploads",
+        "StoragePaths__Avatars",
+        "StoragePaths__Exports",
+        "StoragePaths__Logs"
+    )
+}
+
+function Add-ExpectedEnvironmentVariablesXml {
+    param([System.Xml.XmlElement]$Parent)
+
+    $document = $Parent.OwnerDocument
+    foreach ($name in Get-ExpectedWebConfigEnvironmentVariableNames) {
+        $envNode = $document.CreateElement("environmentVariable")
+        $null = $envNode.SetAttribute("name", $name)
+        $null = $envNode.SetAttribute("value", "__SET_IN_IIS__")
+        [void]$Parent.AppendChild($envNode)
+    }
+}
+
+function New-BaseWebConfigContent {
+    param([string]$AssemblyName)
+
+    $environmentVariableLines = foreach ($name in Get-ExpectedWebConfigEnvironmentVariableNames) {
+        "          <environmentVariable name=""$name"" value=""__SET_IN_IIS__"" />"
+    }
+
+    return @"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath="dotnet" arguments=".\$AssemblyName.dll" stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" hostingModel="inprocess">
+        <environmentVariables>
+$($environmentVariableLines -join [Environment]::NewLine)
+        </environmentVariables>
+      </aspNetCore>
+    </system.webServer>
+  </location>
+</configuration>
+"@
+}
+
+function Test-WebConfigMinimumStructure {
+    param([string]$Path)
+
+    $items = New-Object System.Collections.ArrayList
+
+    if (-not (Test-Path $Path)) {
+        Add-ReportItem -Items $items -Level "warn" -Name "web_config" -Message "web.config not found; publish-package will generate a base file."
+        return $items
+    }
+
+    try {
+        [xml]$xml = Get-Content -Path $Path -Raw
+    }
+    catch {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config" -Message "web.config is not valid XML. $($_.Exception.Message)"
+        return $items
+    }
+
+    $configuration = $xml.configuration
+    if (-not $configuration) {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config" -Message "web.config must include a <configuration> root node."
+        return $items
+    }
+
+    $systemWebServer = $configuration.SelectSingleNode("location/system.webServer")
+    if (-not $systemWebServer) {
+        $systemWebServer = $configuration.SelectSingleNode("system.webServer")
+    }
+
+    if (-not $systemWebServer) {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config" -Message "web.config must include <system.webServer>."
+        return $items
+    }
+
+    $aspNetCore = $systemWebServer.SelectSingleNode("aspNetCore")
+    if (-not $aspNetCore) {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config" -Message "web.config must include <aspNetCore>."
+        return $items
+    }
+
+    $processPath = $aspNetCore.GetAttribute("processPath")
+    if ([string]::IsNullOrWhiteSpace($processPath)) {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config.processPath" -Message "aspNetCore/processPath is required."
+    }
+    else {
+        Add-ReportItem -Items $items -Level "pass" -Name "web_config.processPath" -Message "aspNetCore/processPath is configured."
+    }
+
+    $arguments = $aspNetCore.GetAttribute("arguments")
+    if ([string]::IsNullOrWhiteSpace($arguments)) {
+        Add-ReportItem -Items $items -Level "fail" -Name "web_config.arguments" -Message "aspNetCore/arguments is required."
+    }
+    else {
+        Add-ReportItem -Items $items -Level "pass" -Name "web_config.arguments" -Message "aspNetCore/arguments is configured."
+    }
+
+    $environmentVariables = $aspNetCore.SelectSingleNode("environmentVariables")
+    if (-not $environmentVariables) {
+        Add-ReportItem -Items $items -Level "warn" -Name "web_config.environmentVariables" -Message "web.config does not include an <environmentVariables> block."
+        return $items
+    }
+
+    Add-ReportItem -Items $items -Level "pass" -Name "web_config.environmentVariables" -Message "web.config includes an <environmentVariables> block."
+
+    $actualNames = @(
+        $environmentVariables.SelectNodes("environmentVariable") |
+        ForEach-Object { $_.GetAttribute("name") } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+
+    $missingNames = @(Get-ExpectedWebConfigEnvironmentVariableNames | Where-Object { $_ -notin $actualNames })
+    if ($missingNames.Count -gt 0) {
+        Add-ReportItem -Items $items -Level "warn" -Name "web_config.environmentVariables" -Message ("Missing placeholder variables: {0}" -f ($missingNames -join ", "))
+    }
+    else {
+        Add-ReportItem -Items $items -Level "pass" -Name "web_config.environmentVariables" -Message "Expected placeholder variables are present."
+    }
+
+    return $items
+}
+
+function Write-WebConfigReport {
+    param(
+        [string]$Title,
+        [System.Collections.ArrayList]$Items
+    )
+
+    Write-Section $Title
+    Write-Report -Items $Items
+}
+
+function Assert-NoFailingReportItems {
+    param(
+        [System.Collections.ArrayList]$Items,
+        [string]$FailureMessage
+    )
+
+    $failed = @($Items | Where-Object { $_.level -eq "fail" })
+    if ($failed.Count -gt 0) {
+        throw $FailureMessage
+    }
+}
+
+function Ensure-PackageWebConfig {
+    param(
+        [string]$PublishPath,
+        [string]$OutputPath,
+        [switch]$WhatIf
+    )
+
+    $sourceWebConfig = Join-Path $PublishPath "web.config"
+    $targetWebConfig = Join-Path $OutputPath "web.config"
+
+    if (Test-Path $sourceWebConfig) {
+        if (-not $WhatIf) {
+            [xml]$xml = Get-Content -Path $targetWebConfig -Raw
+            $configuration = $xml.configuration
+            $systemWebServer = $configuration.SelectSingleNode("location/system.webServer")
+            if (-not $systemWebServer) {
+                $systemWebServer = $configuration.SelectSingleNode("system.webServer")
+            }
+
+            $aspNetCore = $systemWebServer.SelectSingleNode("aspNetCore")
+            $environmentVariables = $aspNetCore.SelectSingleNode("environmentVariables")
+
+            if (-not $environmentVariables) {
+                $environmentVariables = $xml.CreateElement("environmentVariables")
+                Add-ExpectedEnvironmentVariablesXml -Parent $environmentVariables
+                [void]$aspNetCore.AppendChild($environmentVariables)
+                $xml.Save($targetWebConfig)
+                Write-Output "[PASS] Added environmentVariables block to existing web.config."
+            }
+            else {
+                $actualNames = @(
+                    $environmentVariables.SelectNodes("environmentVariable") |
+                    ForEach-Object { $_.GetAttribute("name") } |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                )
+
+                $missingNames = @(Get-ExpectedWebConfigEnvironmentVariableNames | Where-Object { $_ -notin $actualNames })
+                if ($missingNames.Count -gt 0) {
+                    foreach ($name in $missingNames) {
+                        $envNode = $xml.CreateElement("environmentVariable")
+                        $null = $envNode.SetAttribute("name", $name)
+                        $null = $envNode.SetAttribute("value", "__SET_IN_IIS__")
+                        [void]$environmentVariables.AppendChild($envNode)
+                    }
+                    $xml.Save($targetWebConfig)
+                    Write-Output ("[PASS] Added missing web.config placeholders: {0}" -f ($missingNames -join ", "))
+                }
+            }
+        }
+        else {
+            Write-Output "[WHATIF] Ensure environmentVariables block and placeholders in existing web.config."
+        }
+
+        $items = Test-WebConfigMinimumStructure -Path $targetWebConfig
+        Write-WebConfigReport -Title "opsxdeploy web.config report" -Items $items
+        Assert-NoFailingReportItems -Items $items -FailureMessage "web.config validation found failing checks."
+        return
+    }
+
+    $assemblyName = Get-PublishAssemblyName -Path $PublishPath
+    if ($WhatIf) {
+        Write-Output "[WHATIF] Generate base web.config for assembly: $assemblyName"
+        return
+    }
+
+    Set-Content -Path $targetWebConfig -Value (New-BaseWebConfigContent -AssemblyName $assemblyName) -Encoding UTF8
+    Write-Output "[PASS] Generated base web.config: $targetWebConfig"
+
+    $items = Test-WebConfigMinimumStructure -Path $targetWebConfig
+    Write-WebConfigReport -Title "opsxdeploy web.config report" -Items $items
+    Assert-NoFailingReportItems -Items $items -FailureMessage "Generated web.config validation found failing checks."
+}
+
 function Get-AppSettingsSecretFindings {
     param([string]$Path)
 
@@ -104,8 +407,8 @@ function Get-AppSettingsSecretFindings {
     $findings = New-Object System.Collections.ArrayList
 
     $patterns = @(
-        @{ name = "jwt_key"; pattern = '"Key"\s*:\s*"(?!\s*")[^"]+'; message = "Jwt.Key appears populated." },
-        @{ name = "permission_secret"; pattern = '"Secret"\s*:\s*"(?!\s*")[^"]+'; message = "A Secret field appears populated." },
+        @{ name = "jwt_key"; pattern = '"Key"\s*:\s*"(?!\s*"|__SET_IN_IIS__)[^"]+'; message = "Jwt.Key appears populated." },
+        @{ name = "permission_secret"; pattern = '"Secret"\s*:\s*"(?!\s*"|__SET_IN_IIS__)[^"]+'; message = "A Secret field appears populated." },
         @{ name = "mysql_password"; pattern = '(pwd|password)\s*='; message = "Connection string contains password or pwd." },
         @{ name = "mysql_root"; pattern = 'uid\s*=\s*root'; message = "Connection string uses root user." }
     )
@@ -122,16 +425,19 @@ function Get-AppSettingsSecretFindings {
     return $findings
 }
 
-function Invoke-Doctor {
-    param([string]$PublishPath, [switch]$AllowSecrets)
+function Get-PublishValidationItems {
+    param(
+        [string]$Path,
+        [switch]$AllowSecrets,
+        [switch]$IncludeForbiddenArtifacts = $true,
+        [switch]$IncludeSecretFindings = $true
+    )
 
-    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
-    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
     $items = New-Object System.Collections.ArrayList
 
-    Add-ReportItem -Items $items -Level "pass" -Name "publish_path" -Message "Publish path resolved: $resolvedPublishPath"
+    Add-ReportItem -Items $items -Level "pass" -Name "publish_path" -Message "Publish path resolved: $Path"
 
-    $missing = Test-PublishFileRequirements -Path $resolvedPublishPath
+    $missing = Test-PublishFileRequirements -Path $Path
     if ($missing.Count -gt 0) {
         foreach ($entry in $missing) {
             Add-ReportItem -Items $items -Level "fail" -Name "required_files" -Message "Missing required pattern: $entry"
@@ -141,34 +447,110 @@ function Invoke-Doctor {
         Add-ReportItem -Items $items -Level "pass" -Name "required_files" -Message "Required runtime files found."
     }
 
-    $forbidden = Get-ForbiddenArtifacts -Path $resolvedPublishPath
-    if ($forbidden.Count -gt 0) {
-        foreach ($entry in $forbidden) {
-            Add-ReportItem -Items $items -Level "fail" -Name "forbidden_artifact" -Message $entry
+    if ($IncludeForbiddenArtifacts) {
+        $forbidden = Get-ForbiddenArtifacts -Path $Path
+        if ($forbidden.Count -gt 0) {
+            foreach ($entry in $forbidden) {
+                Add-ReportItem -Items $items -Level "fail" -Name "forbidden_artifact" -Message $entry
+            }
         }
-    }
-    else {
-        Add-ReportItem -Items $items -Level "pass" -Name "forbidden_artifact" -Message "No forbidden development/tooling artifacts found."
+        else {
+            Add-ReportItem -Items $items -Level "pass" -Name "forbidden_artifact" -Message "No forbidden development/tooling artifacts found."
+        }
     }
 
-    $secretFindings = Get-AppSettingsSecretFindings -Path $resolvedPublishPath
-    if ($secretFindings.Count -gt 0) {
-        $level = if ($AllowSecrets) { "warn" } else { "fail" }
-        foreach ($finding in $secretFindings) {
-            Add-ReportItem -Items $items -Level $level -Name $finding.name -Message $finding.message
+    if ($IncludeSecretFindings) {
+        $secretFindings = Get-AppSettingsSecretFindings -Path $Path
+        if ($secretFindings.Count -gt 0) {
+            $level = if ($AllowSecrets) { "warn" } else { "fail" }
+            foreach ($finding in $secretFindings) {
+                Add-ReportItem -Items $items -Level $level -Name $finding.name -Message $finding.message
+            }
+        }
+        else {
+            Add-ReportItem -Items $items -Level "pass" -Name "appsettings" -Message "No obvious secrets found in appsettings.json."
         }
     }
-    else {
-        Add-ReportItem -Items $items -Level "pass" -Name "appsettings" -Message "No obvious secrets found in appsettings.json."
+
+    $webConfigItems = Test-WebConfigMinimumStructure -Path (Join-Path $Path "web.config")
+    foreach ($item in $webConfigItems) {
+        [void]$items.Add($item)
     }
+
+    return $items
+}
+
+function Get-AppSettingsSanitizationReplacements {
+    return @(
+        @{
+            pattern = '("Key"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized Jwt.Key.'
+        },
+        @{
+            pattern = '("Secret"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized Secret field.'
+        },
+        @{
+            pattern = '("MySqlConnection_[^"]*"\s*:\s*")([^"]+)(")'
+            replacement = '$1__SET_IN_IIS__$3'
+            message = 'Sanitized MySQL connection string.'
+        }
+    )
+}
+
+function Protect-PackageAppSettings {
+    param(
+        [string]$OutputPath,
+        [switch]$WhatIf
+    )
+
+    $appSettingsPath = Join-Path $OutputPath "appsettings.json"
+    if (-not (Test-Path $appSettingsPath)) {
+        return
+    }
+
+    $raw = Get-Content -Path $appSettingsPath -Raw
+    $sanitized = $raw
+    $applied = New-Object System.Collections.ArrayList
+
+    foreach ($entry in Get-AppSettingsSanitizationReplacements) {
+        $updated = [regex]::Replace($sanitized, $entry.pattern, $entry.replacement)
+        if ($updated -ne $sanitized) {
+            [void]$applied.Add($entry.message)
+            $sanitized = $updated
+        }
+    }
+
+    if ($applied.Count -eq 0) {
+        return
+    }
+
+    if ($WhatIf) {
+        foreach ($message in $applied) {
+            Write-Output "[WHATIF] $message"
+        }
+        return
+    }
+
+    Set-Content -Path $appSettingsPath -Value $sanitized -Encoding UTF8
+    foreach ($message in $applied) {
+        Write-Output "[PASS] $message"
+    }
+}
+
+function Invoke-Doctor {
+    param([string]$PublishPath, [switch]$AllowSecrets)
+
+    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
+    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
+    $items = Get-PublishValidationItems -Path $resolvedPublishPath -AllowSecrets:$AllowSecrets -IncludeForbiddenArtifacts -IncludeSecretFindings
 
     Write-Section "opsxdeploy doctor report"
     Write-Report -Items $items
 
-    $failed = @($items | Where-Object { $_.level -eq "fail" })
-    if ($failed.Count -gt 0) {
-        throw "Doctor found $($failed.Count) failing check(s)."
-    }
+    Assert-NoFailingReportItems -Items $items -FailureMessage ("Doctor found {0} failing check(s)." -f (@($items | Where-Object { $_.level -eq "fail" }).Count))
 
     Write-Output "Doctor passed. Publish is ready for packaging."
 }
@@ -259,31 +641,81 @@ function Copy-PublishPackage {
 function Invoke-PublishPackage {
     param(
         [string]$PublishPath,
+        [string]$ProjectPath,
         [string]$OutputPath,
+        [string]$ProjectConfiguration,
         [switch]$WhatIf,
         [switch]$AllowSecrets
     )
 
-    Assert-RequiredArgument -Name "publishPath" -Value $PublishPath
     Assert-RequiredArgument -Name "outputPath" -Value $OutputPath
+    if ([string]::IsNullOrWhiteSpace($PublishPath) -and [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        throw "Missing required parameter --publishPath or --projectPath."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($PublishPath) -and -not [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        throw "Use either --publishPath or --projectPath, not both."
+    }
 
-    $resolvedPublishPath = (Resolve-Path -Path $PublishPath).Path
-    Invoke-Doctor -PublishPath $resolvedPublishPath -AllowSecrets:$AllowSecrets
+    $stagingPath = $null
+    $inputPublishPath = $null
 
-    Write-Section "opsxdeploy publish-package"
-
-    if (-not $WhatIf) {
-        if (Test-Path $OutputPath) {
-            Remove-Item -Path $OutputPath -Recurse -Force
+    try {
+        if (-not [string]::IsNullOrWhiteSpace($ProjectPath)) {
+            $resolvedProjectPath = (Resolve-Path -Path $ProjectPath).Path
+            $stagingPath = New-TemporaryDirectory -Prefix "opsxdeploy-publish"
+            Write-Output "Using project source: $resolvedProjectPath"
+            Write-Output "Staging publish path: $stagingPath"
+            Invoke-ProjectPublish -ProjectPath $resolvedProjectPath -PublishPath $stagingPath -Configuration $ProjectConfiguration -WhatIf:$WhatIf
+            $inputPublishPath = $stagingPath
         }
-        New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
-    }
-    else {
-        Write-Output "[WHATIF] Recreate output folder: $OutputPath"
-    }
+        else {
+            $inputPublishPath = (Resolve-Path -Path $PublishPath).Path
+        }
 
-    Copy-PublishPackage -PublishPath $resolvedPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
-    Write-Output "Publish package ready: $OutputPath"
+        if (-not $WhatIf) {
+            $precheckItems = Get-PublishValidationItems -Path $inputPublishPath -AllowSecrets:$true
+            $blockingItems = @($precheckItems | Where-Object {
+                $_.level -eq "fail" -and
+                $_.name -ne "forbidden_artifact" -and
+                $_.name -notlike "jwt_*" -and
+                $_.name -ne "permission_secret" -and
+                $_.name -notlike "mysql_*"
+            })
+
+            if ($blockingItems.Count -gt 0) {
+                Write-Section "opsxdeploy publish-source precheck"
+                Write-Report -Items $precheckItems
+                throw "Publish source failed blocking checks before packaging."
+            }
+        }
+
+        Write-Section "opsxdeploy publish-package"
+
+        if (-not $WhatIf) {
+            if (Test-Path $OutputPath) {
+                Remove-Item -Path $OutputPath -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
+        }
+        else {
+            Write-Output "[WHATIF] Recreate output folder: $OutputPath"
+        }
+
+        Copy-PublishPackage -PublishPath $inputPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
+        Protect-PackageAppSettings -OutputPath $OutputPath -WhatIf:$WhatIf
+        Ensure-PackageWebConfig -PublishPath $inputPublishPath -OutputPath $OutputPath -WhatIf:$WhatIf
+
+        if (-not $WhatIf) {
+            Invoke-Doctor -PublishPath $OutputPath -AllowSecrets:$AllowSecrets
+        }
+
+        Write-Output "Publish package ready: $OutputPath"
+    }
+    finally {
+        if (($null -ne $stagingPath) -and (Test-Path $stagingPath) -and -not $WhatIf) {
+            Remove-Item -Path $stagingPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 switch ($Command) {
@@ -294,6 +726,6 @@ switch ($Command) {
         Invoke-Prepare -SitePath $SitePath -DataPath $DataPath -WhatIf:$WhatIf
     }
     "publish-package" {
-        Invoke-PublishPackage -PublishPath $PublishPath -OutputPath $OutputPath -WhatIf:$WhatIf -AllowSecrets:$AllowSecrets
+        Invoke-PublishPackage -PublishPath $PublishPath -ProjectPath $ProjectPath -OutputPath $OutputPath -ProjectConfiguration $ProjectConfiguration -WhatIf:$WhatIf -AllowSecrets:$AllowSecrets
     }
 }

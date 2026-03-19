@@ -28,7 +28,11 @@ C:\SalidaApiCore
 - `DocuArchi.Api.dll`
 - `DocuArchi.Api.deps.json`
 - `DocuArchi.Api.runtimeconfig.json`
-- `web.config`
+- `web.config` opcional
+
+Alternativa automatizada:
+
+En lugar de generar primero una carpeta publish manual, ahora se puede usar `opsxdeploy:publish-package` con `-ProjectPath` para que el tool ejecute `dotnet publish` y arme el paquete final listo para IIS.
 
 ### 3. Validacion del publish
 
@@ -42,6 +46,13 @@ El publish no debe incluir:
 - `appsettings.Development.json`
 - `Tools\...`
 - secretos reales en `appsettings.json`
+
+Si el publish ya incluye `web.config`, `opsxdeploy:doctor` valida como minimo:
+- `aspNetCore/processPath`
+- `aspNetCore/arguments`
+- bloque `environmentVariables`
+
+Si el publish no incluye `web.config`, el doctor informa que `opsxdeploy:publish-package` generara uno base.
 
 ### 4. Preparar estructura del servidor
 
@@ -67,11 +78,28 @@ Ejecutar:
 npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -PublishPath C:\SalidaApiCore -OutputPath C:\Entrega\DocuArchiApi-ready
 ```
 
+O publicar directamente desde el proyecto:
+
+```powershell
+npm.cmd --prefix Tools/iis-deploy run opsxdeploy:publish-package -- -ProjectPath D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchi.Api\DocuArchi.Api.csproj -OutputPath C:\Entrega\DocuArchiApi-ready
+```
+
 Este paso:
 - valida de nuevo la publicacion
+- puede ejecutar `dotnet publish` internamente cuando se usa `-ProjectPath`
 - excluye `appsettings.Development.json`
 - excluye `Tools\`
+- genera `web.config` base si falta
+- conserva `web.config` existente si ya venia en el publish
+- agrega `environmentVariables` con placeholders si el `web.config` existente no los trae o los trae incompletos
+- sanea claves sensibles conocidas en `appsettings.json` del paquete final
 - deja una carpeta limpia lista para copiar al servidor
+
+La plantilla base generada incluye:
+- `AspNetCoreModuleV2`
+- `processPath="dotnet"`
+- `arguments=".\DocuArchi.Api.dll"` o el ensamblado principal detectado
+- placeholders para variables de entorno operativas obligatorias
 
 ### 6. Crear App Pool y sitio IIS
 
@@ -90,6 +118,12 @@ Configurar manualmente en IIS:
 ### 7. Configuracion por variables de entorno
 
 No dejar secretos reales en `appsettings.json`.
+
+Si `opsxdeploy` genero `web.config`, completar o reemplazar los placeholders antes de habilitar el trafico del sitio.
+
+Si `opsxdeploy` preservo un `web.config` existente, revisar que el bloque `environmentVariables` agregado o completado tenga los valores finales correctos para el ambiente.
+
+Si `opsxdeploy` saneo `appsettings.json`, reemplazar `__SET_IN_IIS__` por variables de entorno reales en IIS o completar manualmente el archivo final fuera del repositorio.
 
 Definir en `web.config` o en el sitio IIS:
 - `ASPNETCORE_ENVIRONMENT=Production`
@@ -124,11 +158,14 @@ Si la app no arranca:
 - habilitar temporalmente `stdoutLogEnabled="true"` en `web.config`
 - crear `logs` bajo el sitio
 - revisar errores de arranque
+- confirmar que `processPath` y `arguments` siguen apuntando al ensamblado publicado correcto
+- confirmar que las variables placeholder del `web.config` generado fueron reemplazadas por valores reales en IIS o en el archivo
 
 ### 11. Checklist final
 
 - publish validado
 - carpeta limpia lista para IIS
+- `web.config` generado o validado
 - `appsettings.Development.json` excluido
 - secretos fuera del repo
 - App Pool en `No Managed Code`
