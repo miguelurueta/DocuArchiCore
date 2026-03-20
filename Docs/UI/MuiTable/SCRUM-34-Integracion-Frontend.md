@@ -65,7 +65,9 @@ Notas:
       {
         "key": "consecutivo_radicado",
         "columnName": "consecutivo_radicado",
+        "dataIndex": "consecutivo_radicado",
         "headerName": "Radicado",
+        "title": "Radicado",
         "dataType": "text",
         "renderType": "grid_text",
         "visible": true,
@@ -73,7 +75,10 @@ Notas:
         "order": 1,
         "width": 160,
         "align": "left",
-        "isActionColumn": false
+        "isActionColumn": false,
+        "filterable": true,
+        "filterType": "text",
+        "filterOptions": null
       }
     ],
     "rows": [
@@ -184,6 +189,13 @@ Notas:
 - `UiColumnDto.renderType`:
   - convención semántica
   - ejemplos actuales: `grid_text`, `grid_datetime`, `grid_chip`, `custom`
+- `UiColumnDto.dataIndex`:
+  - alias explícito para `Ant Design columns[].dataIndex`
+- `UiColumnDto.title`:
+  - alias explícito para `Ant Design columns[].title`
+- `UiColumnDto.filterable` / `filterType`:
+  - metadata para filtros AntD
+  - ejemplos: `text`, `select`, `date`, `datetime`, `none`
 - `UiActionDto.placement`:
   - `toolbar`, `bulk`, `row`
 - `UiActionDto.presentation`:
@@ -260,11 +272,16 @@ import { useEffect, useState } from "react";
 type DynamicColumn = {
   key: string;
   columnName: string;
+  dataIndex?: string;
   headerName: string;
+  title?: string;
   visible: boolean;
   width?: number;
   align?: "left" | "center" | "right";
   isActionColumn?: boolean;
+  filterable?: boolean;
+  filterType?: "text" | "select" | "date" | "datetime" | "none";
+  filterOptions?: Array<{ text: string; value: string }>;
 };
 
 type DynamicAction = {
@@ -314,10 +331,12 @@ export function RadicadosPendientesAntTable({ token }: { token: string }) {
 
           return {
             key: c.key,
-            dataIndex: c.columnName || c.key,
-            title: c.headerName,
+            dataIndex: c.dataIndex || c.columnName || c.key,
+            title: c.title || c.headerName,
             width: c.width,
-            align: c.align
+            align: c.align,
+            filters: c.filterOptions?.map((option) => ({ text: option.text, value: option.value })),
+            filterMode: c.filterType === "select" ? "menu" : undefined
           };
         });
 
@@ -350,11 +369,12 @@ export function RadicadosPendientesAntTable({ token }: { token: string }) {
 - `data.rows[].values` -> `dataSource`
 - `data.rows[].id` -> `rowKey`
 - `column.key` -> `columns[].key`
-- `column.columnName` -> `columns[].dataIndex`
-- `column.headerName` -> `columns[].title`
+- `column.dataIndex` -> `columns[].dataIndex`
+- `column.title` -> `columns[].title`
 - `column.width` -> `columns[].width`
 - `column.align` -> `columns[].align`
 - `column.isActionColumn=true` -> columna con `render`
+- `column.filterable/filterType/filterOptions` -> filtros locales o remotos en AntD
 - `toolbarActions` -> botones fuera del `Table`
 - `rowActions` -> `Dropdown`, `Space`, `Button` o `Menu`
 - `bulkActions` -> toolbar contextual cuando haya selección
