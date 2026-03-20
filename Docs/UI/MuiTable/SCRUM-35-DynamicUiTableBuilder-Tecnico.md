@@ -160,8 +160,11 @@ var req = new DynamicUiTableQueryRequestDto
 Compatibilidad de columnas:
 - `Key`: identificador estable para la columna. En MUI suele mapear a `field`; en AntD a `key`.
 - `ColumnName`: nombre real del campo en el payload/DB. En AntD normalmente se usa como `dataIndex`.
+- `DataIndex`: alias explícito para adapters AntD. Si no viene informado, el builder lo normaliza desde `ColumnName`.
 - `HeaderName`: texto visible. En AntD se usa como `title`.
+- `Title`: alias explícito para adapters AntD. Si no viene informado, el builder lo normaliza desde `HeaderName`.
 - `RenderType`: hint semantico. Los valores actuales (`grid_text`, `grid_datetime`, `grid_chip`) siguen siendo validos como aliases soportados.
+- `Filterable` / `FilterType`: metadata mínima para filtros de AntD (`text`, `select`, `date`, `datetime`, `none`).
 
 ## Como crear el campo de evento (acciones)
 
@@ -408,10 +411,11 @@ DynamicUiTableDto
 
 Mapping recomendado:
 - `UiColumnDto.Key` -> `columns[].key`
-- `UiColumnDto.ColumnName` -> `columns[].dataIndex`
-- `UiColumnDto.HeaderName` -> `columns[].title`
+- `UiColumnDto.DataIndex` -> `columns[].dataIndex`
+- `UiColumnDto.Title` -> `columns[].title`
 - `UiColumnDto.Width` -> `columns[].width`
 - `UiColumnDto.Align` -> `columns[].align`
+- `UiColumnDto.Filterable` / `UiColumnDto.FilterType` -> estrategia de filtros local/remota
 - `UiRowDto.Values` -> `dataSource`
 - `UiRowDto.Id` -> `rowKey`
 
@@ -419,6 +423,7 @@ Notas:
 - Si `IsActionColumn=true`, AntD suele resolverla con `render`.
 - `RenderType` debe interpretarse como metadata semantica; el adapter decide si usa `Tag`, `Typography.Text`, fechas formateadas o render custom.
 - `Placement` y `Presentation` no obligan un componente concreto; solo expresan intencion de UI.
+- El builder normaliza `DataIndex`, `Title` y `FilterType` para reducir lógica repetida en adapters AntD.
 
 ### Response
 

@@ -1,5 +1,6 @@
 using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.UI.MuiTable;
+using MiApp.Repository.Repositorio.UI.MuiTable;
 using MiApp.Services.Service.UI.MuiTable;
 using Moq;
 using Xunit;
@@ -201,6 +202,115 @@ public class DynamicUiTableServiceTests
         Assert.Equal("Prueba", payload.Rows[0].Values["asunto"]);
         Assert.Equal(1, payload.Pagination!.Page);
         Assert.Equal("asunto", payload.Sorting!.SortField);
+    }
+
+    [Fact]
+    public async Task BuildAsync_NormalizaAliasesAntDesignYFiltros()
+    {
+        var repository = new Mock<IUiTableConfigRepository>();
+        var builder = new DynamicUiTableBuilder(repository.Object);
+
+        var payload = await builder.BuildAsync(new DynamicUiTableBuildInput
+        {
+            Request = new DynamicUiTableQueryRequestDto
+            {
+                TableId = "radicados",
+                DefaultDbAlias = "DA",
+                Page = 1,
+                PageSize = 25,
+                UseColumnConfigFromDb = false
+            },
+            Rows =
+            [
+                new Dictionary<string, object?> { ["id"] = "1", ["asunto"] = "Prueba", ["fecha_registro"] = "2026-03-20" }
+            ],
+            Total = 1,
+            Actions = [],
+            CellActions = [],
+            Columns =
+            [
+                new UiColumnDto
+                {
+                    Key = "asunto",
+                    ColumnName = "asunto",
+                    HeaderName = "Asunto",
+                    DataType = "text",
+                    RenderType = "grid_text",
+                    Order = 1
+                },
+                new UiColumnDto
+                {
+                    Key = "fecha_registro",
+                    ColumnName = "fecha_registro",
+                    HeaderName = "Fecha",
+                    DataType = "date",
+                    RenderType = "grid_date",
+                    Order = 2
+                }
+            ]
+        });
+
+        Assert.Equal("asunto", payload.Columns[0].DataIndex);
+        Assert.Equal("Asunto", payload.Columns[0].Title);
+        Assert.Equal("text", payload.Columns[0].FilterType);
+        Assert.True(payload.Columns[0].Filterable);
+
+        Assert.Equal("fecha_registro", payload.Columns[1].DataIndex);
+        Assert.Equal("Fecha", payload.Columns[1].Title);
+        Assert.Equal("date", payload.Columns[1].FilterType);
+
+        Assert.True(payload.Columns[2].IsActionColumn);
+        Assert.Equal("actions", payload.Columns[2].DataIndex);
+        Assert.Equal("Opciones", payload.Columns[2].Title);
+        Assert.False(payload.Columns[2].Filterable);
+        Assert.Equal("none", payload.Columns[2].FilterType);
+    }
+
+    [Fact]
+    public async Task BuildAsync_CuandoColumnasVienenDeRepositorio_NormalizaAliasesAntD()
+    {
+        var repository = new Mock<IUiTableConfigRepository>();
+        repository
+            .Setup(r => r.GetColumnsAsync("DA", "radicados"))
+            .ReturnsAsync(
+            [
+                new UiColumnDto
+                {
+                    Key = "estado",
+                    ColumnName = "estado",
+                    HeaderName = "Estado",
+                    DataType = "number",
+                    RenderType = "grid_chip",
+                    Order = 1
+                }
+            ]);
+
+        var builder = new DynamicUiTableBuilder(repository.Object);
+
+        var payload = await builder.BuildAsync(new DynamicUiTableBuildInput
+        {
+            Request = new DynamicUiTableQueryRequestDto
+            {
+                TableId = "radicados",
+                DefaultDbAlias = "DA",
+                Page = 1,
+                PageSize = 25,
+                UseColumnConfigFromDb = true
+            },
+            Rows =
+            [
+                new Dictionary<string, object?> { ["id"] = "1", ["estado"] = 1 }
+            ],
+            Total = 1,
+            Actions = [],
+            CellActions = [],
+            Columns = []
+        });
+
+        Assert.Equal("estado", payload.Columns[0].DataIndex);
+        Assert.Equal("Estado", payload.Columns[0].Title);
+        Assert.Equal("select", payload.Columns[0].FilterType);
+        repository.Verify(r => r.GetColumnsAsync("DA", "radicados"), Times.Once);
     }
 
     private sealed class FakeHandler : IDynamicUiTableHandler
