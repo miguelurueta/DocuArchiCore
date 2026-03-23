@@ -2,7 +2,7 @@
 
 - [x] 1.1 Revisar el issue Jira SCRUM-86 y confirmar alcance.
 - [x] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
 
 ## 2. Specs
 
@@ -13,11 +13,11 @@
 ## 3. Application
 
 - [x] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
+- [x] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
+- [x] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
+- [x] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
 - [ ] 4.3 Validar y archivar con OpenSpec.
