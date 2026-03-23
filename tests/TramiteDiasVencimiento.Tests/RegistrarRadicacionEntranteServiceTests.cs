@@ -1041,7 +1041,15 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             {
                 success = true,
                 message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto { ConsecutivoRadicado = "RAD-TEST-84" }
+                data = new RegistrarRadicacionEntranteResponseDto
+                {
+                    ConsecutivoRadicado = "RAD-TEST-84",
+                    ReturnRegistraRadicacion = new ReturnRegistraRadicacionDto
+                    {
+                        ConsecutivoRadicado = "RAD-TEST-84",
+                        IdRadicado = 9084
+                    }
+                }
             });
 
         var service = new RegistrarRadicacionEntranteService(
@@ -1068,6 +1076,9 @@ public sealed class RegistrarRadicacionEntranteServiceTests
 
         Assert.True(result.success);
         Assert.Equal("RAD-TEST-84", result.data!.ConsecutivoRadicado);
+        Assert.NotNull(result.data.ReturnRegistraRadicacion);
+        Assert.Equal("RAD-TEST-84", result.data.ReturnRegistraRadicacion.ConsecutivoRadicado);
+        Assert.Equal(9084, result.data.ReturnRegistraRadicacion.IdRadicado);
         solicitaDatosActividadInicioFlujoRepository.Verify(r => r.SolicitaDatosActividadInicioFlujoAsync(77, "WF"), Times.Once);
         validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()), Times.Once);
         registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
@@ -1082,6 +1093,91 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
             It.IsAny<ParametrosRadicadosDto>(),
             It.IsAny<TipoDocEntrante>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoRepositorioRetornaSoloCamposLegados_NormalizaReturnRegistraRadicacion()
+    {
+        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
+        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
+        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
+        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
+        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
+        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
+        var currentUserService = new Mock<ICurrentUserService>();
+
+        remitRepo
+            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
+        detalleRepo
+            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
+            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
+        tipoDocEntranteRepo
+            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
+        parametrosService
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
+            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
+        validaCamposRadicacionService
+            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
+        configuracionPlantillaService
+            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
+            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
+        registrarRepo
+            .Setup(r => r.RegistrarRadicacionEntranteAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+                55,
+                10,
+                "DA",
+                It.IsAny<string>(),
+                1,
+                "RADICACION",
+                It.IsAny<SystemPlantillaRadicado>(),
+                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+                It.IsAny<ParametrosRadicadosDto>(),
+                It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
+            {
+                success = true,
+                message = "OK",
+                data = new RegistrarRadicacionEntranteResponseDto
+                {
+                    ConsecutivoRadicado = "RAD-LEGACY-86",
+                    MetadataOperativa = new Dictionary<string, object?> { ["idRadicado"] = 8601 }
+                }
+            });
+
+        var service = new RegistrarRadicacionEntranteService(
+            detalleRepo.Object,
+            remitRepo.Object,
+            plantillaRepo.Object,
+            registrarRepo.Object,
+            configuracionPlantillaService.Object,
+            parametrosService.Object,
+            tipoDocEntranteRepo.Object,
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object,
+            solicitaDatosActividadInicioFlujoRepository.Object,
+            currentUserService.Object);
+
+        var request = BuildRequest(100, 302, 33);
+
+        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Equal("RAD-LEGACY-86", result.data!.ConsecutivoRadicado);
+        Assert.NotNull(result.data.ReturnRegistraRadicacion);
+        Assert.Equal("RAD-LEGACY-86", result.data.ReturnRegistraRadicacion.ConsecutivoRadicado);
+        Assert.Equal(8601, result.data.ReturnRegistraRadicacion.IdRadicado);
     }
 
     private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)

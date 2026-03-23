@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-86`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| DocuArchiCore | yes | Repo coordinador para OpenSpec, pruebas del servicio y trazabilidad multi-repo del ticket. | done | https://github.com/miguelurueta/DocuArchiCore/pull/80 | pending | in-review |
+| MiApp.Repository | yes | Ajuste funcional del retorno de `RegistrarRadicacionEntranteAsync` para incluir el identificador persistido del radicado. | done | https://github.com/miguelurueta/MiApp.Repository/pull/20 | pending | in-review |
+| MiApp.Services | yes | El servicio debe almacenar y normalizar el nuevo `ReturnRegistraRadicacionDto` dentro del flujo de `RegistrarRadicacionEntranteAsync`. | done | https://github.com/miguelurueta/MiApp.Services/pull/39 | pending | in-review |
+| MiApp.DTOs | yes | Se agrega el DTO `ReturnRegistraRadicacionDto` y se amplía el contrato de respuesta compartido. | done | https://github.com/miguelurueta/MiApp.DTOs/pull/17 | pending | in-review |
+| DocuArchi.Api | no | No se identificó cambio de controller ni de contrato HTTP en este ticket. | n/a | n/a | n/a | out-of-scope |
+| MiApp.Models | no | El ticket no requiere nuevos modelos de dominio ni cambios de mapeo de base de datos. | n/a | n/a | n/a | out-of-scope |
+| DocuArchiCore.Abstractions | no | Sin cambios de contratos cross-repo para este delta puntual. | n/a | n/a | n/a | out-of-scope |
+| DocuArchiCore.Web | no | No hay cambio UI ni de consumo frontend requerido para el alcance actual. | n/a | n/a | n/a | out-of-scope |
 
 ## Operating Rule
 
