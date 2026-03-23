@@ -1,5 +1,6 @@
 using MiApp.DTOs.DTOs.Radicacion.Configuracion;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
+using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestorDocumental.usuario;
 using MiApp.Models.Models.Radicacion.PlantillaRadicado;
@@ -868,6 +869,89 @@ public sealed class RegistrarRadicacionEntranteServiceTests
 
         Assert.False(result.success);
         Assert.Equal("No existe actividad inicial configurada para el flujo workflow 77", result.message);
+        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<SystemPlantillaRadicado>(),
+            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+            It.IsAny<ParametrosRadicadosDto>(),
+            It.IsAny<TipoDocEntrante>()), Times.Never);
+        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoValidarActividadInicioFlujoAsyncLanzaExcepcion_RetornaErrorControlado()
+    {
+        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
+        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
+        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
+        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
+        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
+        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
+        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
+        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
+        var currentUserService = new Mock<ICurrentUserService>();
+
+        remitRepo
+            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
+        plantillaRepo
+            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
+        detalleRepo
+            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
+            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
+        tipoDocEntranteRepo
+            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
+        parametrosService
+            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
+            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
+        validaCamposRadicacionService
+            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
+        configuracionPlantillaService
+            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
+            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
+        currentUserService
+            .Setup(s => s.GetClaimValue("defaulaliaswf"))
+            .Throws(new InvalidOperationException("claim service unavailable"));
+
+        var service = new RegistrarRadicacionEntranteService(
+            detalleRepo.Object,
+            remitRepo.Object,
+            plantillaRepo.Object,
+            registrarRepo.Object,
+            configuracionPlantillaService.Object,
+            parametrosService.Object,
+            tipoDocEntranteRepo.Object,
+            validaCamposRadicacionService.Object,
+            validaPreRegistroWorkflowService.Object,
+            solicitaDatosActividadInicioFlujoRepository.Object,
+            currentUserService.Object);
+
+        var request = BuildRequest(100, 302, 33);
+        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
+        {
+            NombreFlujo = "WF",
+            id_tipo_flujo_workflow = 77
+        };
+
+        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 2);
+
+        Assert.False(result.success);
+        Assert.Equal("Error al validar actividad inicial workflow", result.message);
+        Assert.Contains(result.errors ?? [], e => e is AppError error
+            && error.Field == "ValidarActividadInicioFlujoAsync"
+            && error.Type == "Exception");
+        solicitaDatosActividadInicioFlujoRepository.Verify(r => r.SolicitaDatosActividadInicioFlujoAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
         registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
             It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
             It.IsAny<int>(),
