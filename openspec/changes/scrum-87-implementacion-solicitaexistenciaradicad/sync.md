@@ -1,6 +1,4 @@
-# Repo Impact Plan Template
-
-Use this template at the start of each Jira ticket (`SCRUM-87`) to decide exactly where to run `opsxj:new` and `opsxj:archive`.
+# Repo Impact Plan
 
 ## Ticket
 
@@ -12,26 +10,17 @@ Use this template at the start of each Jira ticket (`SCRUM-87`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
-| $repo | $impact | $motivo | $opsNew | $pr | $opsArchive | $status |
+| DocuArchiCore | yes | Coordinador con tests, spec, tasks, sync y documentación técnica del flujo actualizado de `RegistrarRadicacionEntranteAsync`. | done | https://github.com/miguelurueta/DocuArchiCore/pull/81 | pending | in-review |
+| MiApp.Services | yes | El servicio `RegistrarRadicacionEntranteAsync` integra `SolicitaExistenciaRadicadoRutaWorkflowAsync` como paso interno del flujo workflow. | done | https://github.com/miguelurueta/MiApp.Services/pull/40 | pending | in-review |
+| MiApp.Repository | no | El repositorio de consulta workflow ya existe y no requiere cambios para esta integración. | n/a | n/a | n/a | out-of-scope |
+| MiApp.DTOs | no | No se modifica el contrato público; el resultado de la consulta workflow permanece interno al flujo. | n/a | n/a | n/a | out-of-scope |
+| MiApp.Models | no | No hay cambios de modelo para esta integración. | n/a | n/a | n/a | out-of-scope |
+| DocuArchi.Api | no | El endpoint standalone ya existe; el cambio solicitado ocurre en la orquestación interna del servicio. | n/a | n/a | n/a | out-of-scope |
+| DocuArchiCore.Abstractions | no | Sin impacto en contratos compartidos. | n/a | n/a | n/a | out-of-scope |
+| DocuArchiCore.Web | no | Sin impacto frontend para este ticket. | n/a | n/a | n/a | out-of-scope |
 
 ## Operating Rule
 
-Run `opsxj:new SCRUM-87` only in rows with `Impacta? = yes`.
-Run `opsxj:archive SCRUM-87` only after the repo PR is merged.
-Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
-
-## Typical API Change Pattern
-
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
-- `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+- Ejecutar `opsxj:new SCRUM-87` solo en repos con `Impacta? = yes`.
+- Ejecutar `opsxj:archive SCRUM-87` solo cuando cada PR impactado esté en estado `MERGED`.
+- El resultado de `SolicitaExistenciaRadicadoRutaWorkflowAsync` debe mantenerse dentro del flujo interno y no ampliar el contrato público del endpoint.
