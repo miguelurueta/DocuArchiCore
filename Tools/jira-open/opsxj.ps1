@@ -1304,7 +1304,7 @@ function Get-ExistingPullRequest {
     if (-not [string]::IsNullOrWhiteSpace($githubToken) -and -not [string]::IsNullOrWhiteSpace($Repo)) {
         $owner = ($Repo -split "/", 2)[0]
         $head = [uri]::EscapeDataString("${owner}:$BranchName")
-        $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
+        $uri = "https://api.github.com/repos/$Repo/pulls?state=all&head=$head&per_page=1"
         $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
         foreach ($item in $items) {
             $url = [string]$item.html_url
@@ -1321,7 +1321,7 @@ function Get-ExistingPullRequest {
         return $null
     }
 
-    $args = @("pr", "list", "--head", $BranchName, "--state", "open", "--json", "number,title,url")
+    $args = @("pr", "list", "--head", $BranchName, "--state", "all", "--json", "number,title,url")
     if (-not [string]::IsNullOrWhiteSpace($Repo)) {
         $args += @("--repo", $Repo)
     }
