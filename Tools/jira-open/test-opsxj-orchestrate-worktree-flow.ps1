@@ -202,9 +202,12 @@ try {
         try {
             $firstRun = (& $scriptPath orchestrate:new OPSXJ-2000 -NonInteractive 2>&1 | Out-String)
             Assert-Contains -Value $firstRun -Expected "Orchestrated repos: DocuArchiCore, MiApp.Services"
-            Assert-Contains -Value $firstRun -Expected "Satellite PR created [MiApp.Services]"
+            Assert-Contains -Value $firstRun -Expected "Satellite repo deferred [MiApp.Services]"
 
             $changeName = "opsxj-2000-implementacion-worktree-orchestration"
+            $publishWithoutDiff = (& $scriptPath orchestrate:publish OPSXJ-2000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $publishWithoutDiff -Expected "Satellite repo tracked without PR [MiApp.Services]: no diff detected"
+
             $metadataPath = Join-Path $orchestratorRoot ".opsxj/orchestrator/worktrees/opsxj-2000/miapp-services.json"
             if (-not (Test-Path $metadataPath)) {
                 throw "Expected worktree metadata not found: $metadataPath"
@@ -224,23 +227,20 @@ try {
                 throw "Expected dirty_worktree reason in metadata. Actual: $($reasons -join ', ')"
             }
 
-            $markerPath = Join-Path $worktreePath ".opsxj/orchestrator/miapp-services/$changeName.md"
-            if (-not (Test-Path $markerPath)) {
-                throw "Expected orchestrated marker not found: $markerPath"
-            }
+            Add-Content -Path (Join-Path $worktreePath "service.txt") -Value "`npublish-ready"
 
-            Start-Sleep -Seconds 1
-            $null = (& $scriptPath orchestrate:new OPSXJ-2000 -NonInteractive 2>&1 | Out-String)
+            $publishWithDiff = (& $scriptPath orchestrate:publish OPSXJ-2000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $publishWithDiff -Expected "Satellite PR created [MiApp.Services]"
 
             $updatedMetadata = Get-Content -Path $metadataPath -Raw | ConvertFrom-Json
             if ([string]$updatedMetadata.worktreePath -ne $worktreePath) {
-                throw "Expected orchestrated rerun to reuse the same worktree path."
+                throw "Expected orchestrated publish to reuse the same worktree path."
             }
 
             $firstUsed = [DateTime]::Parse([string]$metadata.lastUsedUtc)
             $secondUsed = [DateTime]::Parse([string]$updatedMetadata.lastUsedUtc)
             if ($secondUsed -le $firstUsed) {
-                throw "Expected orchestrated rerun to refresh lastUsedUtc."
+                throw "Expected orchestrated publish to refresh lastUsedUtc."
             }
         }
         finally {
@@ -258,7 +258,7 @@ try {
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
     }
 
-    Write-Output "PASS: opsxj:orchestrate:new isolates busy repos and reuses managed worktrees."
+    Write-Output "PASS: orchestrated publish isolates busy repos, reuses managed worktrees, and only opens PRs after real diffs."
 }
 finally {
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

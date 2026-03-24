@@ -31,7 +31,7 @@ function Run-Git {
     }
 }
 
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("opsxj-orchestrate-impact-" + [System.Guid]::NewGuid().ToString("N"))
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("opsxj-orchestrate-publish-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
 try {
@@ -98,14 +98,14 @@ try {
             }
             return @{
                 fields = @{
-                    summary = "Impact classification validation"
+                    summary = "Publish only real satellite diffs"
                     description = @{
                         type = "doc"
                         content = @(
                             @{
                                 type = "paragraph"
                                 content = @(
-                                    @{ type = "text"; text = "Impacts MiApp.Services only for orchestrated traceability." }
+                                    @{ type = "text"; text = "Impacts MiApp.Services only after code changes exist." }
                                 )
                             }
                         )
@@ -179,7 +179,7 @@ try {
         if ($Method -ieq "Post" -and $Uri -like "https://api.github.com/repos/*/pulls") {
             $decodedBody = if ($Body -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($Body) } else { [string]$Body }
             $payload = $decodedBody | ConvertFrom-Json
-            $prNumber = 100 + $global:CreatedPullRequests.Count + 1
+            $prNumber = 200 + $global:CreatedPullRequests.Count + 1
             $prUrl = "https://github.com/example/repo/pull/$prNumber"
             $global:CreatedPullRequests[$payload.head] = @{
                 number = $prNumber
@@ -198,28 +198,27 @@ try {
         $scriptPath = Join-Path $toolDir "opsxj.ps1"
         Push-Location $orchestratorRoot
         try {
-            $output = (& $scriptPath orchestrate:new OPSXJ-2001 -NonInteractive 2>&1 | Out-String)
-            Assert-Contains -Value $output -Expected "Orchestrated repos: DocuArchiCore, MiApp.Services"
-            Assert-Contains -Value $output -Expected "Satellite repo deferred [MiApp.Services]: traceability_only"
-            if ($output.Contains("Satellite PR created [MiApp.Services]")) {
-                throw "Satellite repo should not create a PR unless explicitly marked in OPSXJ_IMPLEMENTATION_REPOS."
+            $firstRun = (& $scriptPath orchestrate:new OPSXJ-3000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $firstRun -Expected "Satellite repo deferred [MiApp.Services]"
+
+            $changeName = "opsxj-3000-publish-only-real-satellite-diffs"
+            Push-Location $satelliteRoot
+            try {
+                & git checkout -b $changeName | Out-Null
+                Add-Content -Path "service.txt" -Value "`npublished from diff"
+                & git add "service.txt" | Out-Null
+                & git commit -m "OPSXJ-3000 service change" | Out-Null
+            }
+            finally {
+                Pop-Location
             }
 
-            $changeName = "opsxj-2001-impact-classification-validation"
+            $publishRun = (& $scriptPath orchestrate:publish OPSXJ-3000 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $publishRun -Expected "Satellite PR created [MiApp.Services]"
+
             $syncPath = Join-Path $orchestratorRoot "openspec/changes/$changeName/sync.md"
             $syncText = Get-Content -Path $syncPath -Raw
-            Assert-Contains -Value $syncText -Expected '| MiApp.Services | yes | traceability_only |'
-            Assert-Contains -Value $syncText -Expected '| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending |'
-
-            $env:OPSXJ_IMPLEMENTATION_REPOS = "MiApp.Services"
-            $outputWithImplementation = (& $scriptPath orchestrate:new OPSXJ-2002 -NonInteractive 2>&1 | Out-String)
-            Assert-Contains -Value $outputWithImplementation -Expected "Satellite repo deferred [MiApp.Services]: implementation_required"
-
-            $changeNameWithImplementation = "opsxj-2002-impact-classification-validation"
-            $syncPathWithImplementation = Join-Path $orchestratorRoot "openspec/changes/$changeNameWithImplementation/sync.md"
-            $syncTextWithImplementation = Get-Content -Path $syncPathWithImplementation -Raw
-            Assert-Contains -Value $syncTextWithImplementation -Expected '| MiApp.Services | yes | implementation_required |'
-            Assert-Contains -Value $syncTextWithImplementation -Expected '| MiApp.Services | yes | implementation_required | <definir alcance> | pending | n/a | pending | todo |'
+            Assert-Contains -Value $syncText -Expected '| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/example/repo/pull/'
         }
         finally {
             Pop-Location
@@ -229,8 +228,6 @@ try {
         Remove-Item Function:\Invoke-RestMethod -ErrorAction SilentlyContinue
         $env:PATH = $previousPath
         Remove-Item Env:OPSXJ_IMPACT_REPOS -ErrorAction SilentlyContinue
-        Remove-Item Env:OPSXJ_TRACEABILITY_REPOS -ErrorAction SilentlyContinue
-        Remove-Item Env:OPSXJ_IMPLEMENTATION_REPOS -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_SKIP_GIT_PUSH -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_BASE_URL -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_EMAIL -ErrorAction SilentlyContinue
@@ -238,7 +235,7 @@ try {
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
     }
 
-    Write-Output "PASS: opsxj:orchestrate:new only creates satellite PRs for OPSXJ_IMPLEMENTATION_REPOS."
+    Write-Output "PASS: opsxj:orchestrate:publish opens satellite PRs only after real implementation diffs exist."
 }
 finally {
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
