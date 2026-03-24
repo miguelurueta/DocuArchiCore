@@ -1,23 +1,22 @@
+using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.Radicacion.Configuracion;
 using MiApp.DTOs.DTOs.Radicacion.Tramite;
-using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.Utilidades;
-using MiApp.DTOs.DTOs.Workflow.RutaTrabajo;
 using MiApp.Models.Models.GestorDocumental.usuario;
 using MiApp.Models.Models.Radicacion.PlantillaRadicado;
 using MiApp.Models.Models.Radicacion.TipoTramite;
-using MiApp.Models.Models.Workflow.Flujo;
+using MiApp.Models.Models.Workflow.Usuario;
 using MiApp.Repository.ErrorController;
 using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using MiApp.Repository.Repositorio.Workflow.Flujo;
+using MiApp.Repository.Repositorio.Workflow.usuario;
 using MiApp.Services.Service.Radicacion.Configuracion;
-using MiApp.Services.Service.Radicacion.RelacionCamposRutaWorklflow;
 using MiApp.Services.Service.Radicacion.PlantillaRadicado;
-using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
+using MiApp.Services.Service.Radicacion.RelacionCamposRutaWorklflow;
 using MiApp.Services.Service.Radicacion.Tramite;
+using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using MiApp.Services.Service.Usuario;
-using MiApp.Services.Service.Workflow.RutaTrabajo;
 using Moq;
 using Xunit;
 
@@ -26,1672 +25,259 @@ namespace TramiteDiasVencimiento.Tests;
 public sealed class RegistrarRadicacionEntranteServiceTests
 {
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoRequestValido_RetornaSuccess()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoRequestValidoNoWorkflow_ConsultaUsuarioWorkflowYRegistra()
     {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.CurrentUserService.Setup(s => s.GetClaimValue("defaulaliaswf")).Returns("WF");
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901) });
 
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno>
-            {
-                success = true,
-                message = "OK",
-                data = BuildRemitDestInterno(55)
-            });
-
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado>
-            {
-                success = true,
-                message = "YES",
-                data = BuildPlantilla(100),
-                errors = []
-            });
-
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]>
-            {
-                Success = true,
-                Message = "OK",
-                Data = []
-            });
-
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
-            {
-                success = true,
-                message = "YES",
-                data = new ParametrosRadicadosDto
-                {
-                    NombreAreaRemitdest = new MiApp.DTOs.DTOs.GestorDocumental.usuario.NombreAreaRemitdestDto
-                    {
-                        IdArea = 1,
-                        NombreArea = "AREA"
-                    },
-                    TipoDocEntrante = new TipoDocEntranteParametroDto
-                    {
-                        IdTipoDocEntrante = 302,
-                        DescripcionDoc = "TRAMITE TEST",
-                        SystemPlantillaRadicadoIdPlantilla = 100,
-                        EstadoTipoDocumento = 1,
-                        FlowTipo = 1,
-                        RequiereRespuesta = 1,
-                        CodigoGabineteWorkflow = 1,
-                        TipoTramite = 1,
-                        UtilRadicacionSimple = 1
-                    },
-                    IdSedeNombre = new MiApp.DTOs.DTOs.GestorDocumental.Sede.IdSedeNombreDto
-                    {
-                        IdSede = 1,
-                        NombreSede = "SEDE"
-                    }
-                }
-            });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante>
-            {
-                success = true,
-                message = "YES",
-                data = BuildTipoDocEntrante(302, 100)
-            });
-
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                55,
-                10,
-                "DA",
-                It.IsAny<string>(),
-                1,
-                It.IsAny<string>(),
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
-            {
-                success = true,
-                message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto { ConsecutivoRadicado = "RAD-TEST-1" }
-            });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync(
-                "DA",
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?>
-            {
-                success = true,
-                message = "Sin resultados",
-                data = null
-            });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?>
-            {
-                success = true,
-                message = "OK",
-                data = new RaRadConfigPlantillaRadicacionDto
-                {
-                    Descripcion_tipo_radicacion = "RADICACION"
-                },
-                errors = []
-            });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaEstructuraRutaWorkflowService
-            .Setup(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"))
-            .ReturnsAsync(new AppResponses<List<SolicitaEstructuraRutaWorkflowDto>?>
-            {
-                success = true,
-                message = "YES",
-                data = BuildRutasWorkflowDto(),
-                errors = []
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            null,
-            solicitaEstructuraRutaWorkflowService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = 100,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1", 1);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.True(result.success);
-        Assert.NotNull(result.data);
-        Assert.Equal("RAD-TEST-1", result.data!.ConsecutivoRadicado);
-        parametrosService.Verify(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"), Times.Once);
-        solicitaEstructuraRutaWorkflowService.Verify(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"), Times.Once);
+        fx.UsuarioWorkflowRepository.Verify(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"), Times.Once);
+        fx.RegistrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, 10, "DA", It.IsAny<string>(), 1, "RADICACION",
+            It.IsAny<SystemPlantillaRadicado>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+            It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()), Times.Once);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoAliasVacio_RetornaValidacion()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloEsWorkflow_NoConsultaUsuarioWorkflowInterno()
     {
-        var service = new RegistrarRadicacionEntranteService(
-            Mock.Of<IDetallePlantillaRadicadoR>(),
-            Mock.Of<IRemitDestInternoR>(),
-            Mock.Of<ISystemPlantillaRadicadoR>(),
-            Mock.Of<IRegistrarRadicacionEntranteRepository>(),
-            Mock.Of<IConfiguracionPlantillaService>(),
-            Mock.Of<ISolicitaParametrosRadicadosService>(),
-            Mock.Of<ITipoDocEntranteR>(),
-            Mock.Of<IValidaCamposRadicacionService>(),
-            Mock.Of<IValidaPreRegistroWorkflowService>(),
-            Mock.Of<ISolicitaDatosActividadInicioFlujoRepository>(),
-            Mock.Of<ICurrentUserService>());
+        var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto> { success = true, data = new ValidaPreRegistroWorkflowResultDto(), errors = [] });
 
-        var result = await service.RegistrarRadicacionEntranteAsync(
-            new RegistrarRadicacionEntranteRequestDto(),
-            10,
-            string.Empty,
-            "127.0.0.1",
-            1);
-
-        Assert.False(result.success);
-        Assert.Equal("DefaultDbAlias requerido", result.message);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_PropagaAliasYUsuarioRadicadorAlRepositorio()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(25, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno>
-            {
-                success = true,
-                message = "OK",
-                data = BuildRemitDestInterno(77)
-            });
-
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado>
-            {
-                success = true,
-                message = "YES",
-                data = BuildPlantilla(10),
-                errors = []
-            });
-
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(10, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]>
-            {
-                Success = true,
-                Message = "OK",
-                Data = []
-            });
-
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(45, 302, 77, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
-            {
-                success = true,
-                message = "YES",
-                data = new ParametrosRadicadosDto
-                {
-                    NombreAreaRemitdest = new MiApp.DTOs.DTOs.GestorDocumental.usuario.NombreAreaRemitdestDto(),
-                    TipoDocEntrante = new TipoDocEntranteParametroDto
-                    {
-                        IdTipoDocEntrante = 302,
-                        DescripcionDoc = "TRAMITE",
-                        SystemPlantillaRadicadoIdPlantilla = 10,
-                        EstadoTipoDocumento = 1,
-                        FlowTipo = 1,
-                        RequiereRespuesta = 1,
-                        CodigoGabineteWorkflow = 1,
-                        TipoTramite = 1,
-                        UtilRadicacionSimple = 1
-                    },
-                    IdSedeNombre = new MiApp.DTOs.DTOs.GestorDocumental.Sede.IdSedeNombreDto()
-                }
-            });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante>
-            {
-                success = true,
-                message = "YES",
-                data = BuildTipoDocEntrante(302, 10)
-            });
-
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                77,
-                25,
-                "DA",
-                It.IsAny<string>(),
-                2,
-                It.IsAny<string>(),
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
-            {
-                success = true,
-                message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto()
-            });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync(
-                "DA",
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?>
-            {
-                success = true,
-                message = "Sin resultados",
-                data = null
-            });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(10, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?>
-            {
-                success = true,
-                message = "OK",
-                data = new RaRadConfigPlantillaRadicacionDto
-                {
-                    Descripcion_tipo_radicacion = "CORRESPONDENCIA"
-                },
-                errors = []
-            });
-        validaPreRegistroWorkflowService
-            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
-            {
-                success = true,
-                message = "OK",
-                data = new ValidaPreRegistroWorkflowResultDto(),
-                errors = []
-            });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-        var request = new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = 10,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 45 },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 25, "DA", "127.0.0.1", 2);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 2);
 
         Assert.True(result.success);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.Is<RegistrarRadicacionEntranteRequestDto>(x => x.IdPlantilla == 10 && x.tipoModuloRadicacion == 2),
-            77,
-            25,
-            "DA",
-            It.IsAny<string>(),
-            2,
-            "CORRESPONDENCIA",
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()),
-            Times.Once);
-        parametrosService.Verify(s => s.SolicitaParametrosRadicados(45, 302, 77, "DA"), Times.Once);
+        fx.UsuarioWorkflowRepository.Verify(r => r.SolicitaEstructuraIdUsuarioWorkflowId(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoFallaSolicitaParametros_RetornaErrorYNoRegistra()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoFaltaClaimWorkflow_RetornaValidacion()
     {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.CurrentUserService.Setup(s => s.GetClaimValue("defaulaliaswf")).Returns(string.Empty);
 
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno>
-            {
-                success = true,
-                message = "OK",
-                data = BuildRemitDestInterno(55)
-            });
-
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto>
-            {
-                success = false,
-                message = "No fue posible obtener parámetros backend",
-                data = null!,
-                errors = []
-            });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante>
-            {
-                success = true,
-                message = "YES",
-                data = BuildTipoDocEntrante(302, 100)
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = 100,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1", 1);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
-        Assert.Equal("No fue posible obtener parámetros backend", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()),
-            Times.Never);
+        Assert.Equal("Claim defaulaliaswf requerido para consultar usuario workflow", result.message);
+        fx.RegistrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SystemPlantillaRadicado>(),
+            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(), It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()), Times.Never);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoNoExisteConfiguracion_RetornaValidacionYNoRegistra()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoRelacionWorkflowEsInvalida_RetornaValidacion()
     {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 0) });
 
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno>
-            {
-                success = true,
-                message = "OK",
-                data = BuildRemitDestInterno(55)
-            });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, message = "Sin resultados", data = null, errors = [] });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = 100,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1", 1);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
-        Assert.Contains("No existe configuración", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()),
-            Times.Never);
+        Assert.Equal("Destinatario sin Relacion_Workflow valida", result.message);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoFallaConfiguracion_RetornaErrorYNoRegistra()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowFalla_RetornaErrorControlado()
     {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.CurrentUserService.Setup(s => s.GetClaimValue("defaulaliaswf")).Returns("WF");
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = false, Message = "workflow lookup failed", ErrorMessage = "workflow lookup failed" });
 
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = false, message = "Error de configuración", data = null, errors = [] });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = 100,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        }, 10, "DA", "127.0.0.1", 1);
-
-        Assert.False(result.success);
-        Assert.Equal("Error de configuración", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloEnvioNoEsWorkflow_NoConsultaServiciosWorkflow()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>(MockBehavior.Strict);
-        var currentUserService = new Mock<ICurrentUserService>(MockBehavior.Strict);
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaEstructuraRutaWorkflowService
-            .Setup(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"))
-            .ReturnsAsync(new AppResponses<List<SolicitaEstructuraRutaWorkflowDto>?>
-            {
-                success = true,
-                message = "YES",
-                data = BuildRutasWorkflowDto(),
-                errors = []
-            });
-        solicitaDatosActividadInicioFlujoRepository
-            .Setup(s => s.SolicitaDatosActividadInicioFlujoAsync(77, "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo>
-            {
-                success = true,
-                message = "YES",
-                data = BuildActividadInicioFlujo(11, 22),
-                errors = []
-            });
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                55,
-                10,
-                "DA",
-                It.IsAny<string>(),
-                1,
-                "RADICACION",
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto> { success = true, data = new RegistrarRadicacionEntranteResponseDto() });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            null,
-            solicitaEstructuraRutaWorkflowService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
-        {
-            NombreFlujo = "WF",
-            id_tipo_flujo_workflow = 77
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
-
-        Assert.True(result.success);
-        solicitaEstructuraRutaWorkflowService.Verify(
-            s => s.SolicitaEstructuraRutaWorkflowAsync("WF"),
-            Times.Once);
-        solicitaDatosActividadInicioFlujoRepository.Verify(
-            s => s.SolicitaDatosActividadInicioFlujoAsync(77, "WF"),
-            Times.Once);
-        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoWorkflowYNoExisteClaimDefaulaliaswf_RetornaValidacionYNoRegistra()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        validaPreRegistroWorkflowService
-            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
-            {
-                success = false,
-                message = "Claim defaulaliaswf requerido para continuar con workflow",
-                data = null!,
-                errors = []
-            });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1", 2);
-
-        Assert.False(result.success);
-        Assert.Equal("Claim defaulaliaswf requerido para continuar con workflow", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Never);
-        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoNoWorkflowYNoExisteClaimDefaulaliaswf_RetornaValidacionYNoRegistra()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>(MockBehavior.Strict);
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>(MockBehavior.Strict);
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns(string.Empty);
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            null,
-            solicitaEstructuraRutaWorkflowService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1", 1);
-
-        Assert.False(result.success);
-        Assert.Equal("Claim defaulaliaswf requerido para consultar ruta workflow", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoNoWorkflowYSinRutaValida_NoContinuaRegistro()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>(MockBehavior.Strict);
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaEstructuraRutaWorkflowService
-            .Setup(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"))
-            .ReturnsAsync(new AppResponses<List<SolicitaEstructuraRutaWorkflowDto>?>
-            {
-                success = true,
-                message = "Sin resultados",
-                data = null,
-                errors = []
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            null,
-            solicitaEstructuraRutaWorkflowService.Object);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(BuildRequest(100, 302, 33), 10, "DA", "127.0.0.1", 1);
-
-        Assert.False(result.success);
-        Assert.Equal("No existe estructura workflow activa válida", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoWorkflowYSinActividadInicial_RetornaValidacionYNoRegistra()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaDatosActividadInicioFlujoRepository
-            .Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(77, "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo>
-            {
-                success = true,
-                message = "Sin resultados",
-                data = BuildActividadInicioFlujo(),
-                errors = []
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
-        {
-            NombreFlujo = "WF",
-            id_tipo_flujo_workflow = 77
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 2);
-
-        Assert.False(result.success);
-        Assert.Equal("No existe actividad inicial configurada para el flujo workflow 77", result.message);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Never);
-        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoValidarActividadInicioFlujoAsyncLanzaExcepcion_RetornaErrorControlado()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>(MockBehavior.Strict);
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Throws(new InvalidOperationException("claim service unavailable"));
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
-        {
-            NombreFlujo = "WF",
-            id_tipo_flujo_workflow = 77
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 2);
-
-        Assert.False(result.success);
-        Assert.Equal("Error al validar actividad inicial workflow", result.message);
-        Assert.Contains(result.errors ?? [], e => e is AppError error
-            && error.Field == "ValidarActividadInicioFlujoAsync"
-            && error.Type == "Exception");
-        solicitaDatosActividadInicioFlujoRepository.Verify(r => r.SolicitaDatosActividadInicioFlujoAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Never);
-        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<string>(), It.IsAny<TipoDocEntrante>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoWorkflowYActividadInicialExiste_ConsultaWorkflowYContinuaRegistro()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
-        var solicitaExistenciaRadicadoRutaWorkflowService = new Mock<ISolicitaExistenciaRadicadoRutaWorkflowService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaDatosActividadInicioFlujoRepository
-            .Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(77, "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo>
-            {
-                success = true,
-                message = "YES",
-                data = BuildActividadInicioFlujo(11, 22),
-                errors = []
-            });
-        validaPreRegistroWorkflowService
-            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
-            {
-                success = true,
-                message = "OK",
-                data = new ValidaPreRegistroWorkflowResultDto
-                {
-                    NombreRuta = "WF_RUTA_01"
-                },
-                errors = []
-            });
-        solicitaExistenciaRadicadoRutaWorkflowService
-            .Setup(s => s.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-84", "WF_RUTA_01", "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
-            {
-                success = true,
-                message = "YES",
-                data = new SolicitaExistenciaRadicadoRutaWorkflowDto
-                {
-                    Radicado = "RAD-TEST-84",
-                    IdTareaWorkflow = 44,
-                    EstadoExistenciaRadicado = "YES"
-                },
-                errors = []
-            });
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                55,
-                10,
-                "DA",
-                It.IsAny<string>(),
-                2,
-                "RADICACION",
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
-            {
-                success = true,
-                message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto
-                {
-                    ConsecutivoRadicado = "RAD-TEST-84",
-                    ReturnRegistraRadicacion = new ReturnRegistraRadicacionDto
-                    {
-                        ConsecutivoRadicado = "RAD-TEST-84",
-                        IdRadicado = 9084
-                    }
-                }
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            solicitaExistenciaRadicadoRutaWorkflowService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
-        {
-            NombreFlujo = "WF",
-            id_tipo_flujo_workflow = 77
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 2);
-
-        Assert.True(result.success);
-        Assert.Equal("RAD-TEST-84", result.data!.ConsecutivoRadicado);
-        Assert.NotNull(result.data.ReturnRegistraRadicacion);
-        Assert.Equal("RAD-TEST-84", result.data.ReturnRegistraRadicacion.ConsecutivoRadicado);
-        Assert.Equal(9084, result.data.ReturnRegistraRadicacion.IdRadicado);
-        solicitaDatosActividadInicioFlujoRepository.Verify(r => r.SolicitaDatosActividadInicioFlujoAsync(77, "WF"), Times.Once);
-        validaPreRegistroWorkflowService.Verify(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()), Times.Once);
-        solicitaExistenciaRadicadoRutaWorkflowService.Verify(
-            s => s.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-84", "WF_RUTA_01", "WF"),
-            Times.Once);
-        registrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
-            It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-            55,
-            10,
-            "DA",
-            It.IsAny<string>(),
-            2,
-            "RADICACION",
-            It.IsAny<SystemPlantillaRadicado>(),
-            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-            It.IsAny<ParametrosRadicadosDto>(),
-            It.IsAny<TipoDocEntrante>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaExistenciaWorkflowFalla_RetornaErrorControlado()
-    {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaExistenciaRadicadoRutaWorkflowService = new Mock<ISolicitaExistenciaRadicadoRutaWorkflowService>();
-
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 2) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaDatosActividadInicioFlujoRepository
-            .Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(77, "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo>
-            {
-                success = true,
-                message = "YES",
-                data = BuildActividadInicioFlujo(11, 22),
-                errors = []
-            });
-        validaPreRegistroWorkflowService
-            .Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
-            {
-                success = true,
-                message = "OK",
-                data = new ValidaPreRegistroWorkflowResultDto
-                {
-                    NombreRuta = "WF_RUTA_01"
-                },
-                errors = []
-            });
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                55,
-                10,
-                "DA",
-                It.IsAny<string>(),
-                2,
-                "RADICACION",
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
-            {
-                success = true,
-                message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto
-                {
-                    ConsecutivoRadicado = "RAD-TEST-87",
-                    ReturnRegistraRadicacion = new ReturnRegistraRadicacionDto
-                    {
-                        ConsecutivoRadicado = "RAD-TEST-87",
-                        IdRadicado = 9087
-                    }
-                }
-            });
-        solicitaExistenciaRadicadoRutaWorkflowService
-            .Setup(s => s.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-87", "WF_RUTA_01", "WF"))
-            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
-            {
-                success = false,
-                message = "workflow lookup failed",
-                errors =
-                [
-                    new AppError
-                    {
-                        Field = "nombreRuta",
-                        Message = "workflow lookup failed",
-                        Type = "Workflow"
-                    }
-                ],
-                data = new SolicitaExistenciaRadicadoRutaWorkflowDto()
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            solicitaExistenciaRadicadoRutaWorkflowService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto
-        {
-            NombreFlujo = "WF",
-            id_tipo_flujo_workflow = 77
-        };
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 2);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.False(result.success);
         Assert.Equal("workflow lookup failed", result.message);
-        solicitaExistenciaRadicadoRutaWorkflowService.Verify(
-            s => s.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-87", "WF_RUTA_01", "WF"),
-            Times.Once);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoRepositorioRetornaSoloCamposLegados_NormalizaReturnRegistraRadicacion()
+    public async Task RegistrarRadicacionEntranteAsync_NormalizaReturnRegistraRadicacionLegacy()
     {
-        var detalleRepo = new Mock<IDetallePlantillaRadicadoR>();
-        var remitRepo = new Mock<IRemitDestInternoR>();
-        var plantillaRepo = new Mock<ISystemPlantillaRadicadoR>();
-        var registrarRepo = new Mock<IRegistrarRadicacionEntranteRepository>();
-        var parametrosService = new Mock<ISolicitaParametrosRadicadosService>();
-        var tipoDocEntranteRepo = new Mock<ITipoDocEntranteR>();
-        var validaCamposRadicacionService = new Mock<IValidaCamposRadicacionService>();
-        var configuracionPlantillaService = new Mock<IConfiguracionPlantillaService>();
-        var validaPreRegistroWorkflowService = new Mock<IValidaPreRegistroWorkflowService>();
-        var solicitaDatosActividadInicioFlujoRepository = new Mock<ISolicitaDatosActividadInicioFlujoRepository>();
-        var currentUserService = new Mock<ICurrentUserService>();
-        var solicitaEstructuraRutaWorkflowService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
+        var fx = BuildFixture(new RegistrarRadicacionEntranteResponseDto
+        {
+            ConsecutivoRadicado = "RAD-LEGACY-90",
+            MetadataOperativa = new Dictionary<string, object?> { ["idRadicado"] = 9001 }
+        });
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.CurrentUserService.Setup(s => s.GetClaimValue("defaulaliaswf")).Returns("WF");
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901) });
 
-        remitRepo
-            .Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
-        plantillaRepo
-            .Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
-            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(100), errors = [] });
-        detalleRepo
-            .Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
-            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
-        tipoDocEntranteRepo
-            .Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
-            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(302, 100, 1) });
-        parametrosService
-            .Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
-            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros(302, 100) });
-        validaCamposRadicacionService
-            .Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
-            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
-        configuracionPlantillaService
-            .Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
-            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = "RADICACION" } });
-        currentUserService
-            .Setup(s => s.GetClaimValue("defaulaliaswf"))
-            .Returns("WF");
-        solicitaEstructuraRutaWorkflowService
-            .Setup(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"))
-            .ReturnsAsync(new AppResponses<List<SolicitaEstructuraRutaWorkflowDto>?>
-            {
-                success = true,
-                message = "YES",
-                data = BuildRutasWorkflowDto(),
-                errors = []
-            });
-        registrarRepo
-            .Setup(r => r.RegistrarRadicacionEntranteAsync(
-                It.IsAny<RegistrarRadicacionEntranteRequestDto>(),
-                55,
-                10,
-                "DA",
-                It.IsAny<string>(),
-                1,
-                "RADICACION",
-                It.IsAny<SystemPlantillaRadicado>(),
-                It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
-                It.IsAny<ParametrosRadicadosDto>(),
-                It.IsAny<TipoDocEntrante>()))
-            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto>
-            {
-                success = true,
-                message = "OK",
-                data = new RegistrarRadicacionEntranteResponseDto
-                {
-                    ConsecutivoRadicado = "RAD-LEGACY-86",
-                    MetadataOperativa = new Dictionary<string, object?> { ["idRadicado"] = 8601 }
-                }
-            });
-
-        var service = new RegistrarRadicacionEntranteService(
-            detalleRepo.Object,
-            remitRepo.Object,
-            plantillaRepo.Object,
-            registrarRepo.Object,
-            configuracionPlantillaService.Object,
-            parametrosService.Object,
-            tipoDocEntranteRepo.Object,
-            validaCamposRadicacionService.Object,
-            validaPreRegistroWorkflowService.Object,
-            solicitaDatosActividadInicioFlujoRepository.Object,
-            currentUserService.Object,
-            null,
-            solicitaEstructuraRutaWorkflowService.Object);
-
-        var request = BuildRequest(100, 302, 33);
-
-        var result = await service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.True(result.success);
-        Assert.NotNull(result.data);
-        Assert.Equal("RAD-LEGACY-86", result.data!.ConsecutivoRadicado);
-        Assert.NotNull(result.data.ReturnRegistraRadicacion);
-        Assert.Equal("RAD-LEGACY-86", result.data.ReturnRegistraRadicacion.ConsecutivoRadicado);
-        Assert.Equal(8601, result.data.ReturnRegistraRadicacion.IdRadicado);
-        solicitaEstructuraRutaWorkflowService.Verify(s => s.SolicitaEstructuraRutaWorkflowAsync("WF"), Times.Once);
+        Assert.NotNull(result.data?.ReturnRegistraRadicacion);
+        Assert.Equal(9001, result.data!.ReturnRegistraRadicacion.IdRadicado);
     }
 
-    private static SystemPlantillaRadicado BuildPlantilla(int idPlantilla)
+    private static Fixture BuildFixture(RegistrarRadicacionEntranteResponseDto? response = null, string moduloRegistro = "RADICACION")
     {
-        return new SystemPlantillaRadicado
-        {
-            id_Plantilla = idPlantilla,
-            Nombre_Plantilla_Radicado = "ra_plantilla_100",
-            Tipo_Plantilla = "RAD",
-            Fecha_Creacion = DateTime.UtcNow,
-            Estado_Plantilla = 1,
-            Consecutivo_Rad = 10,
-            Consecutivo_CodBarra = 10,
-            util_activo_plantilla_flujo = 1,
-            Util_activo_plantilla_default_rad_interno = 0,
-            util_evalua_periodo_general = 0,
-            utill_evalua_periodo_pqr = 0,
-            util_evalua_periodo_interno = 0,
-            util_evalua_festivo = 0,
-            util_tipo_modulo_envio = 0,
-            util_consecutivo_general = 0,
-            util_default_simple = 0,
-            util_estado_pendiente_rad = 0,
-            utilIncuyeConsecutivoArea = 0,
-            utilConseTipoRad = 0,
-            util_default_radicado = 1
-        };
+        var fx = new Fixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55) });
+        fx.PlantillaRepo.Setup(r => r.SolicitaEstructuraPlantillaRadicacionDefault("DA"))
+            .ReturnsAsync(new AppResponses<SystemPlantillaRadicado> { success = true, data = BuildPlantilla(), errors = [] });
+        fx.DetalleRepo.Setup(r => r.SolicitaCamposDnamicos(100, "DA"))
+            .ReturnsAsync(new AppResponse<DetallePlantillaRadicado[]> { Success = true, Data = [] });
+        fx.ParametrosService.Setup(s => s.SolicitaParametrosRadicados(33, 302, 55, "DA"))
+            .ReturnsAsync(new AppResponses<ParametrosRadicadosDto> { success = true, data = BuildParametros() });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante() });
+        fx.ValidaCamposRadicacionService.Setup(s => s.ValidaCamposRadicacionAsync("DA", It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>()))
+            .ReturnsAsync(new AppResponses<List<ValidationError>?> { success = true, data = null });
+        fx.ConfiguracionPlantillaService.Setup(s => s.SolicitaConfiguracionPlantillaAsync(100, 1, "DA"))
+            .ReturnsAsync(new AppResponses<RaRadConfigPlantillaRadicacionDto?> { success = true, data = new RaRadConfigPlantillaRadicacionDto { Descripcion_tipo_radicacion = moduloRegistro }, errors = [] });
+        fx.RegistrarRepo.Setup(r => r.RegistrarRadicacionEntranteAsync(
+                It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, 10, "DA", It.IsAny<string>(), It.IsAny<int>(), moduloRegistro,
+                It.IsAny<SystemPlantillaRadicado>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
+                It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<RegistrarRadicacionEntranteResponseDto> { success = true, data = response ?? new RegistrarRadicacionEntranteResponseDto { ConsecutivoRadicado = "RAD-TEST-1" } });
+        fx.Service = new RegistrarRadicacionEntranteService(
+            fx.DetalleRepo.Object, fx.RemitRepo.Object, fx.PlantillaRepo.Object, fx.RegistrarRepo.Object,
+            fx.ConfiguracionPlantillaService.Object, fx.ParametrosService.Object, fx.TipoDocEntranteRepo.Object,
+            fx.ValidaCamposRadicacionService.Object, fx.ValidaPreRegistroWorkflowService.Object,
+            fx.SolicitaDatosActividadInicioFlujoRepository.Object, fx.CurrentUserService.Object, fx.UsuarioWorkflowRepository.Object);
+        return fx;
     }
 
-    private static ParametrosRadicadosDto BuildParametros(int idTipoDocEntrante, int idPlantilla)
+    private static RegistrarRadicacionEntranteRequestDto BuildRequest() => new()
     {
-        return new ParametrosRadicadosDto
-        {
-            NombreAreaRemitdest = new MiApp.DTOs.DTOs.GestorDocumental.usuario.NombreAreaRemitdestDto(),
-            TipoDocEntrante = new TipoDocEntranteParametroDto
-            {
-                IdTipoDocEntrante = idTipoDocEntrante,
-                DescripcionDoc = "TRAMITE",
-                SystemPlantillaRadicadoIdPlantilla = idPlantilla,
-                EstadoTipoDocumento = 1,
-                FlowTipo = 1,
-                RequiereRespuesta = 1,
-                CodigoGabineteWorkflow = 1,
-                TipoTramite = 1,
-                UtilRadicacionSimple = 1
-            },
-            IdSedeNombre = new MiApp.DTOs.DTOs.GestorDocumental.Sede.IdSedeNombreDto()
-        };
-    }
+        IdPlantilla = 100,
+        TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
+        TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
+        Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = 302, Descripcion = "TRAMITE" },
+        Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = 33 },
+        Remitente = new RemitenteRadicacionDto { Nombre = "R" },
+        ASUNTO = "A"
+    };
 
-    private static RemitDestInterno BuildRemitDestInterno(int idUsuarioRadicacion)
+    private static ParametrosRadicadosDto BuildParametros() => new()
     {
-        return new RemitDestInterno
-        {
-            Id_Remit_Dest_Int = 1,
-            Relacion_Id_Usuario_Radicacion = idUsuarioRadicacion,
-            Nombre_Remitente = string.Empty,
-            Cargo_Remite = string.Empty,
-            Login_Usuario = string.Empty,
-            Pasw_Usuario = string.Empty,
-            Correo_Electronico = string.Empty,
-            Telefono_Usuario = string.Empty,
-            Firma_Usuario = [],
-            Pasw_Encript = string.Empty,
-            Relacion_Workflow_Login = string.Empty,
-            Relacion_Da_Login = string.Empty,
-            Relacion_Login_Radicacion = string.Empty,
-            Identificacion = string.Empty,
-            Direccion = string.Empty,
-            Relacion_Workflow_Login_Extend = string.Empty
-        };
-    }
+        NombreAreaRemitdest = new MiApp.DTOs.DTOs.GestorDocumental.usuario.NombreAreaRemitdestDto(),
+        TipoDocEntrante = new TipoDocEntranteParametroDto { IdTipoDocEntrante = 302, DescripcionDoc = "TRAMITE", SystemPlantillaRadicadoIdPlantilla = 100, EstadoTipoDocumento = 1, FlowTipo = 1, RequiereRespuesta = 1, CodigoGabineteWorkflow = 1, TipoTramite = 1, UtilRadicacionSimple = 1 },
+        IdSedeNombre = new MiApp.DTOs.DTOs.GestorDocumental.Sede.IdSedeNombreDto()
+    };
 
-    private static SolicitaDatosActividadInicioFlujo BuildActividadInicioFlujo(
-        int idRegistroActividadFlujoTrabajo = 0,
-        int idActividadFlujoTrabajo = 0,
-        int idUsuarioWorkflowFlujoTrabajo = 0)
+    private static SystemPlantillaRadicado BuildPlantilla() => new()
     {
-        return new SolicitaDatosActividadInicioFlujo
-        {
-            IdRegistroActividadFlujoTrabajo = idRegistroActividadFlujoTrabajo,
-            IdActividadFlujoTrabajo = idActividadFlujoTrabajo,
-            IdUsuarioWorkflowFlujoTrabajo = idUsuarioWorkflowFlujoTrabajo
-        };
-    }
+        id_Plantilla = 100,
+        Nombre_Plantilla_Radicado = "ra_plantilla_100",
+        Tipo_Plantilla = "RAD",
+        Fecha_Creacion = DateTime.UtcNow,
+        Estado_Plantilla = 1,
+        Consecutivo_Rad = 10,
+        Consecutivo_CodBarra = 10,
+        util_activo_plantilla_flujo = 1,
+        util_default_radicado = 1
+    };
 
-    private static List<SolicitaEstructuraRutaWorkflowDto> BuildRutasWorkflowDto()
+    private static TipoDocEntrante BuildTipoDocEntrante() => new()
     {
-        return
-        [
-            new SolicitaEstructuraRutaWorkflowDto
-            {
-                id_Ruta = 1,
-                Nombre_Ruta = "WF_RUTA_01",
-                Descripcion_Ruta = "Ruta activa",
-                Fecha_Creacion = new DateTime(2026, 3, 24),
-                Estado_Ruta = 1,
-                Archivo_Plantilla = [1],
-                Ruta_Archivo_Server = "/tmp/ruta",
-                Archivo_Plantilla_Mindifucion = "mind"
-            }
-        ];
-    }
+        id_Tipo_Doc_Entrante = 302,
+        Descripcion_Doc = "TRAMITE",
+        system_plantilla_radicado_id_plantilla = 100,
+        estado_tipo_documento = 1,
+        flow_tipo = 1,
+        requiere_respuesta = 1,
+        codigo_gabinete_workflow = 1,
+        resp_correo_fisico_electronico = 1,
+        id_ruta = 1,
+        tipo_tramite = 1,
+        estado_ruta_open_close = 1,
+        activo_modulo_respuesta = 1,
+        util_tipo_modulo_envio = 1,
+        tipo_tramite_entrante_saliente = 1,
+        id_gabinete = 1,
+        util_radicacion_simple = 1
+    };
 
-    private static RegistrarRadicacionEntranteRequestDto BuildRequest(int idPlantilla, int tipoDocEntrante, int idDestinatario)
+    private static RemitDestInterno BuildRemitDestInterno(int idUsuarioRadicacion, int relacionWorkflow = 0) => new()
     {
-        return new RegistrarRadicacionEntranteRequestDto
-        {
-            IdPlantilla = idPlantilla,
-            TipoRadicado = new TipoRadicadoEntradaDto { IdTipoRadicado = 1, TipoRadicacion = "ENTRANTE" },
-            TipoPlantillaRadicado = new TipoPlantillaRadicadoDto { IdTipoPlantillaRdicado = 1 },
-            Tipo_tramite = new TipoTramiteRadicacionDto { tipo_doc_entrante = tipoDocEntrante, Descripcion = "TRAMITE" },
-            Destinatario = new DestinatarioRadicacionDto { id_Remit_Dest_Int = idDestinatario },
-            Remitente = new RemitenteRadicacionDto { Nombre = "R" },
-            ASUNTO = "A"
-        };
-    }
+        Id_Remit_Dest_Int = 1,
+        Areas_Dep_Radicacion_Id_Areas_Dep = 1,
+        Relacion_Id_Usuario_Radicacion = idUsuarioRadicacion,
+        Relacion_Workflow = relacionWorkflow,
+        Nombre_Remitente = string.Empty,
+        Cargo_Remite = string.Empty,
+        Login_Usuario = string.Empty,
+        Pasw_Usuario = string.Empty,
+        Estado_Usuario = 1,
+        Correo_Electronico = string.Empty,
+        Telefono_Usuario = string.Empty,
+        Firma_Usuario = [],
+        Cambio_Clave = 0,
+        Pasw_Encript = string.Empty,
+        Empresa_Gestion_Documental_Id_Empresa = 1,
+        Id_Sedes_Empresa = 1,
+        Relacion_Da = 1,
+        Relacion_Workflow_Login = string.Empty,
+        Relacion_Da_Login = string.Empty,
+        Relacion_Login_Radicacion = string.Empty,
+        Estado_Usuario_Para_Gestion_Respuesta = 1,
+        Estado_Usuario_Para_Gestion_Pqr = 1,
+        Identificacion = string.Empty,
+        Direccion = string.Empty,
+        Relacion_Workflow_Extend = 0,
+        Relacion_Workflow_Login_Extend = string.Empty,
+        estado_radicacion_correspondencia = 1,
+        estado_reasignacion_correspondencia = 1
+    };
 
-    private static TipoDocEntrante BuildTipoDocEntrante(int idTipoDocEntrante, int idPlantilla, int utilTipoModuloEnvio = 1)
+    private static UsuarioWorkflow BuildUsuarioWorkflow(int idUsuarioWorkflow) => new()
     {
-        return new TipoDocEntrante
-        {
-            id_Tipo_Doc_Entrante = idTipoDocEntrante,
-            Descripcion_Doc = "TRAMITE",
-            system_plantilla_radicado_id_plantilla = idPlantilla,
-            estado_tipo_documento = 1,
-            flow_tipo = 1,
-            requiere_respuesta = 1,
-            codigo_gabinete_workflow = 1,
-            resp_correo_fisico_electronico = 1,
-            id_ruta = 1,
-            tipo_tramite = 1,
-            estado_ruta_open_close = 1,
-            obliga_exp_radicado = 0,
-            activo_modulo_respuesta = 1,
-            util_tipo_modulo_envio = utilTipoModuloEnvio,
-            util_producion_documental = 0,
-            tipo_tramite_entrante_saliente = 1,
-            wf_copia_doc_expediente_actualiza_exped_gabinete = 0,
-            wf_auto_vincula_doc_expediente_actualiza_exped_gabinete = 0,
-            wf_copia_doc_expediente_produc_actualiza_exped_gabinete = 0,
-            util_auto_vincula_migracion = 0,
-            id_gabinete = 1,
-            util_radicacion_simple = 1,
-            util_nivel_padre_auto_vincula = 0,
-            util_opcion_auto_vincula = 0,
-            util_Estado_Crea_ExpedienteSII = 0,
-            util_Estado_Multiple_expedienteSII = 0
-        };
+        idU_suario = idUsuarioWorkflow,
+        login_Usuario = $"wf{idUsuarioWorkflow}",
+        Pasword_Usuario = string.Empty,
+        Nombre_Usuario = "WF",
+        Cargo_Usuario = "ROL",
+        Fecha_Creacion = DateTime.UtcNow,
+        Cambio_Clave = 0,
+        Intervalo_Usuario = 1,
+        pasw_encript = string.Empty,
+        numerodias_pasw = 1,
+        Grupos_Workflow_Rutas_Workflow_id_Ruta = 1,
+        Grupos_Workflow_Id_Grupo = 1,
+        Relacion_Gestion = 1,
+        Relacion_Gestion_Login = string.Empty,
+        ESTADO_USUARIO = 1,
+        Permiso_precausar = 0,
+        Permiso_registrar_pago = 0,
+        estado_envio_correo = 0,
+        estado_balanceo_grupo = 0,
+        UTIL_ASIGNA_TAREA = 0,
+        Correo_Usuario = string.Empty,
+        fecha_limite_acceso = DateTime.UtcNow.AddDays(1)
+      };
+
+    private sealed class Fixture
+    {
+        public Mock<IDetallePlantillaRadicadoR> DetalleRepo { get; } = new();
+        public Mock<IRemitDestInternoR> RemitRepo { get; } = new();
+        public Mock<ISystemPlantillaRadicadoR> PlantillaRepo { get; } = new();
+        public Mock<IRegistrarRadicacionEntranteRepository> RegistrarRepo { get; } = new();
+        public Mock<ISolicitaParametrosRadicadosService> ParametrosService { get; } = new();
+        public Mock<ITipoDocEntranteR> TipoDocEntranteRepo { get; } = new();
+        public Mock<IValidaCamposRadicacionService> ValidaCamposRadicacionService { get; } = new();
+        public Mock<IConfiguracionPlantillaService> ConfiguracionPlantillaService { get; } = new();
+        public Mock<IValidaPreRegistroWorkflowService> ValidaPreRegistroWorkflowService { get; } = new();
+        public Mock<ISolicitaDatosActividadInicioFlujoRepository> SolicitaDatosActividadInicioFlujoRepository { get; } = new();
+        public Mock<ICurrentUserService> CurrentUserService { get; } = new();
+        public Mock<IUsuarioWorkflowR> UsuarioWorkflowRepository { get; } = new();
+        public RegistrarRadicacionEntranteService Service { get; set; } = null!;
     }
 }
