@@ -1,37 +1,24 @@
-# Repo Impact Plan Template
+## Repo Impact Plan
 
-Use this template at the start of each Jira ticket (`SCRUM-91`) to decide exactly where to run `opsxj:new` and `opsxj:archive`.
-
-## Ticket
-
-- Jira key: `SCRUM-91`
-- Summary: `ACTUALIZACION-ValidarUsuarioWorkflowInternoAsync`
-- Coordinator change: `openspec/changes/scrum-91-actualizacion-validarusuarioworkflowinte/`
+Ticket: SCRUM-91  
+Summary: ACTUALIZACION-ValidarUsuarioWorkflowInternoAsync  
+Change: openspec/changes/scrum-91-actualizacion-validarusuarioworkflowinte/
 
 ## Impact Matrix
 
-| Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
-|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | <definir alcance> | done | https://github.com/miguelurueta/DocuArchi.Api/pull/33 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/94 | pending | in_review |
-| DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | <definir alcance> | done | https://github.com/miguelurueta/MiApp.DTOs/pull/20 | pending | in_review |
-| MiApp.Services | yes | implementation_required | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Services/pull/44 | pending | in_review |
-| MiApp.Repository | yes | implementation_required | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Repository/pull/23 | pending | in_review |
-| MiApp.Models | yes | implementation_required | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Models/pull/10 | pending | in_review |
+| Repo | Impacta? | Tipo impacto | Motivo | opsxj:new | PR | opsxj:archive | Estado |
+|---|---|---|---|---|---|---|---|
+| `DocuArchi.Api` | `yes` | `traceability_only` | `trazabilidad centralizada sin diff funcional` | `done` | `https://github.com/miguelurueta/DocuArchi.Api/pull/33` | `pending` | `tracked` |
+| `DocuArchiCore` | `yes` | `implementation_required` | `orquestador openspec central y pruebas/documentacion del ticket` | `done` | `https://github.com/miguelurueta/DocuArchiCore/pull/94` | `pending` | `merged` |
+| `DocuArchiCore.Abstractions` | `no` | `no_code_change` | `solo consulta (sin cambios)` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `DocuArchiCore.Web` | `no` | `no_code_change` | `solo consulta (sin cambios)` | `n/a` | `n/a` | `n/a` | `n_a` |
+| `MiApp.DTOs` | `yes` | `traceability_only` | `trazabilidad centralizada sin diff funcional` | `done` | `https://github.com/miguelurueta/MiApp.DTOs/pull/20` | `pending` | `tracked` |
+| `MiApp.Services` | `yes` | `implementation_required` | `cambio funcional en RegistrarRadicacionEntranteService` | `done` | `https://github.com/miguelurueta/MiApp.Services/pull/44` | `pending` | `merged` |
+| `MiApp.Repository` | `yes` | `traceability_only` | `trazabilidad centralizada sin diff funcional` | `done` | `https://github.com/miguelurueta/MiApp.Repository/pull/23` | `pending` | `tracked` |
+| `MiApp.Models` | `yes` | `traceability_only` | `trazabilidad centralizada sin diff funcional` | `done` | `https://github.com/miguelurueta/MiApp.Models/pull/10` | `pending` | `tracked` |
 
-## Operating Rule
+## Rule
 
-Run `opsxj:new SCRUM-91` only in rows with `Impacta? = yes`.
-Run `opsxj:archive SCRUM-91` only after the repo PR is merged.
-Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
-
-## Typical API Change Pattern
-
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
-- `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+- `implementation_required` exige branch, commit, PR y merge para ese repo.
+- `traceability_only` mantiene la trazabilidad del ticket sin requerir merge funcional para archivar.
+- `no_code_change` deja el repo explicitamente fuera de cambios.
