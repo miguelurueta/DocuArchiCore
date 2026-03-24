@@ -163,7 +163,7 @@ function global:Invoke-RestMethod {
         }
     }
 
-    if (`$Method -ieq 'Get' -and `$Uri -like '*/rest/api/3/issue/*?fields=summary,description') {
+    if (`$Method -ieq 'Get' -and `$Uri -like '*/rest/api/3/issue/*?fields=summary,description*') {
         return @{
             fields = @{
                 summary = 'Archive test issue'
@@ -249,7 +249,7 @@ function global:Invoke-RestMethod {
         }
     }
 
-    if (`$Method -ieq 'Get' -and `$Uri -like '*/rest/api/3/issue/*?fields=summary,description') {
+    if (`$Method -ieq 'Get' -and `$Uri -like '*/rest/api/3/issue/*?fields=summary,description*') {
         return @{
             fields = @{
                 summary = 'Archive test issue'

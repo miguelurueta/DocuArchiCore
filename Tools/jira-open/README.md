@@ -22,6 +22,7 @@ Guia recomendada de operacion multi-repo:
   - `GITHUB_TOKEN` (recommended; enables direct GitHub API auth for PR create/list/merge checks)
   - `GITHUBREPO` or `GITHUB_REPO` (optional). If empty, `opsxj` auto-detects `owner/repo` from `git remote get-url <GIT_REMOTE_NAME>`.
   - `OPSXJ_IMPACT_REPOS` (optional, comma-separated repo names from catalog; forces impacted repos for `opsxj:new`)
+  - `OPSXJ_TRACEABILITY_REPOS` (optional, comma-separated repo names from catalog; marks selected repos as `traceability_only` in `sync.md` and skips satellite PR creation)
   - `OPSXJ_READONLY_REPOS` (optional, comma-separated repo names from catalog; marked as `solo consulta (sin cambios)` and excluded from impact)
   - `OPSXJ_MIGRATION_READONLY_REPO_PATHS` (optional, semicolon-separated absolute paths to legacy/migration repos used only as reference when issue text contains `MIGRACION-NET <NombreFuncion>`)
 
@@ -89,6 +90,24 @@ Run archive flow tests:
 npm.cmd --prefix Tools/jira-open run opsxj:test-archive
 ```
 
+Run orchestrated worktree flow tests:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-worktree
+```
+
+Run orchestrated impact classification tests:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-impact
+```
+
+Run orchestrated archive tests:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-archive
+```
+
 Archive by issue key (or explicit change name):
 
 ```powershell
@@ -123,8 +142,13 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
-- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore` and keeps OpenSpec centralized there while creating lightweight satellite PRs in the other impacted repositories.
+- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, and now isolates busy satellite repositories in managed worktrees under `.tmp/opsxj/<ISSUE>/`.
+- Managed satellite worktrees persist across reruns for the same issue/repo and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
+- `sync.md` now records both `Impacta?` and `Tipo impacto` with `implementation_required`, `traceability_only`, and `no_code_change`.
+- `OPSXJ_TRACEABILITY_REPOS` marks selected repos as `traceability_only`, updates `sync.md`, and skips empty satellite PRs for those repos.
 - `opsxj:orchestrate:archive -NonInteractive` must run from `DocuArchiCore` and archives only after validating merge real del branch del cambio y del PR asociado en cada repo impactado.
+- `opsxj:orchestrate:archive` now uses merged satellite PRs as the primary signal and tolerates deleted remote branches after merge.
+- `opsxj:orchestrate:archive` cleans managed worktrees, worktree metadata, and issue logs created by the current orchestrated issue.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
 - `opsxj:doctor -NonInteractive` reports `execution_mode: noninteractive` and validates the same flow for headless use.
