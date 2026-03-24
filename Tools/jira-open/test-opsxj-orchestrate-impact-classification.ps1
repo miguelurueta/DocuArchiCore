@@ -71,7 +71,6 @@ try {
     $previousPath = $env:PATH
     $env:PATH = "$fakeBin;$previousPath"
     $env:OPSXJ_IMPACT_REPOS = "MiApp.Services"
-    $env:OPSXJ_TRACEABILITY_REPOS = "MiApp.Services"
     $env:OPSXJ_TEST_SKIP_GIT_PUSH = "1"
     $env:JIRA_BASE_URL = "https://example.atlassian.net"
     $env:JIRA_EMAIL = "bot@example.com"
@@ -203,7 +202,7 @@ try {
             Assert-Contains -Value $output -Expected "Orchestrated repos: DocuArchiCore, MiApp.Services"
             Assert-Contains -Value $output -Expected "Satellite repo tracked without PR [MiApp.Services]: traceability_only"
             if ($output.Contains("Satellite PR created [MiApp.Services]")) {
-                throw "Traceability-only repo should not create a satellite PR."
+                throw "Satellite repo should not create a PR unless explicitly marked in OPSXJ_IMPLEMENTATION_REPOS."
             }
 
             $changeName = "opsxj-2001-impact-classification-validation"
@@ -211,6 +210,16 @@ try {
             $syncText = Get-Content -Path $syncPath -Raw
             Assert-Contains -Value $syncText -Expected '| MiApp.Services | yes | traceability_only |'
             Assert-Contains -Value $syncText -Expected '| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending |'
+
+            $env:OPSXJ_IMPLEMENTATION_REPOS = "MiApp.Services"
+            $outputWithImplementation = (& $scriptPath orchestrate:new OPSXJ-2002 -NonInteractive 2>&1 | Out-String)
+            Assert-Contains -Value $outputWithImplementation -Expected "Satellite PR created [MiApp.Services]"
+
+            $changeNameWithImplementation = "opsxj-2002-impact-classification-validation"
+            $syncPathWithImplementation = Join-Path $orchestratorRoot "openspec/changes/$changeNameWithImplementation/sync.md"
+            $syncTextWithImplementation = Get-Content -Path $syncPathWithImplementation -Raw
+            Assert-Contains -Value $syncTextWithImplementation -Expected '| MiApp.Services | yes | implementation_required |'
+            Assert-Contains -Value $syncTextWithImplementation -Expected '| MiApp.Services | yes | implementation_required | <definir alcance> | done | https://github.com/example/repo/pull/'
         }
         finally {
             Pop-Location
@@ -221,6 +230,7 @@ try {
         $env:PATH = $previousPath
         Remove-Item Env:OPSXJ_IMPACT_REPOS -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TRACEABILITY_REPOS -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_IMPLEMENTATION_REPOS -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_SKIP_GIT_PUSH -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_BASE_URL -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_EMAIL -ErrorAction SilentlyContinue
@@ -228,7 +238,7 @@ try {
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
     }
 
-    Write-Output "PASS: opsxj:orchestrate:new classifies traceability-only repos without PRs."
+    Write-Output "PASS: opsxj:orchestrate:new only creates satellite PRs for OPSXJ_IMPLEMENTATION_REPOS."
 }
 finally {
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

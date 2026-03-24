@@ -22,7 +22,8 @@ Guia recomendada de operacion multi-repo:
   - `GITHUB_TOKEN` (recommended; enables direct GitHub API auth for PR create/list/merge checks)
   - `GITHUBREPO` or `GITHUB_REPO` (optional). If empty, `opsxj` auto-detects `owner/repo` from `git remote get-url <GIT_REMOTE_NAME>`.
   - `OPSXJ_IMPACT_REPOS` (optional, comma-separated repo names from catalog; forces impacted repos for `opsxj:new`)
-  - `OPSXJ_TRACEABILITY_REPOS` (optional, comma-separated repo names from catalog; marks selected repos as `traceability_only` in `sync.md` and skips satellite PR creation)
+  - `OPSXJ_IMPLEMENTATION_REPOS` (optional, comma-separated repo names from catalog; only these satellite repos are promoted to `implementation_required` and allowed to open PRs)
+  - `OPSXJ_TRACEABILITY_REPOS` (optional, comma-separated repo names from catalog; explicit label for repos that stay `traceability_only` in `sync.md`)
   - `OPSXJ_READONLY_REPOS` (optional, comma-separated repo names from catalog; marked as `solo consulta (sin cambios)` and excluded from impact)
   - `OPSXJ_MIGRATION_READONLY_REPO_PATHS` (optional, semicolon-separated absolute paths to legacy/migration repos used only as reference when issue text contains `MIGRACION-NET <NombreFuncion>`)
 
@@ -145,7 +146,8 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, and now isolates busy satellite repositories in managed worktrees under `.tmp/opsxj/<ISSUE>/`.
 - Managed satellite worktrees persist across reruns for the same issue/repo and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
 - `sync.md` now records both `Impacta?` and `Tipo impacto` with `implementation_required`, `traceability_only`, and `no_code_change`.
-- `OPSXJ_TRACEABILITY_REPOS` marks selected repos as `traceability_only`, updates `sync.md`, and skips empty satellite PRs for those repos.
+- `opsxj:orchestrate:new` only opens satellite PRs for repos listed in `OPSXJ_IMPLEMENTATION_REPOS`; other impacted satellites stay `traceability_only` by default.
+- `OPSXJ_TRACEABILITY_REPOS` remains available as an explicit label for repos that should stay traceability-only in `sync.md`.
 - `opsxj:orchestrate:archive -NonInteractive` must run from `DocuArchiCore` and archives only after validating merge real del branch del cambio y del PR asociado en cada repo impactado.
 - `opsxj:orchestrate:archive` now uses merged satellite PRs as the primary signal and tolerates deleted remote branches after merge.
 - `opsxj:orchestrate:archive` cleans managed worktrees, worktree metadata, and issue logs created by the current orchestrated issue.
