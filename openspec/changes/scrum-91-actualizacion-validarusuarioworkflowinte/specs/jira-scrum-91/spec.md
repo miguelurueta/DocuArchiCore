@@ -13,3 +13,27 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: RegistrarRadicacionEntranteService must preserve the internal workflow user
+`RegistrarRadicacionEntranteService` MUST keep the `UsuarioWorkflow` resolved by `ValidarUsuarioWorkflowInternoAsync` available in the main flow before the final registration call.
+
+#### Scenario: Internal workflow user is resolved successfully
+- **WHEN** `tipoModuloRadicacion != 2`
+- **AND** `ValidarUsuarioWorkflowInternoAsync` resolves a valid `UsuarioWorkflow`
+- **THEN** `RegistrarRadicacionEntranteAsync` stores that object in the main flow
+- **AND** only continues to `_registrarRepository.RegistrarRadicacionEntranteAsync` when the workflow user is not null
+
+#### Scenario: Internal workflow user is missing
+- **WHEN** `tipoModuloRadicacion != 2`
+- **AND** `ValidarUsuarioWorkflowInternoAsync` cannot resolve a valid `UsuarioWorkflow`
+- **THEN** `RegistrarRadicacionEntranteAsync` returns a controlled validation error
+- **AND** does not call `_registrarRepository.RegistrarRadicacionEntranteAsync`
+
+### Requirement: ValidarUsuarioWorkflowInternoAsync must return controlled failures
+`ValidarUsuarioWorkflowInternoAsync` MUST wrap repository exceptions and functional failures inside controlled `AppResponses`.
+
+#### Scenario: Workflow lookup throws an exception
+- **WHEN** the workflow repository throws during `SolicitaEstructuraIdUsuarioWorkflowId`
+- **THEN** `ValidarUsuarioWorkflowInternoAsync` returns `success = false`
+- **AND** the error field is `ValidarUsuarioWorkflowInternoAsync`
+- **AND** the registration flow stops without persisting the radicado
