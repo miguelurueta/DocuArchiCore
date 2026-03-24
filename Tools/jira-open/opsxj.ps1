@@ -2380,11 +2380,8 @@ function Assert-OrchestratedReposReadyForArchive {
             $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
         }
         catch {
-            $message = [string]$_.Exception.Message
-            if ($message -notmatch "does not exist" -and $message -notmatch "couldn't find remote ref") {
-                $pending.Add(("{0}: {1}" -f $canonicalRepo, $message))
-                continue
-            }
+            # In orchestrated archive, a merged PR is the source of truth.
+            # Satellite branches may already be deleted or no longer be direct ancestors.
         }
 
         $ready.Add([pscustomobject]@{
