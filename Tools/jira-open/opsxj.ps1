@@ -285,6 +285,11 @@ function Apply-ImpactSelectionToSync {
     foreach ($repo in $traceabilityRepos) {
         $traceabilitySet[$repo.ToLowerInvariant()] = $true
     }
+    $implementationRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_IMPLEMENTATION_REPOS" -ConfigPath $configPath -RepoCatalog $repoCatalog
+    $implementationSet = @{}
+    foreach ($repo in $implementationRepos) {
+        $implementationSet[$repo.ToLowerInvariant()] = $true
+    }
 
     $repoCatalogSet = @{}
     foreach ($repoName in $repoCatalog) {
@@ -308,16 +313,22 @@ function Apply-ImpactSelectionToSync {
         $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant()) -and (-not $isReadOnly)
         $impactType = "no_code_change"
         if ($isImpacted) {
-            if ($traceabilitySet.ContainsKey($repo.ToLowerInvariant())) {
+            if ($repo -eq "DocuArchiCore") {
+                $impactType = "implementation_required"
+            }
+            elseif ($implementationSet.ContainsKey($repo.ToLowerInvariant())) {
+                $impactType = "implementation_required"
+            }
+            elseif ($traceabilitySet.ContainsKey($repo.ToLowerInvariant())) {
                 $impactType = "traceability_only"
             }
             else {
-                $impactType = "implementation_required"
+                $impactType = "traceability_only"
             }
         }
 
         $impact = if ($isImpacted) { "yes" } else { "no" }
-        $motivo = if ($isReadOnly) { "solo consulta (sin cambios)" } elseif ($impactType -eq "traceability_only") { "trazabilidad centralizada sin diff funcional" } elseif ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
+        $motivo = if ($isReadOnly) { "solo consulta (sin cambios)" } elseif ($impactType -eq "traceability_only") { "trazabilidad centralizada sin diff funcional" } elseif ($impactType -eq "implementation_required") { "<definir alcance>" } else { "fuera de alcance" }
         $opsNew = if ($impactType -eq "implementation_required") { "pending" } elseif ($isImpacted) { "n/a" } else { "n/a" }
         $pr = if ($impactType -eq "implementation_required") { "pending" } elseif ($isImpacted) { "n/a" } else { "n/a" }
         $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
@@ -767,6 +778,11 @@ function Resolve-OrchestratedImpactTypes {
     foreach ($repo in $traceabilityRepos) {
         $traceabilitySet[$repo.ToLowerInvariant()] = $true
     }
+    $implementationRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_IMPLEMENTATION_REPOS" -ConfigPath $configPath -RepoCatalog $RepoCatalog
+    $implementationSet = @{}
+    foreach ($repo in $implementationRepos) {
+        $implementationSet[$repo.ToLowerInvariant()] = $true
+    }
 
     $selectedSet = @{}
     foreach ($repo in $SelectedRepos) {
@@ -783,13 +799,13 @@ function Resolve-OrchestratedImpactTypes {
         $reason = "fuera de alcance"
         if ($selectedSet.ContainsKey($key)) {
             $impact = "yes"
-            if ($traceabilitySet.ContainsKey($key)) {
-                $impactType = "traceability_only"
-                $reason = "trazabilidad centralizada sin diff funcional"
-            }
-            else {
+            if ($repo -eq "DocuArchiCore" -or $implementationSet.ContainsKey($key)) {
                 $impactType = "implementation_required"
                 $reason = "<definir alcance>"
+            }
+            else {
+                $impactType = "traceability_only"
+                $reason = "trazabilidad centralizada sin diff funcional"
             }
         }
 

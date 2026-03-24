@@ -32,6 +32,7 @@ GIT_BASE_BRANCH=
 GITHUB_TOKEN=tu_github_token
 GITHUBREPO=
 OPSXJ_IMPACT_REPOS=
+OPSXJ_IMPLEMENTATION_REPOS=
 OPSXJ_TRACEABILITY_REPOS=
 ```
 
@@ -40,7 +41,8 @@ Notas:
 - Mantener el mismo `GITHUB_TOKEN` en todos los repos.
 - `OPSXJ_IMPACT_REPOS` opcional: lista separada por coma para forzar repos impactados sin interaccion.
 - Ejemplo: `OPSXJ_IMPACT_REPOS=DocuArchi.Api,MiApp.Services,MiApp.Repository`.
-- `OPSXJ_TRACEABILITY_REPOS` opcional: subconjunto de repos impactados que solo requieren trazabilidad y no deben abrir PR satelite vacio.
+- `OPSXJ_IMPLEMENTATION_REPOS` opcional: subconjunto de repos impactados que si requieren branch, commit y PR satelite.
+- `OPSXJ_TRACEABILITY_REPOS` opcional: etiqueta explicita para subconjunto de repos impactados que solo requieren trazabilidad.
 
 ## Flujo por ticket (ABC-123)
 
@@ -64,7 +66,9 @@ La matriz `sync.md` ahora distingue:
 Reglas:
 
 - `DocuArchiCore` normalmente queda como `implementation_required` porque centraliza OpenSpec y `sync.md`
-- `OPSXJ_TRACEABILITY_REPOS` permite marcar repos satelite sin diff funcional
+- los repos satelite solo suben a `implementation_required` si aparecen en `OPSXJ_IMPLEMENTATION_REPOS`
+- sin `OPSXJ_IMPLEMENTATION_REPOS`, los satelites impactados quedan `traceability_only` por defecto y no abren PR vacio
+- `OPSXJ_TRACEABILITY_REPOS` permite dejar trazabilidad explicita en `sync.md`
 - `OPSXJ_READONLY_REPOS` sigue excluyendo repos de impacto real y los deja como `no_code_change`
 - `opsxj:orchestrate:archive` acepta PR satelite `MERGED` aunque GitHub ya haya borrado la branch remota del cambio
 
