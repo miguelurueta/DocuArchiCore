@@ -313,6 +313,10 @@ try {
                     return @{ id = "10002" }
                 }
 
+                if ($Method -ieq "Get" -and $Uri -like "https://api.github.com/repos/*/pulls?state=all*") {
+                    return @()
+                }
+
                 if ($Method -ieq "Get" -and $Uri -like "https://api.github.com/repos/*/pulls?state=open*") {
                     return @(
                         @{

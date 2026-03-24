@@ -16,6 +16,7 @@ Esta guia define como trabajar tickets Jira en un entorno con repositorios separ
 Regla:
 - `opsxj:new` se ejecuta en el repo donde vive el cambio de codigo.
 - `opsxj:orchestrate:new` se ejecuta solo en `DocuArchiCore` cuando el ticket impacta varios repos y se quiere centralizar OpenSpec.
+- `opsxj:orchestrate:new` ahora detecta repos satelite ocupados y los aisla en worktrees gestionados sin bloquear el checkout principal.
 
 ## Configuracion minima por repo
 
@@ -31,6 +32,7 @@ GIT_BASE_BRANCH=
 GITHUB_TOKEN=tu_github_token
 GITHUBREPO=
 OPSXJ_IMPACT_REPOS=
+OPSXJ_TRACEABILITY_REPOS=
 ```
 
 Notas:
@@ -38,6 +40,7 @@ Notas:
 - Mantener el mismo `GITHUB_TOKEN` en todos los repos.
 - `OPSXJ_IMPACT_REPOS` opcional: lista separada por coma para forzar repos impactados sin interaccion.
 - Ejemplo: `OPSXJ_IMPACT_REPOS=DocuArchi.Api,MiApp.Services,MiApp.Repository`.
+- `OPSXJ_TRACEABILITY_REPOS` opcional: subconjunto de repos impactados que solo requieren trazabilidad y no deben abrir PR satelite vacio.
 
 ## Flujo por ticket (ABC-123)
 
@@ -49,6 +52,43 @@ Notas:
 4. Archivar cuando todos los PRs impactados esten mergeados.
    - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123 -NonInteractive`
    - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:archive -- ABC-123 -NonInteractive`
+
+## Clasificacion de impacto
+
+La matriz `sync.md` ahora distingue:
+
+- `implementation_required`: el repo requiere branch, commit, PR y merge
+- `traceability_only`: el repo queda registrado en `sync.md`, pero no abre PR satelite si no hay diff funcional
+- `no_code_change`: el repo queda explicitamente fuera de cambios
+
+Reglas:
+
+- `DocuArchiCore` normalmente queda como `implementation_required` porque centraliza OpenSpec y `sync.md`
+- `OPSXJ_TRACEABILITY_REPOS` permite marcar repos satelite sin diff funcional
+- `OPSXJ_READONLY_REPOS` sigue excluyendo repos de impacto real y los deja como `no_code_change`
+- `opsxj:orchestrate:archive` acepta PR satelite `MERGED` aunque GitHub ya haya borrado la branch remota del cambio
+
+## Worktrees gestionados
+
+Cuando `opsxj:orchestrate:new` encuentra un repo impactado en cualquiera de estos estados:
+
+- checkout sucio
+- rama distinta al branch del ticket
+- `HEAD` detached
+
+el comando no intenta reutilizar ese checkout. En su lugar:
+
+1. crea o reutiliza un worktree gestionado bajo `.tmp/opsxj/`
+2. registra metadata en `.opsxj/orchestrator/worktrees/<ISSUE>/`
+3. escribe el marcador tecnico del repo satelite dentro del worktree reutilizable
+
+Esto permite reruns idempotentes del comando sin mezclar tickets activos ni bloquear otros repositorios.
+
+Reglas:
+
+- el checkout principal del repo satelite no se modifica si esta ocupado
+- el worktree gestionado se reutiliza para el mismo `issue/repo`
+- `opsxj` ignora la metadata interna de `.opsxj/orchestrator/` al validar limpieza efectiva del repo coordinador
 
 ## Flujo objetivo reforzado
 
@@ -84,6 +124,24 @@ Probar Jira:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:test-jira
+```
+
+Probar aislamiento por worktree:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-worktree
+```
+
+Probar clasificacion de impacto:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-impact
+```
+
+Probar archive orquestado:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-archive
 ```
 
 Auditar ramas del multirepo:

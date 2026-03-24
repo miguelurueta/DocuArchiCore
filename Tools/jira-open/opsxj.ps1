@@ -280,6 +280,11 @@ function Apply-ImpactSelectionToSync {
     foreach ($repo in $readOnlyRepos) {
         $readOnlySet[$repo.ToLowerInvariant()] = $true
     }
+    $traceabilityRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_TRACEABILITY_REPOS" -ConfigPath $configPath -RepoCatalog $repoCatalog
+    $traceabilitySet = @{}
+    foreach ($repo in $traceabilityRepos) {
+        $traceabilitySet[$repo.ToLowerInvariant()] = $true
+    }
 
     $repoCatalogSet = @{}
     foreach ($repoName in $repoCatalog) {
@@ -289,21 +294,35 @@ function Apply-ImpactSelectionToSync {
     $lines = $SyncText -split "`r?`n"
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
-        if ($line -match '^\|\s*(?<repo>[^|]+)\|') {
-            $repo = ([string]$Matches["repo"]).Trim().Replace([string][char]96, "")
-            if (-not $repoCatalogSet.ContainsKey($repo.ToLowerInvariant())) {
-                continue
-            }
-            $isReadOnly = $readOnlySet.ContainsKey($repo.ToLowerInvariant())
-            $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant()) -and (-not $isReadOnly)
-            $impact = if ($isImpacted) { "yes" } else { "no" }
-            $motivo = if ($isReadOnly) { "solo consulta (sin cambios)" } elseif ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
-            $opsNew = if ($isImpacted) { "pending" } else { "n/a" }
-            $pr = if ($isImpacted) { "pending" } else { "n/a" }
-            $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
-            $status = if ($isImpacted) { "todo" } else { "n_a" }
-            $lines[$i] = ("| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` |" -f $repo, $impact, $motivo, $opsNew, $pr, $opsArchive, $status)
+        $syncRow = ConvertFrom-SyncRow -Line $line
+        if ($null -eq $syncRow) {
+            continue
         }
+
+        $repo = [string]$syncRow.repo
+        if (-not $repoCatalogSet.ContainsKey($repo.ToLowerInvariant())) {
+            continue
+        }
+
+        $isReadOnly = $readOnlySet.ContainsKey($repo.ToLowerInvariant())
+        $isImpacted = $selectedSet.ContainsKey($repo.ToLowerInvariant()) -and (-not $isReadOnly)
+        $impactType = "no_code_change"
+        if ($isImpacted) {
+            if ($traceabilitySet.ContainsKey($repo.ToLowerInvariant())) {
+                $impactType = "traceability_only"
+            }
+            else {
+                $impactType = "implementation_required"
+            }
+        }
+
+        $impact = if ($isImpacted) { "yes" } else { "no" }
+        $motivo = if ($isReadOnly) { "solo consulta (sin cambios)" } elseif ($impactType -eq "traceability_only") { "trazabilidad centralizada sin diff funcional" } elseif ($isImpacted) { "<definir alcance>" } else { "fuera de alcance" }
+        $opsNew = if ($impactType -eq "implementation_required") { "pending" } elseif ($isImpacted) { "n/a" } else { "n/a" }
+        $pr = if ($impactType -eq "implementation_required") { "pending" } elseif ($isImpacted) { "n/a" } else { "n/a" }
+        $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
+        $status = if ($impactType -eq "implementation_required") { "todo" } elseif ($impactType -eq "traceability_only") { "tracked" } else { "n_a" }
+        $lines[$i] = (Format-SyncRow -Repo $repo -Impact $impact -ImpactType $impactType -Reason $motivo -OpsNew $opsNew -Pr $pr -OpsArchive $opsArchive -Status $status)
     }
 
     return ($lines -join "`n")
@@ -323,6 +342,61 @@ function Normalize-SyncCellValue {
     }
 
     return $normalized.Trim()
+}
+
+function Format-SyncRow {
+    param(
+        [string]$Repo,
+        [string]$Impact,
+        [string]$ImpactType,
+        [string]$Reason,
+        [string]$OpsNew,
+        [string]$Pr,
+        [string]$OpsArchive,
+        [string]$Status
+    )
+
+    return ("| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` | `{7}` |" -f $Repo, $Impact, $ImpactType, $Reason, $OpsNew, $Pr, $OpsArchive, $Status)
+}
+
+function ConvertFrom-SyncRow {
+    param([string]$Line)
+
+    if ([string]::IsNullOrWhiteSpace($Line)) {
+        return $null
+    }
+
+    if ($Line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<impactType>[^|]+)\|\s*(?<reason>[^|]+)\|\s*(?<opsNew>[^|]+)\|\s*(?<pr>[^|]+)\|\s*(?<opsArchive>[^|]+)\|\s*(?<status>[^|]+)\|') {
+        $repo = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
+        return [pscustomobject]@{
+            repo = $repo
+            impact = Normalize-SyncCellValue -Value ([string]$Matches["impact"])
+            impactType = Normalize-SyncCellValue -Value ([string]$Matches["impactType"])
+            reason = Normalize-SyncCellValue -Value ([string]$Matches["reason"])
+            opsNew = Normalize-SyncCellValue -Value ([string]$Matches["opsNew"])
+            pr = Normalize-SyncCellValue -Value ([string]$Matches["pr"])
+            opsArchive = Normalize-SyncCellValue -Value ([string]$Matches["opsArchive"])
+            status = Normalize-SyncCellValue -Value ([string]$Matches["status"])
+        }
+    }
+
+    if ($Line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<reason>[^|]+)\|\s*(?<opsNew>[^|]+)\|\s*(?<pr>[^|]+)\|\s*(?<opsArchive>[^|]+)\|\s*(?<status>[^|]+)\|') {
+        $repo = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
+        $impact = Normalize-SyncCellValue -Value ([string]$Matches["impact"])
+        $impactType = if ($impact.ToLowerInvariant() -eq "yes") { "implementation_required" } else { "no_code_change" }
+        return [pscustomobject]@{
+            repo = $repo
+            impact = $impact
+            impactType = $impactType
+            reason = Normalize-SyncCellValue -Value ([string]$Matches["reason"])
+            opsNew = Normalize-SyncCellValue -Value ([string]$Matches["opsNew"])
+            pr = Normalize-SyncCellValue -Value ([string]$Matches["pr"])
+            opsArchive = Normalize-SyncCellValue -Value ([string]$Matches["opsArchive"])
+            status = Normalize-SyncCellValue -Value ([string]$Matches["status"])
+        }
+    }
+
+    return $null
 }
 
 function Resolve-RepoRootForCatalogName {
@@ -681,6 +755,54 @@ function Resolve-ImpactReposForIssue {
     return @($RepoCatalog)
 }
 
+function Resolve-OrchestratedImpactTypes {
+    param(
+        [string[]]$SelectedRepos,
+        [string[]]$RepoCatalog
+    )
+
+    $configPath = Join-Path $PSScriptRoot ".jira-open.env"
+    $traceabilityRepos = Resolve-ConfiguredRepoList -ConfigKey "OPSXJ_TRACEABILITY_REPOS" -ConfigPath $configPath -RepoCatalog $RepoCatalog
+    $traceabilitySet = @{}
+    foreach ($repo in $traceabilityRepos) {
+        $traceabilitySet[$repo.ToLowerInvariant()] = $true
+    }
+
+    $selectedSet = @{}
+    foreach ($repo in $SelectedRepos) {
+        if (-not [string]::IsNullOrWhiteSpace($repo)) {
+            $selectedSet[$repo.ToLowerInvariant()] = $true
+        }
+    }
+
+    $plan = @{}
+    foreach ($repo in $RepoCatalog) {
+        $key = $repo.ToLowerInvariant()
+        $impact = "no"
+        $impactType = "no_code_change"
+        $reason = "fuera de alcance"
+        if ($selectedSet.ContainsKey($key)) {
+            $impact = "yes"
+            if ($traceabilitySet.ContainsKey($key)) {
+                $impactType = "traceability_only"
+                $reason = "trazabilidad centralizada sin diff funcional"
+            }
+            else {
+                $impactType = "implementation_required"
+                $reason = "<definir alcance>"
+            }
+        }
+
+        $plan[$repo] = @{
+            impact = $impact
+            impactType = $impactType
+            reason = $reason
+        }
+    }
+
+    return $plan
+}
+
 function To-KebabCase {
     param([string]$Value)
     if (-not $Value) { return "" }
@@ -863,6 +985,12 @@ function Get-EffectiveDirtyLines {
         } | Where-Object {
             $line = $_.Trim()
             -not ($line -match "^\?\?\s+openspec[\\/]+changes[\\/].+[\\/]\.opsxj-pr-url\.txt$")
+        } | Where-Object {
+            $line = $_.Trim()
+            -not ($line -match "^\?\?\s+\.opsxj[\\/]+orchestrator([\\/].*)?$")
+        } | Where-Object {
+            $line = $_.Trim()
+            -not ($line -match "^\?\?\s+\.opsxj[\\/]?$")
         }
     )
 }
@@ -1551,6 +1679,353 @@ function Write-OrchestratedRepoMarker {
     return $relativePath
 }
 
+function Get-OrchestratedManagedWorktreeRoot {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$IssueKey
+    )
+
+    return (Join-Path $WorkspaceRoot ".tmp\opsxj")
+}
+
+function Get-OrchestratedRepoWorktreePath {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [string]$IssueKey
+    )
+
+    $worktreeRoot = Get-OrchestratedManagedWorktreeRoot -WorkspaceRoot $WorkspaceRoot -IssueKey $IssueKey
+    $issueSlug = if ([string]::IsNullOrWhiteSpace($IssueKey)) { "unknown" } else { (To-KebabCase $IssueKey) }
+    if ($issueSlug.Length -gt 8) { $issueSlug = $issueSlug.Substring(0, 8).Trim("-") }
+    $repoSlug = To-KebabCase $RepoName
+    if ($repoSlug.Length -gt 8) { $repoSlug = $repoSlug.Substring(0, 8).Trim("-") }
+    $changeSlug = $ChangeName
+    if ($changeSlug.Length -gt 12) { $changeSlug = $changeSlug.Substring(0, 12).Trim("-") }
+    return (Join-Path $worktreeRoot ("{0}-{1}-{2}" -f $issueSlug, $repoSlug, $changeSlug))
+}
+
+function Get-OrchestratedWorktreeMetadataPath {
+    param(
+        [string]$CoordinatorRepoRoot,
+        [string]$IssueKey,
+        [string]$RepoName
+    )
+
+    $issueSlug = if ([string]::IsNullOrWhiteSpace($IssueKey)) { "unknown" } else { $IssueKey.ToLowerInvariant() }
+    $repoSlug = To-KebabCase $RepoName
+    $metadataRoot = Join-Path $CoordinatorRepoRoot (".opsxj\orchestrator\worktrees\{0}" -f $issueSlug)
+    New-Item -ItemType Directory -Path $metadataRoot -Force | Out-Null
+    return (Join-Path $metadataRoot ("{0}.json" -f $repoSlug))
+}
+
+function Get-OrchestratedWorktreeMetadataRoot {
+    param(
+        [string]$CoordinatorRepoRoot,
+        [string]$IssueKey
+    )
+
+    $issueSlug = if ([string]::IsNullOrWhiteSpace($IssueKey)) { "unknown" } else { $IssueKey.ToLowerInvariant() }
+    return (Join-Path $CoordinatorRepoRoot (".opsxj\orchestrator\worktrees\{0}" -f $issueSlug))
+}
+
+function Read-OrchestratedWorktreeMetadata {
+    param([string]$MetadataPath)
+
+    if (-not (Test-Path -LiteralPath $MetadataPath)) {
+        return $null
+    }
+
+    $raw = Get-Content -LiteralPath $MetadataPath -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $null
+    }
+
+    return ($raw | ConvertFrom-Json)
+}
+
+function Write-OrchestratedWorktreeMetadata {
+    param(
+        [string]$MetadataPath,
+        [hashtable]$Metadata
+    )
+
+    $metadataDir = Split-Path -Parent $MetadataPath
+    New-Item -ItemType Directory -Path $metadataDir -Force | Out-Null
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($MetadataPath, (($Metadata | ConvertTo-Json -Depth 8)), $utf8NoBom)
+}
+
+function Remove-ItemIfExists {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+    return (-not (Test-Path -LiteralPath $Path))
+}
+
+function Remove-DirectoryIfEmpty {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return
+    }
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $items = @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue)
+    if ($items.Count -eq 0) {
+        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Remove-OrchestratedIssueArtifacts {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey,
+        [string]$ChangeName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($IssueKey)) {
+        return @{
+            worktreesRemoved = 0
+            metadataRemoved = 0
+            logsRemoved = 0
+            locksRemoved = 0
+        }
+    }
+
+    $worktreesRemoved = 0
+    $metadataRemoved = 0
+    $logsRemoved = 0
+    $locksRemoved = 0
+
+    $metadataRoot = Get-OrchestratedWorktreeMetadataRoot -CoordinatorRepoRoot $RepoRoot -IssueKey $IssueKey
+    if (Test-Path -LiteralPath $metadataRoot) {
+        $metadataFiles = @(Get-ChildItem -LiteralPath $metadataRoot -Filter *.json -File -ErrorAction SilentlyContinue)
+        foreach ($metadataFile in $metadataFiles) {
+            $metadata = Read-OrchestratedWorktreeMetadata -MetadataPath $metadataFile.FullName
+            if ($null -ne $metadata) {
+                $targetRepoRoot = [string]$metadata.repoRoot
+                $worktreePath = [string]$metadata.worktreePath
+                if (-not [string]::IsNullOrWhiteSpace($targetRepoRoot) -and -not [string]::IsNullOrWhiteSpace($worktreePath)) {
+                    if (Test-OrchestratedGitWorktreeRegistered -RepoRoot $targetRepoRoot -WorktreePath $worktreePath) {
+                        Invoke-GitAtRepoRoot -RepoRoot $targetRepoRoot -CliArgs @("worktree", "remove", "--force", $worktreePath) -IgnoreExitCode | Out-Null
+                    }
+                    if (Remove-ItemIfExists -Path $worktreePath) {
+                        $worktreesRemoved++
+                    }
+                }
+            }
+
+            if (Remove-ItemIfExists -Path $metadataFile.FullName) {
+                $metadataRemoved++
+            }
+        }
+
+        Remove-DirectoryIfEmpty -Path $metadataRoot
+        $metadataParent = Split-Path -Parent $metadataRoot
+        Remove-DirectoryIfEmpty -Path $metadataParent
+        $metadataGrandParent = Split-Path -Parent $metadataParent
+        Remove-DirectoryIfEmpty -Path $metadataGrandParent
+    }
+
+    $issueLogPath = Join-Path $RepoRoot ("openspec\logs\{0}.log.jsonl" -f $IssueKey.ToUpperInvariant())
+    if (Remove-ItemIfExists -Path $issueLogPath) {
+        $logsRemoved++
+    }
+
+    $issueLockPath = Get-IssueLockPath -RepoRoot $RepoRoot -IssueKey $IssueKey
+    if (Remove-ItemIfExists -Path $issueLockPath) {
+        $locksRemoved++
+    }
+
+    $managedWorktreeRoot = Get-OrchestratedManagedWorktreeRoot -WorkspaceRoot (Get-OrchestratorWorkspaceRoot -RepoRoot $RepoRoot) -IssueKey $IssueKey
+    Remove-DirectoryIfEmpty -Path $managedWorktreeRoot
+    $tmpRoot = Split-Path -Parent $managedWorktreeRoot
+    Remove-DirectoryIfEmpty -Path $tmpRoot
+
+    return @{
+        worktreesRemoved = $worktreesRemoved
+        metadataRemoved = $metadataRemoved
+        logsRemoved = $logsRemoved
+        locksRemoved = $locksRemoved
+    }
+}
+
+function Get-OrchestratedRepoCheckoutState {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $currentBranch = Invoke-GitAtRepoRoot -RepoRoot $RepoRoot -CliArgs @("rev-parse", "--abbrev-ref", "HEAD")
+    $dirtyOutput = Invoke-GitAtRepoRoot -RepoRoot $RepoRoot -CliArgs @("status", "--porcelain")
+    $dirtyLines = @()
+    if (-not [string]::IsNullOrWhiteSpace($dirtyOutput)) {
+        $dirtyLines = @($dirtyOutput -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    $effectiveDirty = @(Get-EffectiveDirtyLines -DirtyLines $dirtyLines)
+
+    $reasons = New-Object System.Collections.Generic.List[string]
+    $isDetached = ($currentBranch -eq "HEAD")
+    if ($isDetached) { $reasons.Add("detached_head") }
+    if ($effectiveDirty.Count -gt 0) { $reasons.Add("dirty_worktree") }
+    if (-not $isDetached -and $currentBranch -ne $ChangeName) { $reasons.Add("branch_in_use") }
+
+    return [pscustomobject]@{
+        currentBranch = [string]$currentBranch
+        isDetached = [bool]$isDetached
+        effectiveDirty = @($effectiveDirty)
+        requiresIsolation = [bool]($reasons.Count -gt 0)
+        canUsePrimaryCheckout = [bool](-not $isDetached -and $effectiveDirty.Count -eq 0 -and $currentBranch -eq $ChangeName)
+        reasons = @($reasons.ToArray())
+    }
+}
+
+function Test-OrchestratedGitWorktreeRegistered {
+    param(
+        [string]$RepoRoot,
+        [string]$WorktreePath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WorktreePath)) {
+        return $false
+    }
+
+    $normalizedTarget = [System.IO.Path]::GetFullPath($WorktreePath).TrimEnd('\', '/')
+    $raw = Invoke-GitAtRepoRoot -RepoRoot $RepoRoot -CliArgs @("worktree", "list", "--porcelain") -IgnoreExitCode
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $false
+    }
+
+    $lines = @($raw -split "`r?`n")
+    foreach ($line in $lines) {
+        if ($line -notmatch "^worktree\s+(?<path>.+)$") { continue }
+        $candidate = [System.IO.Path]::GetFullPath([string]$Matches["path"]).TrimEnd('\', '/')
+        if ($candidate.Equals($normalizedTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Ensure-OrchestratedRepoWorktree {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [string]$IssueKey,
+        [string]$CoordinatorRepoRoot,
+        [string]$TargetRepoRoot,
+        [pscustomobject]$CheckoutState
+    )
+
+    $metadataPath = Get-OrchestratedWorktreeMetadataPath -CoordinatorRepoRoot $CoordinatorRepoRoot -IssueKey $IssueKey -RepoName $RepoName
+    $metadata = Read-OrchestratedWorktreeMetadata -MetadataPath $metadataPath
+    if ($null -ne $metadata -and -not [string]::IsNullOrWhiteSpace([string]$metadata.worktreePath)) {
+        $existingPath = [string]$metadata.worktreePath
+        if ((Test-Path -LiteralPath $existingPath) -and
+            (Test-OrchestratedGitWorktreeRegistered -RepoRoot $TargetRepoRoot -WorktreePath $existingPath)) {
+            Write-OrchestratedWorktreeMetadata -MetadataPath $metadataPath -Metadata @{
+                issueKey = $IssueKey
+                repo = $RepoName
+                repoRoot = $TargetRepoRoot
+                changeName = $ChangeName
+                worktreePath = $existingPath
+                createdUtc = [string]$metadata.createdUtc
+                lastUsedUtc = [DateTime]::UtcNow.ToString("o")
+                checkoutState = @{
+                    currentBranch = [string]$CheckoutState.currentBranch
+                    reasons = @($CheckoutState.reasons)
+                }
+            }
+            return [pscustomobject]@{
+                worktreePath = $existingPath
+                metadataPath = $metadataPath
+                reused = $true
+                created = $false
+            }
+        }
+
+        Invoke-GitAtRepoRoot -RepoRoot $TargetRepoRoot -CliArgs @("worktree", "prune") -IgnoreExitCode | Out-Null
+    }
+
+    $worktreeRoot = Get-OrchestratedManagedWorktreeRoot -WorkspaceRoot $WorkspaceRoot -IssueKey $IssueKey
+    New-Item -ItemType Directory -Path $worktreeRoot -Force | Out-Null
+    $worktreePath = Get-OrchestratedRepoWorktreePath -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName -ChangeName $ChangeName -IssueKey $IssueKey
+    if ((Test-Path -LiteralPath $worktreePath) -and
+        (-not (Test-OrchestratedGitWorktreeRegistered -RepoRoot $TargetRepoRoot -WorktreePath $worktreePath))) {
+        $worktreePath = "{0}-{1}" -f $worktreePath, ([DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))
+    }
+
+    Invoke-GitAtRepoRoot -RepoRoot $TargetRepoRoot -CliArgs @("worktree", "add", "--detach", $worktreePath, "HEAD") | Out-Null
+    Write-OrchestratedWorktreeMetadata -MetadataPath $metadataPath -Metadata @{
+        issueKey = $IssueKey
+        repo = $RepoName
+        repoRoot = $TargetRepoRoot
+        changeName = $ChangeName
+        worktreePath = $worktreePath
+        createdUtc = [DateTime]::UtcNow.ToString("o")
+        lastUsedUtc = [DateTime]::UtcNow.ToString("o")
+        checkoutState = @{
+            currentBranch = [string]$CheckoutState.currentBranch
+            reasons = @($CheckoutState.reasons)
+        }
+    }
+
+    return [pscustomobject]@{
+        worktreePath = $worktreePath
+        metadataPath = $metadataPath
+        reused = $false
+        created = $true
+    }
+}
+
+function Resolve-OrchestratedRepoExecutionContext {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [hashtable]$Issue,
+        [string]$CoordinatorRepoRoot
+    )
+
+    $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName
+    $checkoutState = Get-OrchestratedRepoCheckoutState -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+    if ($checkoutState.canUsePrimaryCheckout) {
+        return [pscustomobject]@{
+            repoRoot = $targetRepoRoot
+            executionRoot = $targetRepoRoot
+            mode = "primary"
+            checkoutState = $checkoutState
+            metadataPath = $null
+            reused = $false
+            created = $false
+        }
+    }
+
+    $worktree = Ensure-OrchestratedRepoWorktree -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName -ChangeName $ChangeName -IssueKey ([string]$Issue.key) -CoordinatorRepoRoot $CoordinatorRepoRoot -TargetRepoRoot $targetRepoRoot -CheckoutState $checkoutState
+    return [pscustomobject]@{
+        repoRoot = $targetRepoRoot
+        executionRoot = [string]$worktree.worktreePath
+        mode = "worktree"
+        checkoutState = $checkoutState
+        metadataPath = [string]$worktree.metadataPath
+        reused = [bool]$worktree.reused
+        created = [bool]$worktree.created
+    }
+}
+
 function Get-FakePullRequestUrlForRepo {
     param([string]$RepoName)
 
@@ -1685,24 +2160,29 @@ function Update-SyncRows {
     $changed = $false
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
-        if ($line -notmatch '^\|\s*(?<repo>[^|]+)\|(?<impact>[^|]+)\|(?<reason>[^|]+)\|(?<opsNew>[^|]+)\|(?<pr>[^|]+)\|(?<opsArchive>[^|]+)\|(?<status>[^|]+)\|') {
+        $row = ConvertFrom-SyncRow -Line $line
+        if ($null -eq $row) {
             continue
         }
 
-        $repoName = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
+        $repoName = [string]$row.repo
         if (-not $RepoUpdates.ContainsKey($repoName)) {
             continue
         }
 
         $update = $RepoUpdates[$repoName]
-        $impact = if ($null -ne $update.impact) { [string]$update.impact } else { Normalize-SyncCellValue -Value ([string]$Matches["impact"]) }
-        $reason = if ($null -ne $update.reason) { [string]$update.reason } else { Normalize-SyncCellValue -Value ([string]$Matches["reason"]) }
-        $opsNew = if ($null -ne $update.opsNew) { [string]$update.opsNew } else { Normalize-SyncCellValue -Value ([string]$Matches["opsNew"]) }
-        $pr = if ($null -ne $update.pr) { [string]$update.pr } else { Normalize-SyncCellValue -Value ([string]$Matches["pr"]) }
-        $opsArchive = if ($null -ne $update.opsArchive) { [string]$update.opsArchive } else { Normalize-SyncCellValue -Value ([string]$Matches["opsArchive"]) }
-        $status = if ($null -ne $update.status) { [string]$update.status } else { Normalize-SyncCellValue -Value ([string]$Matches["status"]) }
+        $impact = if ($null -ne $update.impact) { [string]$update.impact } else { [string]$row.impact }
+        $impactType = if ($null -ne $update.impactType) { [string]$update.impactType } else { [string]$row.impactType }
+        if ([string]::IsNullOrWhiteSpace($impactType)) {
+            $impactType = if ($impact -eq "yes") { "implementation_required" } else { "no_code_change" }
+        }
+        $reason = if ($null -ne $update.reason) { [string]$update.reason } else { [string]$row.reason }
+        $opsNew = if ($null -ne $update.opsNew) { [string]$update.opsNew } else { [string]$row.opsNew }
+        $pr = if ($null -ne $update.pr) { [string]$update.pr } else { [string]$row.pr }
+        $opsArchive = if ($null -ne $update.opsArchive) { [string]$update.opsArchive } else { [string]$row.opsArchive }
+        $status = if ($null -ne $update.status) { [string]$update.status } else { [string]$row.status }
 
-        $newLine = ("| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` |" -f $repoName, $impact, $reason, $opsNew, $pr, $opsArchive, $status)
+        $newLine = Format-SyncRow -Repo $repoName -Impact $impact -ImpactType $impactType -Reason $reason -OpsNew $opsNew -Pr $pr -OpsArchive $opsArchive -Status $status
         if ($newLine -ne $line) {
             $lines[$i] = $newLine
             $changed = $true
@@ -1727,7 +2207,9 @@ function Invoke-OrchestratedRepoNew {
         [string]$Mode = "legacy"
     )
 
-    $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName
+    $repoExecution = Resolve-OrchestratedRepoExecutionContext -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName -ChangeName $ChangeName -Issue $Issue -CoordinatorRepoRoot $CoordinatorRepoRoot
+    $targetRepoRoot = [string]$repoExecution.repoRoot
+    $executionRoot = [string]$repoExecution.executionRoot
     $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
     $existing = Get-ExistingPullRequest -BranchName $ChangeName -Repo $repoContext.githubRepo
     if ($existing) {
@@ -1738,43 +2220,29 @@ function Invoke-OrchestratedRepoNew {
             created = $false
             committed = $false
             repoRoot = $targetRepoRoot
+            executionRoot = $executionRoot
+            executionMode = [string]$repoExecution.mode
+            checkoutState = $repoExecution.checkoutState
+            metadataPath = [string]$repoExecution.metadataPath
             marker = Get-OrchestratedRepoMarkerRelativePath -RepoName $RepoName -ChangeName $ChangeName
         }
     }
 
-    $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $CoordinatorRepoRoot
-    $worktreeRoot = Join-Path $workspaceRoot ".tmp\opsxj"
-    New-Item -ItemType Directory -Path $worktreeRoot -Force | Out-Null
-    $repoSlug = (To-KebabCase $RepoName)
-    if ($repoSlug.Length -gt 12) { $repoSlug = $repoSlug.Substring(0, 12).Trim("-") }
-    $changeSlug = $ChangeName
-    if ($changeSlug.Length -gt 24) { $changeSlug = $changeSlug.Substring(0, 24).Trim("-") }
-    $worktreePath = Join-Path $worktreeRoot ("{0}-{1}" -f $repoSlug, $changeSlug)
-    if (Test-Path -LiteralPath $worktreePath) {
-        Remove-Item -Path $worktreePath -Recurse -Force
-    }
+    $markerRelativePath = Write-OrchestratedRepoMarker -RepoRoot $executionRoot -RepoName $RepoName -ChangeName $ChangeName -Issue $Issue -CoordinatorRepoRoot $CoordinatorRepoRoot
+    $pr = Ensure-RepoMarkerPullRequest -RepoRoot $executionRoot -RepoName $RepoName -BranchName $ChangeName -Issue $Issue -MarkerRelativePath $markerRelativePath -Mode $Mode
 
-    try {
-        Invoke-GitAtRepoRoot -RepoRoot $targetRepoRoot -CliArgs @("worktree", "add", "--detach", $worktreePath, "HEAD") | Out-Null
-        $markerRelativePath = Write-OrchestratedRepoMarker -RepoRoot $worktreePath -RepoName $RepoName -ChangeName $ChangeName -Issue $Issue -CoordinatorRepoRoot $CoordinatorRepoRoot
-        $pr = Ensure-RepoMarkerPullRequest -RepoRoot $worktreePath -RepoName $RepoName -BranchName $ChangeName -Issue $Issue -MarkerRelativePath $markerRelativePath -Mode $Mode
-
-        return @{
-            repo = $RepoName
-            branch = $pr.branch
-            url = $pr.url
-            created = [bool]$pr.created
-            committed = [bool]$pr.committed
-            repoRoot = $targetRepoRoot
-            marker = $markerRelativePath
-        }
-    }
-    finally {
-        try {
-            Invoke-GitAtRepoRoot -RepoRoot $targetRepoRoot -CliArgs @("worktree", "remove", "--force", $worktreePath) -IgnoreExitCode | Out-Null
-        }
-        catch {
-        }
+    return @{
+        repo = $RepoName
+        branch = $pr.branch
+        url = $pr.url
+        created = [bool]$pr.created
+        committed = [bool]$pr.committed
+        repoRoot = $targetRepoRoot
+        executionRoot = $executionRoot
+        executionMode = [string]$repoExecution.mode
+        checkoutState = $repoExecution.checkoutState
+        metadataPath = [string]$repoExecution.metadataPath
+        marker = $markerRelativePath
     }
 }
 
@@ -2198,16 +2666,19 @@ function Get-SyncImpactEntries {
     $entries = New-Object System.Collections.ArrayList
     $lines = Get-Content -Path $syncPath
     foreach ($line in $lines) {
-        if ($line -match '^\|\s*(?<repo>[^|]+)\|\s*(?<impact>[^|]+)\|\s*(?<motivo>[^|]*)\|\s*(?<opsnew>[^|]*)\|\s*(?<pr>[^|]*)\|\s*(?<opsarchive>[^|]*)\|\s*(?<status>[^|]*)\|') {
-            $repo = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
-            if ($repo -eq "Repo") { continue }
-            [void]$entries.Add([pscustomobject]@{
-                    repo = $repo.Trim()
-                    impact = (Normalize-SyncCellValue -Value ([string]$Matches["impact"])).ToLowerInvariant()
-                    pr = Normalize-SyncCellValue -Value ([string]$Matches["pr"])
-                    status = Normalize-SyncCellValue -Value ([string]$Matches["status"])
-                })
-        }
+        $row = ConvertFrom-SyncRow -Line $line
+        if ($null -eq $row) { continue }
+        $repo = [string]$row.repo
+        if ($repo -eq "Repo") { continue }
+        [void]$entries.Add([pscustomobject]@{
+                repo = $repo.Trim()
+                impact = ([string]$row.impact).ToLowerInvariant()
+                impactType = ([string]$row.impactType).ToLowerInvariant()
+                pr = [string]$row.pr
+                status = [string]$row.status
+                opsNew = [string]$row.opsNew
+                opsArchive = [string]$row.opsArchive
+            })
     }
 
     return @($entries.ToArray())
@@ -2225,7 +2696,7 @@ function Assert-SyncHasConcreteRepos {
     }
 
     $raw = Get-Content -Path $syncPath -Raw
-    if ($raw -match '\$repo(Name)?|\$impact|\$reason|\$opsNew|\$opsArchive|\$status|\$pr') {
+    if ($raw -match '\$repo(Name)?|\$impact(Type)?|\$reason|\$opsNew|\$opsArchive|\$status|\$pr') {
         throw "sync.md contains unresolved placeholder rows. Regenerate or repair sync.md before archive."
     }
 }
@@ -2315,6 +2786,7 @@ function Assert-AllImpactedPullRequestsMerged {
     $pending = New-Object System.Collections.Generic.List[string]
     foreach ($entry in $entries) {
         if ($entry.impact -ne "yes") { continue }
+        if ($entry.impactType -eq "traceability_only" -or $entry.impactType -eq "no_code_change") { continue }
         $status = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo ""
         if (-not $status.merged) {
             $pending.Add("$($entry.repo): $($entry.pr) [$($status.state)]")
@@ -2369,19 +2841,28 @@ function Assert-OrchestratedReposReadyForArchive {
         }
 
         $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
-        $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
-        if (-not $prStatus.merged) {
-            $pending.Add(("{0}: {1} [{2}]" -f $canonicalRepo, $entry.pr, $prStatus.state))
-            continue
+        $prStatus = @{
+            merged = $true
+            state = "not_required"
+            url = [string]$entry.pr
+        }
+        if ($entry.impactType -ne "traceability_only" -and $entry.impactType -ne "no_code_change") {
+            $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
+            if (-not $prStatus.merged) {
+                $pending.Add(("{0}: {1} [{2}]" -f $canonicalRepo, $entry.pr, $prStatus.state))
+                continue
+            }
         }
 
         $baseBranch = [string]$repoContext.baseBranch
-        try {
-            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
-        }
-        catch {
-            # In orchestrated archive, a merged PR is the source of truth.
-            # Satellite branches may already be deleted or no longer be direct ancestors.
+        if ($entry.impactType -ne "traceability_only" -and $entry.impactType -ne "no_code_change") {
+            try {
+                $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+            }
+            catch {
+                # In orchestrated archive, a merged PR is the source of truth.
+                # Satellite branches may already be deleted or no longer be direct ancestors.
+            }
         }
 
         $ready.Add([pscustomobject]@{
@@ -2390,6 +2871,7 @@ function Assert-OrchestratedReposReadyForArchive {
                 baseBranch = $baseBranch
                 pr = [string]$entry.pr
                 prUrl = [string]$prStatus.url
+                impactType = [string]$entry.impactType
             })
     }
 
@@ -2430,6 +2912,14 @@ function Push-OrchestratorArchive {
         $toolConfig = Get-ToolConfig
         $remoteName = $toolConfig.gitRemoteName
         if ([string]::IsNullOrWhiteSpace($remoteName)) { $remoteName = "origin" }
+        if ($env:OPSXJ_TEST_SKIP_GIT_PUSH -eq "1") {
+            return @{
+                pushed = $false
+                reason = "test-skip-push"
+                branch = $branch
+                remote = $remoteName
+            }
+        }
         Invoke-Git -CliArgs @("push", $remoteName, $branch) | Out-Null
         return @{
             pushed = $true
@@ -2574,22 +3064,23 @@ function Write-ChangeArtifacts {
             "",
             "## Impact Matrix",
             "",
-            "| Repo | Impacta? | Motivo | opsxj:new | PR | opsxj:archive | Estado |",
-            "|---|---|---|---|---|---|---|",
-            "| `DocuArchi.Api` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `DocuArchiCore` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `DocuArchiCore.Abstractions` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `DocuArchiCore.Web` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `MiApp.DTOs` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `MiApp.Services` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `MiApp.Repository` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
-            "| `MiApp.Models` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| Repo | Impacta? | Tipo impacto | Motivo | opsxj:new | PR | opsxj:archive | Estado |",
+            "|---|---|---|---|---|---|---|---|",
+            "| `DocuArchi.Api` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `DocuArchiCore` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `DocuArchiCore.Abstractions` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `DocuArchiCore.Web` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `MiApp.DTOs` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `MiApp.Services` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `MiApp.Repository` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
+            "| `MiApp.Models` | `pending` | `pending` | `pending` | `pending` | `pending` | `pending` | `todo` |",
             "",
             "## Rule",
             "",
-            "- Mark impacted repos first (`Impacta?` = `yes/no`).",
-            "- Run `opsxj:new $($Issue.key)` only in repos marked `yes`.",
-            "- Run `opsxj:archive $($Issue.key)` only after PR is merged in that repo."
+            '- Mark impacted repos first (`Impacta?` = `yes/no`) and classify `Tipo impacto`.',
+            '- `implementation_required` exige branch, commit, PR y merge para ese repo.',
+            '- `traceability_only` mantiene trazabilidad central sin obligar PR vacio.',
+            '- `no_code_change` deja el repo explicitamente fuera de cambios.'
         ) -join "`n"
     }
     $sync = Apply-ImpactSelectionToSync -SyncText $sync -SelectedRepos $SelectedRepos
@@ -2667,6 +3158,7 @@ function Invoke-OrchestrateNew {
     if ($selectedRepos -notcontains "DocuArchiCore") {
         $selectedRepos = @("DocuArchiCore") + @($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })
     }
+    $impactPlan = Resolve-OrchestratedImpactTypes -SelectedRepos $selectedRepos -RepoCatalog $repoCatalog
 
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_detection" -Status "ok" -Message "Orchestrated impacted repositories resolved." -Data @{ repos = @($selectedRepos) } -Mode $Mode
 
@@ -2682,6 +3174,7 @@ function Invoke-OrchestrateNew {
     $repoUpdates = @{
         "DocuArchiCore" = @{
             impact = "yes"
+            impactType = "implementation_required"
             reason = "orquestador openspec central"
             opsNew = "done"
             pr = [string]$coordinatorPr.url
@@ -2692,16 +3185,34 @@ function Invoke-OrchestrateNew {
 
     $satelliteResults = @()
     foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
+        $impactEntry = $impactPlan[$repoName]
+        $impactType = [string]$impactEntry.impactType
+        if ($impactType -eq "traceability_only" -or $impactType -eq "no_code_change") {
+            $repoUpdates[$repoName] = @{
+                impact = [string]$impactEntry.impact
+                impactType = $impactType
+                reason = [string]$impactEntry.reason
+                opsNew = "n/a"
+                pr = "n/a"
+                opsArchive = "pending"
+                status = "tracked"
+            }
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_skip_pr" -Status "ok" -Message "Satellite repo tracked without PR." -Data @{ repo = $repoName; impactType = $impactType } -Mode $Mode
+            continue
+        }
+
         $result = Invoke-OrchestratedRepoNew -WorkspaceRoot $workspaceRoot -RepoName $repoName -ChangeName $changeName -Issue $issue -CoordinatorRepoRoot $RepoRoot -Mode $Mode
         $satelliteResults += $result
         $repoUpdates[$repoName] = @{
             impact = "yes"
+            impactType = $impactType
+            reason = [string]$impactEntry.reason
             opsNew = "done"
             pr = [string]$result.url
             opsArchive = "pending"
             status = "in_review"
         }
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_pr" -Status "ok" -Message "Satellite PR ensured." -Data @{ repo = $repoName; url = $result.url; branch = $result.branch; created = [bool]$result.created } -Mode $Mode
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_pr" -Status "ok" -Message "Satellite PR ensured." -Data @{ repo = $repoName; url = $result.url; branch = $result.branch; created = [bool]$result.created; executionMode = [string]$result.executionMode; executionRoot = [string]$result.executionRoot; metadataPath = [string]$result.metadataPath } -Mode $Mode
     }
 
     $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
@@ -2731,6 +3242,13 @@ function Invoke-OrchestrateNew {
         }
         else {
             Write-Output ("Satellite PR already exists [{0}]: {1}" -f $result.repo, $result.url)
+        }
+    }
+    foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
+        $impactEntry = $impactPlan[$repoName]
+        if ($null -eq $impactEntry) { continue }
+        if ([string]$impactEntry.impactType -eq "traceability_only") {
+            Write-Output ("Satellite repo tracked without PR [{0}]: traceability_only" -f $repoName)
         }
     }
 }
@@ -3010,32 +3528,42 @@ function Invoke-OrchestrateArchive {
     Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_start" -Status "ok" -Message "Orchestrated archive flow started." -Data @{ change = $changeName } -Mode $Mode
 
+    $preCleanup = Remove-OrchestratedIssueArtifacts -RepoRoot $RepoRoot -IssueKey $issueKey -ChangeName $changeName
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_cleanup_pre" -Status "ok" -Message "Pre-archive orchestrated artifacts cleanup executed." -Data $preCleanup -Mode $Mode
+
     try {
-        $readyRepos = @(Assert-OrchestratedReposReadyForArchive -RepoRoot $RepoRoot -ChangeName $changeName)
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "ok" -Message "All orchestrated repos validated as merged." -Data @{ change = $changeName; repos = @($readyRepos) } -Mode $Mode
-    }
-    catch {
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "error" -Message "Orchestrated merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message } -Mode $Mode
-        throw
-    }
-
-    $repoUpdates = @{}
-    foreach ($repo in $readyRepos) {
-        $repoUpdates[[string]$repo.repo] = @{
-            impact = "yes"
-            opsArchive = "done"
-            status = "archived"
+        try {
+            $readyRepos = @(Assert-OrchestratedReposReadyForArchive -RepoRoot $RepoRoot -ChangeName $changeName)
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "ok" -Message "All orchestrated repos validated as merged." -Data @{ change = $changeName; repos = @($readyRepos) } -Mode $Mode
         }
-    }
+        catch {
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "error" -Message "Orchestrated merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message } -Mode $Mode
+            throw
+        }
 
-    $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
-    $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
-    if ($syncChanged) {
-        Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_sync_update" -Status "ok" -Message "sync.md updated before archive." -Data @{ change = $changeName } -Mode $Mode
-    }
+        $repoUpdates = @{}
+        foreach ($repo in $readyRepos) {
+            $repoUpdates[[string]$repo.repo] = @{
+                impact = "yes"
+                impactType = [string]$repo.impactType
+                opsArchive = "done"
+                status = "archived"
+            }
+        }
 
-    Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
+        $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
+        $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
+        if ($syncChanged) {
+            Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_sync_update" -Status "ok" -Message "sync.md updated before archive." -Data @{ change = $changeName } -Mode $Mode
+        }
+
+        Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
+    }
+    finally {
+        $postCleanup = Remove-OrchestratedIssueArtifacts -RepoRoot $RepoRoot -IssueKey $issueKey -ChangeName $changeName
+        Write-Output ("Orchestrated cleanup completed: worktrees={0}, metadata={1}, logs={2}, locks={3}" -f $postCleanup.worktreesRemoved, $postCleanup.metadataRemoved, $postCleanup.logsRemoved, $postCleanup.locksRemoved)
+    }
 }
 
 function Get-JiraPendingJql {
