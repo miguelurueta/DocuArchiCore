@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-90`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | <definir alcance> | done | https://github.com/miguelurueta/DocuArchi.Api/pull/32 | pending | in_review |
-| DocuArchiCore | yes | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/91 | pending | in_review |
+| DocuArchi.Api | yes | <definir alcance> | done | https://github.com/miguelurueta/DocuArchi.Api/pull/32 | done | archived |
+| DocuArchiCore | yes | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/91 | done | archived |
 | DocuArchiCore.Abstractions | no | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.DTOs/pull/19 | pending | in_review |
-| MiApp.Services | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Services/pull/43 | pending | in_review |
-| MiApp.Repository | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Repository/pull/22 | pending | in_review |
-| MiApp.Models | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Models/pull/9 | pending | in_review |
+| MiApp.DTOs | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.DTOs/pull/19 | done | archived |
+| MiApp.Services | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Services/pull/43 | done | archived |
+| MiApp.Repository | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Repository/pull/22 | done | archived |
+| MiApp.Models | yes | <definir alcance> | done | https://github.com/miguelurueta/MiApp.Models/pull/9 | done | archived |
 
 ## Operating Rule
 
