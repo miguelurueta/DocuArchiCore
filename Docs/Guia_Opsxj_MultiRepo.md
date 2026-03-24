@@ -1,6 +1,6 @@
 # Guia opsxj Multi-Repo
 
-Esta guia define como trabajar tickets Jira en un entorno con repositorios separados usando `opsxj:new` y `opsxj:archive`.
+Esta guia define como trabajar tickets Jira en un entorno con repositorios separados usando `opsxj:new`, `opsxj:orchestrate:new`, `opsxj:archive` y `opsxj:orchestrate:archive`.
 
 ## Objetivo
 
@@ -13,7 +13,9 @@ Esta guia define como trabajar tickets Jira en un entorno con repositorios separ
 - Repos ejecutores (codigo): `DocuArchi.Api`, `MiApp.Services`, `MiApp.Repository`, `MiApp.DTOs`, `MiApp.Models`, etc.
 - Repo coordinador (documentacion/seguimiento): `DocuArchiCore` (OpenSpec y matriz de impacto).
 
-Regla: `opsxj` se ejecuta en el repo donde vive el cambio de codigo.
+Regla:
+- `opsxj:new` se ejecuta en el repo donde vive el cambio de codigo.
+- `opsxj:orchestrate:new` se ejecuta solo en `DocuArchiCore` cuando el ticket impacta varios repos y se quiere centralizar OpenSpec.
 
 ## Configuracion minima por repo
 
@@ -40,12 +42,13 @@ Notas:
 ## Flujo por ticket (ABC-123)
 
 1. En coordinador, definir repos impactados en `sync.md` (matriz impacto).
-2. En cada repo marcado `yes`:
-   - `npm.cmd --prefix Tools/jira-open run opsxj:new -- ABC-123`
+2. Elegir modo:
+   - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:new -- ABC-123`
+   - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:new -- ABC-123 -NonInteractive`
 3. Trabajar codigo, abrir/revisar PR, mergear.
-4. En cada repo mergeado:
-   - `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123`
-5. Actualizar coordinador con links PR y estado final.
+4. Archivar cuando todos los PRs impactados esten mergeados.
+   - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123 -NonInteractive`
+   - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:archive -- ABC-123 -NonInteractive`
 
 ## Flujo objetivo reforzado
 
