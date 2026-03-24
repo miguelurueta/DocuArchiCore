@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet("new", "archive", "jira-done", "doctor", "jira-pending")]
+    [ValidateSet("new", "orchestrate:new", "archive", "orchestrate:archive", "jira-done", "doctor", "jira-pending")]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -189,6 +189,17 @@ function Get-RepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
 }
 
+function Get-OrchestratorWorkspaceRoot {
+    param([string]$RepoRoot)
+
+    $repoDir = Get-Item -LiteralPath $RepoRoot
+    if ($null -eq $repoDir.Parent) {
+        throw "Workspace root could not be resolved for '$RepoRoot'."
+    }
+
+    return $repoDir.Parent.FullName
+}
+
 function Get-ImpactRepoCatalog {
     return @(
         "DocuArchi.Api",
@@ -291,7 +302,7 @@ function Apply-ImpactSelectionToSync {
             $pr = if ($isImpacted) { "pending" } else { "n/a" }
             $opsArchive = if ($isImpacted) { "pending" } else { "n/a" }
             $status = if ($isImpacted) { "todo" } else { "n_a" }
-            $lines[$i] = "| `$repo` | `$impact` | `$motivo` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
+            $lines[$i] = ("| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` |" -f $repo, $impact, $motivo, $opsNew, $pr, $opsArchive, $status)
         }
     }
 
@@ -312,6 +323,74 @@ function Normalize-SyncCellValue {
     }
 
     return $normalized.Trim()
+}
+
+function Resolve-RepoRootForCatalogName {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
+        throw "Workspace root is required."
+    }
+    if ([string]::IsNullOrWhiteSpace($RepoName)) {
+        throw "Repository name is required."
+    }
+
+    $candidate = Join-Path $WorkspaceRoot $RepoName
+    if ($RepoName -ieq "DocuArchiCore") {
+        $nestedCandidate = Join-Path $candidate "DocuArchiCore"
+        if (Test-Path -LiteralPath $nestedCandidate) {
+            return (Resolve-Path -LiteralPath $nestedCandidate).Path
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $candidate)) {
+        throw "Repository path not found for '$RepoName': $candidate"
+    }
+
+    return (Resolve-Path -LiteralPath $candidate).Path
+}
+
+function Invoke-GitAtRepoRoot {
+    param(
+        [string]$RepoRoot,
+        [string[]]$CliArgs,
+        [switch]$IgnoreExitCode
+    )
+
+    Push-Location $RepoRoot
+    try {
+        return Invoke-Git -CliArgs $CliArgs -IgnoreExitCode:$IgnoreExitCode
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Resolve-GitHubRepoForRepoRoot {
+    param([string]$RepoRoot)
+
+    Push-Location $RepoRoot
+    try {
+        $toolConfig = Get-ToolConfig
+        $remoteName = [string]$toolConfig.gitRemoteName
+        if ([string]::IsNullOrWhiteSpace($remoteName)) { $remoteName = "origin" }
+        $githubRepo = [string]$toolConfig.githubRepo
+        if ([string]::IsNullOrWhiteSpace($githubRepo)) {
+            $githubRepo = Resolve-GitHubRepoFromRemote -RemoteName $remoteName
+        }
+
+        return [pscustomobject]@{
+            remoteName = $remoteName
+            githubRepo = $githubRepo
+            baseBranch = Get-DefaultBaseBranch -RemoteName $remoteName -ConfiguredBaseBranch $toolConfig.gitBaseBranch
+        }
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 function Write-OpsxjLog {
@@ -817,7 +896,7 @@ function Invoke-Preflight {
     }
 
     Assert-ToolAvailable -ToolName "git"
-    if ($CommandName -in @("new", "archive", "doctor")) {
+    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive", "doctor")) {
         Assert-ToolAvailable -ToolName "openspec.cmd"
     }
 
@@ -833,7 +912,7 @@ function Invoke-Preflight {
         throw "Missing Jira configuration. Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN."
     }
 
-    if ($CommandName -in @("new", "archive")) {
+    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive")) {
         if ($Mode -eq "noninteractive" -and [string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
             throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
         }
@@ -842,7 +921,7 @@ function Invoke-Preflight {
         }
     }
 
-    if ($CommandName -in @("new", "archive")) {
+    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive")) {
         Assert-CleanWorkingTree -Reason ("opsxj:{0}" -f $CommandName)
     }
 
@@ -1406,6 +1485,294 @@ function Ensure-GitHubPullRequest {
     }
 }
 
+function Ensure-CommitForPaths {
+    param(
+        [string[]]$Paths,
+        [string]$CommitMessage
+    )
+
+    if ($null -eq $Paths -or $Paths.Count -eq 0) {
+        throw "At least one path is required to create a commit."
+    }
+
+    $gitArgs = @("add", "--")
+    $gitArgs += $Paths
+    Invoke-Git -CliArgs $gitArgs | Out-Null
+
+    $diffArgs = @("diff", "--cached", "--name-only", "--")
+    $diffArgs += $Paths
+    $staged = Invoke-Git -CliArgs $diffArgs
+    if (-not $staged) {
+        return $false
+    }
+
+    Invoke-Git -CliArgs @("commit", "-m", $CommitMessage) | Out-Null
+    return $true
+}
+
+function Get-OrchestratedRepoMarkerRelativePath {
+    param(
+        [string]$RepoName,
+        [string]$ChangeName
+    )
+
+    $repoSlug = To-KebabCase $RepoName
+    return ".opsxj/orchestrator/$repoSlug/$ChangeName.md"
+}
+
+function Write-OrchestratedRepoMarker {
+    param(
+        [string]$RepoRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [hashtable]$Issue,
+        [string]$CoordinatorRepoRoot
+    )
+
+    $relativePath = Get-OrchestratedRepoMarkerRelativePath -RepoName $RepoName -ChangeName $ChangeName
+    $markerPath = Join-Path $RepoRoot $relativePath
+    $markerDir = Split-Path -Parent $markerPath
+    New-Item -ItemType Directory -Path $markerDir -Force | Out-Null
+
+    $content = @(
+        "# opsxj orchestrated change marker",
+        "",
+        "- issue: $($Issue.key)",
+        "- change: $ChangeName",
+        "- repo: $RepoName",
+        "- orchestrator: $CoordinatorRepoRoot",
+        "- jira: $($Issue.url)",
+        "- created: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')"
+    ) -join "`n"
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($markerPath, $content, $utf8NoBom)
+
+    return $relativePath
+}
+
+function Get-FakePullRequestUrlForRepo {
+    param([string]$RepoName)
+
+    $repoSlug = (To-KebabCase $RepoName).Replace("-", "_").ToUpperInvariant()
+    $repoSpecific = [Environment]::GetEnvironmentVariable("OPSXJ_TEST_FAKE_PR_URL_$repoSlug")
+    if (-not [string]::IsNullOrWhiteSpace($repoSpecific)) {
+        return $repoSpecific.Trim()
+    }
+
+    return [string]$env:OPSXJ_TEST_FAKE_PR_URL
+}
+
+function Ensure-RepoMarkerPullRequest {
+    param(
+        [string]$RepoRoot,
+        [string]$RepoName,
+        [string]$BranchName,
+        [hashtable]$Issue,
+        [string]$MarkerRelativePath,
+        [string]$Mode = "legacy"
+    )
+
+    Push-Location $RepoRoot
+    try {
+        $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+        $remoteName = [string]$repoContext.remoteName
+        $githubRepo = [string]$repoContext.githubRepo
+        $baseBranch = [string]$repoContext.baseBranch
+        $toolConfig = Get-ToolConfig
+        $githubToken = [string]$toolConfig.githubToken
+        $fakePrUrl = Get-FakePullRequestUrlForRepo -RepoName $RepoName
+
+        Assert-GitHubPrerequisites -SkipGhAuth:([bool]$fakePrUrl) -RemoteName $remoteName -Mode $Mode
+
+        $existing = Get-ExistingPullRequest -BranchName $BranchName -Repo $githubRepo
+        if ($existing) {
+            return @{
+                created = $false
+                url = [string]$existing.url
+                title = [string]$existing.title
+                branch = $BranchName
+                committed = $false
+            }
+        }
+
+        $commitTitle = "$($Issue.key): orchestrate $RepoName"
+        if ($commitTitle.Length -gt 120) {
+            $commitTitle = $commitTitle.Substring(0, 120)
+        }
+        $createdCommit = Ensure-CommitForPaths -Paths @($MarkerRelativePath) -CommitMessage $commitTitle
+
+        if ($env:OPSXJ_TEST_SKIP_GIT_PUSH -ne "1") {
+            Invoke-Git -CliArgs @("push", $remoteName, ("HEAD:refs/heads/{0}" -f $BranchName)) | Out-Null
+        }
+
+        if ($fakePrUrl) {
+            return @{
+                created = $true
+                url = $fakePrUrl
+                title = $Issue.summary
+                branch = $BranchName
+                committed = $createdCommit
+            }
+        }
+
+        $prTitle = $Issue.summary
+        if (-not $prTitle) { $prTitle = "Issue $($Issue.key)" }
+        $prBody = @(
+            "Generated by opsxj:orchestrate:new from Jira issue $($Issue.key).",
+            "",
+            "- Jira: $($Issue.url)",
+            "- Orchestrated repo marker: $MarkerRelativePath"
+        ) -join "`n"
+
+        if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+            if ([string]::IsNullOrWhiteSpace($githubRepo)) {
+                throw "GitHub repository could not be resolved for token-based PR creation."
+            }
+            $createdPr = Invoke-GitHubApi -Method "Post" -Uri "https://api.github.com/repos/$githubRepo/pulls" -Body @{
+                title = $prTitle
+                head = $BranchName
+                base = $baseBranch
+                body = $prBody
+            } -Token $githubToken
+            $prUrl = [string]$createdPr.html_url
+        }
+        else {
+            $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $BranchName, "--title", $prTitle, "--body", $prBody)
+            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                $createArgs += @("--repo", $githubRepo)
+            }
+            $prUrl = Invoke-Gh -CliArgs $createArgs
+        }
+
+        if (-not $prUrl) {
+            $createdPr = Get-ExistingPullRequest -BranchName $BranchName -Repo $githubRepo
+            if ($createdPr) {
+                $prUrl = [string]$createdPr.url
+            }
+        }
+        if (-not $prUrl) {
+            throw "Pull request was created but URL could not be resolved from GitHub."
+        }
+
+        return @{
+            created = $true
+            url = $prUrl
+            title = $prTitle
+            branch = $BranchName
+            committed = $createdCommit
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Update-SyncRows {
+    param(
+        [string]$SyncPath,
+        [hashtable]$RepoUpdates
+    )
+
+    if (-not (Test-Path -LiteralPath $SyncPath)) {
+        throw "sync.md not found: $SyncPath"
+    }
+    if ($null -eq $RepoUpdates -or $RepoUpdates.Count -eq 0) {
+        return $false
+    }
+
+    $lines = @(Get-Content -Path $SyncPath)
+    $changed = $false
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        if ($line -notmatch '^\|\s*(?<repo>[^|]+)\|(?<impact>[^|]+)\|(?<reason>[^|]+)\|(?<opsNew>[^|]+)\|(?<pr>[^|]+)\|(?<opsArchive>[^|]+)\|(?<status>[^|]+)\|') {
+            continue
+        }
+
+        $repoName = Normalize-SyncCellValue -Value ([string]$Matches["repo"])
+        if (-not $RepoUpdates.ContainsKey($repoName)) {
+            continue
+        }
+
+        $update = $RepoUpdates[$repoName]
+        $impact = if ($null -ne $update.impact) { [string]$update.impact } else { Normalize-SyncCellValue -Value ([string]$Matches["impact"]) }
+        $reason = if ($null -ne $update.reason) { [string]$update.reason } else { Normalize-SyncCellValue -Value ([string]$Matches["reason"]) }
+        $opsNew = if ($null -ne $update.opsNew) { [string]$update.opsNew } else { Normalize-SyncCellValue -Value ([string]$Matches["opsNew"]) }
+        $pr = if ($null -ne $update.pr) { [string]$update.pr } else { Normalize-SyncCellValue -Value ([string]$Matches["pr"]) }
+        $opsArchive = if ($null -ne $update.opsArchive) { [string]$update.opsArchive } else { Normalize-SyncCellValue -Value ([string]$Matches["opsArchive"]) }
+        $status = if ($null -ne $update.status) { [string]$update.status } else { Normalize-SyncCellValue -Value ([string]$Matches["status"]) }
+
+        $newLine = "| `$repoName` | `$impact` | `$reason` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
+        if ($newLine -ne $line) {
+            $lines[$i] = $newLine
+            $changed = $true
+        }
+    }
+
+    if ($changed) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($SyncPath, ($lines -join "`n"), $utf8NoBom)
+    }
+
+    return $changed
+}
+
+function Invoke-OrchestratedRepoNew {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [hashtable]$Issue,
+        [string]$CoordinatorRepoRoot,
+        [string]$Mode = "legacy"
+    )
+
+    $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName
+    $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
+    $existing = Get-ExistingPullRequest -BranchName $ChangeName -Repo $repoContext.githubRepo
+    if ($existing) {
+        return @{
+            repo = $RepoName
+            branch = $ChangeName
+            url = [string]$existing.url
+            created = $false
+            committed = $false
+            repoRoot = $targetRepoRoot
+            marker = Get-OrchestratedRepoMarkerRelativePath -RepoName $RepoName -ChangeName $ChangeName
+        }
+    }
+
+    $worktreeRoot = Join-Path $CoordinatorRepoRoot ".tmp\opsxj-orchestrate"
+    New-Item -ItemType Directory -Path $worktreeRoot -Force | Out-Null
+    $worktreePath = Join-Path $worktreeRoot ("{0}-{1}" -f (To-KebabCase $RepoName), $ChangeName)
+    if (Test-Path -LiteralPath $worktreePath) {
+        Remove-Item -Path $worktreePath -Recurse -Force
+    }
+
+    try {
+        Invoke-GitAtRepoRoot -RepoRoot $targetRepoRoot -CliArgs @("worktree", "add", "--detach", $worktreePath, "HEAD") | Out-Null
+        $markerRelativePath = Write-OrchestratedRepoMarker -RepoRoot $worktreePath -RepoName $RepoName -ChangeName $ChangeName -Issue $Issue -CoordinatorRepoRoot $CoordinatorRepoRoot
+        $pr = Ensure-RepoMarkerPullRequest -RepoRoot $worktreePath -RepoName $RepoName -BranchName $ChangeName -Issue $Issue -MarkerRelativePath $markerRelativePath -Mode $Mode
+
+        return @{
+            repo = $RepoName
+            branch = $pr.branch
+            url = $pr.url
+            created = [bool]$pr.created
+            committed = [bool]$pr.committed
+            repoRoot = $targetRepoRoot
+            marker = $markerRelativePath
+        }
+    }
+    finally {
+        try {
+            Invoke-GitAtRepoRoot -RepoRoot $targetRepoRoot -CliArgs @("worktree", "remove", "--force", $worktreePath) -IgnoreExitCode | Out-Null
+        }
+        catch {
+        }
+    }
+}
+
 function Assert-ChangeMergedInGit {
     param(
         [string]$RepoRoot,
@@ -1939,6 +2306,75 @@ function Assert-AllImpactedPullRequestsMerged {
     return $entries
 }
 
+function Assert-OrchestratedReposReadyForArchive {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $RepoRoot
+    $entries = @(Get-SyncImpactEntries -RepoRoot $RepoRoot -ChangeName $ChangeName)
+    if ($entries.Count -eq 0) {
+        return @()
+    }
+
+    $catalog = Get-ImpactRepoCatalog
+    $catalogLookup = @{}
+    foreach ($repo in $catalog) {
+        $catalogLookup[$repo.ToLowerInvariant()] = $repo
+    }
+
+    $ready = New-Object System.Collections.Generic.List[object]
+    $pending = New-Object System.Collections.Generic.List[string]
+    foreach ($entry in $entries) {
+        if ($entry.impact -ne "yes") { continue }
+
+        $repoName = [string]$entry.repo
+        if (-not $catalogLookup.ContainsKey($repoName.ToLowerInvariant())) {
+            $pending.Add("$repoName: repo fuera del catalogo")
+            continue
+        }
+
+        $canonicalRepo = $catalogLookup[$repoName.ToLowerInvariant()]
+        try {
+            $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $workspaceRoot -RepoName $canonicalRepo
+        }
+        catch {
+            $pending.Add("$canonicalRepo: $($_.Exception.Message)")
+            continue
+        }
+
+        try {
+            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+        }
+        catch {
+            $pending.Add("$canonicalRepo: $($_.Exception.Message)")
+            continue
+        }
+
+        $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
+        $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
+        if (-not $prStatus.merged) {
+            $pending.Add("$canonicalRepo: $($entry.pr) [$($prStatus.state)]")
+            continue
+        }
+
+        $ready.Add([pscustomobject]@{
+                repo = $canonicalRepo
+                repoRoot = $targetRepoRoot
+                baseBranch = $baseBranch
+                pr = [string]$entry.pr
+                prUrl = [string]$prStatus.url
+            })
+    }
+
+    if ($pending.Count -gt 0) {
+        throw "No se puede archivar en modo orquestado: existen repos/PRs sin merge. $($pending -join '; ')"
+    }
+
+    return @($ready.ToArray())
+}
+
 function Push-OrchestratorArchive {
     param(
         [string]$RepoRoot,
@@ -2107,9 +2543,9 @@ function Write-ChangeArtifacts {
         $sync = @(
             "## Repo Impact Plan",
             "",
-            "Ticket: `$($Issue.key)`  ",
-            "Summary: `$($Issue.summary)`  ",
-            "Change: `openspec/changes/$ChangeName/`",
+            ("Ticket: {0}  " -f $Issue.key),
+            ("Summary: {0}  " -f $Issue.summary),
+            ("Change: openspec/changes/{0}/" -f $ChangeName),
             "",
             "## Impact Matrix",
             "",
@@ -2171,6 +2607,107 @@ function Resolve-ChangeNameFromIssueKey {
     }
 
     return $matches[0].Name
+}
+
+function Invoke-OrchestrateNew {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey,
+        [switch]$SelectRepos,
+        [switch]$Reopen,
+        [string]$Mode = "legacy"
+    )
+
+    if ((Split-Path -Leaf $RepoRoot) -ne "DocuArchiCore") {
+        throw "opsxj:orchestrate:new must run from the DocuArchiCore orchestrator repository."
+    }
+
+    $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $RepoRoot
+    $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
+    $repoCatalog = Get-ImpactRepoCatalog
+    $catalogLookup = @{}
+    foreach ($repo in $repoCatalog) {
+        $catalogLookup[$repo.ToLowerInvariant()] = $repo
+    }
+    $resolvedRepos = @(Resolve-ImpactReposForIssue -Issue $issue -RepoCatalog $repoCatalog -SelectRepos:$SelectRepos)
+    $selectedRepos = @(
+        $resolvedRepos |
+            Where-Object {
+                $candidate = [string]$_
+                -not [string]::IsNullOrWhiteSpace($candidate) -and $catalogLookup.ContainsKey($candidate.ToLowerInvariant())
+            } |
+            ForEach-Object { $catalogLookup[([string]$_).ToLowerInvariant()] } |
+            Select-Object -Unique
+    )
+    if ($selectedRepos -notcontains "DocuArchiCore") {
+        $selectedRepos = @("DocuArchiCore") + @($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })
+    }
+
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_detection" -Status "ok" -Message "Orchestrated impacted repositories resolved." -Data @{ repos = @($selectedRepos) } -Mode $Mode
+
+    Invoke-New -RepoRoot $RepoRoot -IssueKey $IssueKey -SelectRepos:$SelectRepos -Reopen:$Reopen -Mode $Mode
+    $changeName = Resolve-ChangeNameFromIssueKey -RepoRoot $RepoRoot -IssueKey $issue.key
+
+    $coordinatorRepoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+    $coordinatorPr = Ensure-GitHubPullRequest -RepoRoot $RepoRoot -ChangeName $changeName -Issue $issue -Mode $Mode
+    if (-not $coordinatorPr) {
+        throw "Coordinator PR could not be resolved after opsxj:new for '$changeName'."
+    }
+
+    $repoUpdates = @{
+        "DocuArchiCore" = @{
+            impact = "yes"
+            reason = "orquestador openspec central"
+            opsNew = "done"
+            pr = [string]$coordinatorPr.url
+            opsArchive = "pending"
+            status = "in_review"
+        }
+    }
+
+    $satelliteResults = @()
+    foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
+        $result = Invoke-OrchestratedRepoNew -WorkspaceRoot $workspaceRoot -RepoName $repoName -ChangeName $changeName -Issue $issue -CoordinatorRepoRoot $RepoRoot -Mode $Mode
+        $satelliteResults += $result
+        $repoUpdates[$repoName] = @{
+            impact = "yes"
+            opsNew = "done"
+            pr = [string]$result.url
+            opsArchive = "pending"
+            status = "in_review"
+        }
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_pr" -Status "ok" -Message "Satellite PR ensured." -Data @{ repo = $repoName; url = $result.url; branch = $result.branch; created = [bool]$result.created } -Mode $Mode
+    }
+
+    $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
+    $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
+    if ($syncChanged) {
+        Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+        Push-Location $RepoRoot
+        try {
+            $commitMessage = "$($issue.key): sync orchestrated PRs"
+            if ($commitMessage.Length -gt 120) {
+                $commitMessage = $commitMessage.Substring(0, 120)
+            }
+            $createdCommit = Ensure-CommitForChangeArtifacts -ChangeName $changeName -CommitMessage $commitMessage
+            if ($createdCommit -and $env:OPSXJ_TEST_SKIP_GIT_PUSH -ne "1") {
+                Invoke-Git -CliArgs @("push", "--set-upstream", $coordinatorRepoContext.remoteName, $changeName) | Out-Null
+            }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    Write-Output "Orchestrated repos: $($selectedRepos -join ', ')"
+    foreach ($result in $satelliteResults) {
+        if ($result.created) {
+            Write-Output ("Satellite PR created [{0}]: {1}" -f $result.repo, $result.url)
+        }
+        else {
+            Write-Output ("Satellite PR already exists [{0}]: {1}" -f $result.repo, $result.url)
+        }
+    }
 }
 
 function Invoke-New {
@@ -2414,6 +2951,68 @@ function Invoke-Archive {
     }
 }
 
+function Invoke-OrchestrateArchive {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueOrChange,
+        [switch]$Yes,
+        [switch]$SkipSpecs,
+        [switch]$NoValidate,
+        [switch]$SkipJira,
+        [string]$Mode = "legacy"
+    )
+
+    if ((Split-Path -Leaf $RepoRoot) -ne "DocuArchiCore") {
+        throw "opsxj:orchestrate:archive must run from the DocuArchiCore orchestrator repository."
+    }
+
+    if ($NoValidate) {
+        throw "Policy enforced: -NoValidate is not allowed in opsxj:orchestrate:archive."
+    }
+    if ($SkipJira) {
+        throw "Policy enforced: -SkipJira is not allowed in opsxj:orchestrate:archive."
+    }
+
+    $issueKey = if ($IssueOrChange -match "^[A-Za-z]+-\d+$") { $IssueOrChange.ToUpperInvariant() } else { $null }
+    $changeName = $IssueOrChange
+    if ($IssueOrChange -match "^[A-Za-z]+-\d+$") {
+        $changeName = Resolve-ChangeNameFromIssueKey -RepoRoot $RepoRoot -IssueKey $IssueOrChange.ToUpperInvariant()
+    }
+    if (-not $issueKey) {
+        $issueKey = Get-IssueKeyFromChangeName -ChangeName $changeName
+    }
+
+    Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_start" -Status "ok" -Message "Orchestrated archive flow started." -Data @{ change = $changeName } -Mode $Mode
+
+    try {
+        $readyRepos = @(Assert-OrchestratedReposReadyForArchive -RepoRoot $RepoRoot -ChangeName $changeName)
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "ok" -Message "All orchestrated repos validated as merged." -Data @{ change = $changeName; repos = @($readyRepos) } -Mode $Mode
+    }
+    catch {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_merge_validation" -Status "error" -Message "Orchestrated merge validation failed." -Data @{ change = $changeName; error = $_.Exception.Message } -Mode $Mode
+        throw
+    }
+
+    $repoUpdates = @{}
+    foreach ($repo in $readyRepos) {
+        $repoUpdates[[string]$repo.repo] = @{
+            impact = "yes"
+            opsArchive = "done"
+            status = "archived"
+        }
+    }
+
+    $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
+    $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
+    if ($syncChanged) {
+        Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_sync_update" -Status "ok" -Message "sync.md updated before archive." -Data @{ change = $changeName } -Mode $Mode
+    }
+
+    Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
+}
+
 function Get-JiraPendingJql {
     param(
         [string]$Scope
@@ -2532,8 +3131,17 @@ try {
         }
         Invoke-New -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen -Mode $executionMode
     }
+    elseif ($Command -eq "orchestrate:new") {
+        if ($SkipJira) {
+            throw "Policy enforced: -SkipJira is not allowed in opsxj:orchestrate:new."
+        }
+        Invoke-OrchestrateNew -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen -Mode $executionMode
+    }
     elseif ($Command -eq "archive") {
         Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
+    }
+    elseif ($Command -eq "orchestrate:archive") {
+        Invoke-OrchestrateArchive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
     }
     elseif ($Command -eq "jira-done") {
         Invoke-JiraDone -IssueKey $IssueOrChange

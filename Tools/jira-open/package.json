@@ -12,6 +12,8 @@
     "opsxj:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 doctor",
     "opsxj:jira-pending": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 jira-pending",
     "opsxj:new": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 new",
+    "opsxj:orchestrate:new": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 orchestrate:new",
+    "opsxj:orchestrate:archive": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 orchestrate:archive",
     "opsxj:archive": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 archive",
     "opsxj:jira-done": "powershell -NoProfile -ExecutionPolicy Bypass -File ./opsxj.ps1 jira-done"
   }

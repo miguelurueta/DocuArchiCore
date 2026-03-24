@@ -45,6 +45,18 @@ Enterprise/headless mode:
 npm.cmd --prefix Tools/jira-open run opsxj:new -- <ISSUE-KEY> -NonInteractive
 ```
 
+Orchestrated multi-repo mode from `DocuArchiCore`:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:new -- <ISSUE-KEY> -NonInteractive
+```
+
+Orchestrated multi-repo archive from `DocuArchiCore`:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:archive -- <ISSUE-KEY|CHANGE-NAME> -NonInteractive
+```
+
 Run environment diagnostics before `new/archive`:
 
 ```powershell
@@ -111,6 +123,8 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
+- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore` and keeps OpenSpec centralized there while creating lightweight satellite PRs in the other impacted repositories.
+- `opsxj:orchestrate:archive -NonInteractive` must run from `DocuArchiCore` and archives only after validating merge real del branch del cambio y del PR asociado en cada repo impactado.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
 - `opsxj:doctor` validates tooling, clean working tree, Jira/GitHub token configuration, git remote/base branch, and optional Jira issue lookup.
 - `opsxj:doctor -NonInteractive` reports `execution_mode: noninteractive` and validates the same flow for headless use.
