@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-89`) to decide exactl
 
 | Repo | Impacta? | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | <definir alcance> | pending | pending | pending | todo |
-| DocuArchiCore | yes | <definir alcance> | pending | pending | pending | todo |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
 | DocuArchiCore.Abstractions | no | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | <definir alcance> | pending | pending | pending | todo |
-| MiApp.Services | yes | <definir alcance> | pending | pending | pending | todo |
-| MiApp.Repository | yes | <definir alcance> | pending | pending | pending | todo |
-| MiApp.Models | yes | <definir alcance> | pending | pending | pending | todo |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
+| $repoName | $impact | $reason | $opsNew | $pr | $opsArchive | $status |
 
 ## Operating Rule
 
