@@ -2368,19 +2368,20 @@ function Assert-OrchestratedReposReadyForArchive {
             continue
         }
 
-        try {
-            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
-        }
-        catch {
-            $pending.Add(("{0}: {1}" -f $canonicalRepo, $_.Exception.Message))
-            continue
-        }
-
         $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
         $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
         if (-not $prStatus.merged) {
             $pending.Add(("{0}: {1} [{2}]" -f $canonicalRepo, $entry.pr, $prStatus.state))
             continue
+        }
+
+        $baseBranch = [string]$repoContext.baseBranch
+        try {
+            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+        }
+        catch {
+            # In orchestrated archive, a merged PR is the source of truth.
+            # Satellite branches may already be deleted or no longer be direct ancestors.
         }
 
         $ready.Add([pscustomobject]@{
