@@ -1,6 +1,6 @@
 # Guia opsxj Multi-Repo
 
-Esta guia define como trabajar tickets Jira en un entorno con repositorios separados usando `opsxj:new`, `opsxj:orchestrate:new`, `opsxj:archive` y `opsxj:orchestrate:archive`.
+Esta guia define como trabajar tickets Jira en un entorno con repositorios separados usando `opsxj:new`, `opsxj:orchestrate:new`, `opsxj:orchestrate:publish`, `opsxj:archive` y `opsxj:orchestrate:archive`.
 
 ## Objetivo
 
@@ -16,7 +16,8 @@ Esta guia define como trabajar tickets Jira en un entorno con repositorios separ
 Regla:
 - `opsxj:new` se ejecuta en el repo donde vive el cambio de codigo.
 - `opsxj:orchestrate:new` se ejecuta solo en `DocuArchiCore` cuando el ticket impacta varios repos y se quiere centralizar OpenSpec.
-- `opsxj:orchestrate:new` ahora detecta repos satelite ocupados y los aisla en worktrees gestionados sin bloquear el checkout principal.
+- `opsxj:orchestrate:new` deja el ticket abierto y difiere los PRs satelite hasta que exista diff real.
+- `opsxj:orchestrate:publish` detecta repos satelite con implementacion real y solo ahi crea worktree/branch/PR si hace falta.
 
 ## Configuracion minima por repo
 
@@ -50,8 +51,11 @@ Notas:
 2. Elegir modo:
    - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:new -- ABC-123`
    - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:new -- ABC-123 -NonInteractive`
-3. Trabajar codigo, abrir/revisar PR, mergear.
-4. Archivar cuando todos los PRs impactados esten mergeados.
+3. Trabajar codigo.
+4. Publicar PRs reales:
+   - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:publish -- ABC-123 -NonInteractive`
+5. Revisar PRs y mergear.
+6. Archivar cuando todos los PRs impactados esten mergeados.
    - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123 -NonInteractive`
    - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:archive -- ABC-123 -NonInteractive`
 
@@ -66,15 +70,15 @@ La matriz `sync.md` ahora distingue:
 Reglas:
 
 - `DocuArchiCore` normalmente queda como `implementation_required` porque centraliza OpenSpec y `sync.md`
-- los repos satelite solo suben a `implementation_required` si aparecen en `OPSXJ_IMPLEMENTATION_REPOS`
-- sin `OPSXJ_IMPLEMENTATION_REPOS`, los satelites impactados quedan `traceability_only` por defecto y no abren PR vacio
+- `opsxj:orchestrate:new` deja los satelites como `traceability_only`/diferidos hasta que exista diff real
+- `opsxj:orchestrate:publish` promueve el repo a `implementation_required` solo cuando detecta implementacion publicable
 - `OPSXJ_TRACEABILITY_REPOS` permite dejar trazabilidad explicita en `sync.md`
 - `OPSXJ_READONLY_REPOS` sigue excluyendo repos de impacto real y los deja como `no_code_change`
 - `opsxj:orchestrate:archive` acepta PR satelite `MERGED` aunque GitHub ya haya borrado la branch remota del cambio
 
 ## Worktrees gestionados
 
-Cuando `opsxj:orchestrate:new` encuentra un repo impactado en cualquiera de estos estados:
+Cuando `opsxj:orchestrate:publish` encuentra un repo impactado en cualquiera de estos estados:
 
 - checkout sucio
 - rama distinta al branch del ticket
@@ -100,7 +104,7 @@ Reglas:
 2. IA detecta repos impactados por logica:
    - Si no hay confianza: aplica fallback automatico (catalogo completo) sin prompt.
 3. El cambio OpenSpec debe quedar completo hasta `Application` y `Test`.
-4. Se generan PRs por repo impactado.
+4. `opsxj:orchestrate:publish` genera PRs solo para repos con diff real.
 5. `opsxj:archive` valida que todos los PRs impactados esten mergeados.
 6. Solo con merge total:
    - archive local,
@@ -134,6 +138,12 @@ Probar aislamiento por worktree:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-worktree
+```
+
+Probar publish orquestado:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-publish
 ```
 
 Probar clasificacion de impacto:

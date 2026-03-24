@@ -53,6 +53,12 @@ Orchestrated multi-repo mode from `DocuArchiCore`:
 npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:new -- <ISSUE-KEY> -NonInteractive
 ```
 
+Publish satellite PRs from real diffs:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:publish -- <ISSUE-KEY> -NonInteractive
+```
+
 Orchestrated multi-repo archive from `DocuArchiCore`:
 
 ```powershell
@@ -95,6 +101,12 @@ Run orchestrated worktree flow tests:
 
 ```powershell
 npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-worktree
+```
+
+Run orchestrated publish flow tests:
+
+```powershell
+npm.cmd --prefix Tools/jira-open run opsxj:test-orchestrate-publish
 ```
 
 Run orchestrated impact classification tests:
@@ -143,10 +155,12 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
-- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, and now isolates busy satellite repositories in managed worktrees under `.tmp/opsxj/<ISSUE>/`.
+- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, opens only the coordinator PR, and defers satellite PR creation to `opsxj:orchestrate:publish`.
+- `opsxj:orchestrate:publish -NonInteractive` promotes only satellite repos with real diffs to `implementation_required`, creates/reuses managed worktrees when needed, and opens PRs only for those repos.
 - Managed satellite worktrees persist across reruns for the same issue/repo and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
 - `sync.md` now records both `Impacta?` and `Tipo impacto` with `implementation_required`, `traceability_only`, and `no_code_change`.
-- `opsxj:orchestrate:new` only opens satellite PRs for repos listed in `OPSXJ_IMPLEMENTATION_REPOS`; other impacted satellites stay `traceability_only` by default.
+- `opsxj:orchestrate:new` now leaves impacted satellites deferred/tracked until `opsxj:orchestrate:publish` detects a real implementation diff.
+- `opsxj:orchestrate:publish` updates `sync.md` from `traceability_only` to `implementation_required` when a satellite repo actually gets published.
 - `OPSXJ_TRACEABILITY_REPOS` remains available as an explicit label for repos that should stay traceability-only in `sync.md`.
 - `opsxj:orchestrate:archive -NonInteractive` must run from `DocuArchiCore` and archives only after validating merge real del branch del cambio y del PR asociado en cada repo impactado.
 - `opsxj:orchestrate:archive` now uses merged satellite PRs as the primary signal and tolerates deleted remote branches after merge.

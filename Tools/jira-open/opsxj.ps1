@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet("new", "orchestrate:new", "archive", "orchestrate:archive", "jira-done", "doctor", "jira-pending")]
+    [ValidateSet("new", "orchestrate:new", "orchestrate:publish", "archive", "orchestrate:archive", "jira-done", "doctor", "jira-pending")]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -1040,7 +1040,7 @@ function Invoke-Preflight {
     }
 
     Assert-ToolAvailable -ToolName "git"
-    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive", "doctor")) {
+    if ($CommandName -in @("new", "orchestrate:new", "orchestrate:publish", "archive", "orchestrate:archive", "doctor")) {
         Assert-ToolAvailable -ToolName "openspec.cmd"
     }
 
@@ -1056,7 +1056,7 @@ function Invoke-Preflight {
         throw "Missing Jira configuration. Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN."
     }
 
-    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive")) {
+    if ($CommandName -in @("new", "orchestrate:new", "orchestrate:publish", "archive", "orchestrate:archive")) {
         if ($Mode -eq "noninteractive" -and [string]::IsNullOrWhiteSpace([string]$toolConfig.githubToken)) {
             throw "Missing GITHUB_TOKEN. Token-based GitHub connection is required in -NonInteractive mode."
         }
@@ -1065,7 +1065,7 @@ function Invoke-Preflight {
         }
     }
 
-    if ($CommandName -in @("new", "orchestrate:new", "archive", "orchestrate:archive")) {
+    if ($CommandName -in @("new", "orchestrate:new", "orchestrate:publish", "archive", "orchestrate:archive")) {
         Assert-CleanWorkingTree -Reason ("opsxj:{0}" -f $CommandName)
     }
 
@@ -1647,6 +1647,19 @@ function Ensure-CommitForPaths {
     $diffArgs += $Paths
     $staged = Invoke-Git -CliArgs $diffArgs
     if (-not $staged) {
+        return $false
+    }
+
+    Invoke-Git -CliArgs @("commit", "-m", $CommitMessage) | Out-Null
+    return $true
+}
+
+function Ensure-CommitForWorkingTree {
+    param([string]$CommitMessage)
+
+    Invoke-Git -CliArgs @("add", "--all") | Out-Null
+    $staged = Invoke-Git -CliArgs @("diff", "--cached", "--name-only")
+    if ([string]::IsNullOrWhiteSpace($staged)) {
         return $false
     }
 
@@ -2259,6 +2272,228 @@ function Invoke-OrchestratedRepoNew {
         checkoutState = $repoExecution.checkoutState
         metadataPath = [string]$repoExecution.metadataPath
         marker = $markerRelativePath
+    }
+}
+
+function Get-OrchestratedRepoBaseRef {
+    param([string]$BaseBranch)
+
+    Invoke-Git -CliArgs @("show-ref", "--verify", "--quiet", "refs/remotes/origin/$BaseBranch") -IgnoreExitCode | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        return "refs/remotes/origin/$BaseBranch"
+    }
+
+    Invoke-Git -CliArgs @("show-ref", "--verify", "--quiet", "refs/heads/$BaseBranch") -IgnoreExitCode | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        return "refs/heads/$BaseBranch"
+    }
+
+    return $BaseBranch
+}
+
+function Get-OrchestratedRepoPublishState {
+    param(
+        [string]$RepoRoot,
+        [string]$RepoName,
+        [string]$ChangeName
+    )
+
+    Push-Location $RepoRoot
+    try {
+        $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+        $branchName = Ensure-ChangeBranch -BranchName $ChangeName
+        $existingPr = Get-ExistingPullRequest -BranchName $ChangeName -Repo $repoContext.githubRepo
+
+        $dirtyOutput = Invoke-Git -CliArgs @("status", "--porcelain")
+        $dirtyLines = @()
+        if (-not [string]::IsNullOrWhiteSpace($dirtyOutput)) {
+            $dirtyLines = @($dirtyOutput -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        $effectiveDirty = @(Get-EffectiveDirtyLines -DirtyLines $dirtyLines)
+        $hasWorkingChanges = ($effectiveDirty.Count -gt 0)
+
+        $baseRef = Get-OrchestratedRepoBaseRef -BaseBranch ([string]$repoContext.baseBranch)
+        $committedDiff = Invoke-Git -CliArgs @("diff", "--name-only", "$baseRef...HEAD") -IgnoreExitCode
+        $hasCommittedDiff = -not [string]::IsNullOrWhiteSpace($committedDiff)
+
+        return [pscustomobject]@{
+            repo = $RepoName
+            branch = $branchName
+            githubRepo = [string]$repoContext.githubRepo
+            remoteName = [string]$repoContext.remoteName
+            baseBranch = [string]$repoContext.baseBranch
+            existingPr = $existingPr
+            effectiveDirty = @($effectiveDirty)
+            hasWorkingChanges = [bool]$hasWorkingChanges
+            hasCommittedDiff = [bool]$hasCommittedDiff
+            hasChanges = [bool]($hasWorkingChanges -or $hasCommittedDiff)
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Ensure-OrchestratedRepoPublishPullRequest {
+    param(
+        [string]$RepoRoot,
+        [string]$RepoName,
+        [string]$BranchName,
+        [hashtable]$Issue,
+        [string]$Mode = "legacy"
+    )
+
+    Push-Location $RepoRoot
+    try {
+        $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+        $remoteName = [string]$repoContext.remoteName
+        $githubRepo = [string]$repoContext.githubRepo
+        $baseBranch = [string]$repoContext.baseBranch
+        $toolConfig = Get-ToolConfig
+        $githubToken = [string]$toolConfig.githubToken
+        $fakePrUrl = Get-FakePullRequestUrlForRepo -RepoName $RepoName
+
+        Assert-GitHubPrerequisites -SkipGhAuth:([bool]$fakePrUrl) -RemoteName $remoteName -Mode $Mode
+
+        $existing = Get-ExistingPullRequest -BranchName $BranchName -Repo $githubRepo
+        if ($existing) {
+            return @{
+                created = $false
+                url = [string]$existing.url
+                title = [string]$existing.title
+                branch = $BranchName
+                committed = $false
+            }
+        }
+
+        $commitTitle = "$($Issue.key): publish $RepoName"
+        if ($commitTitle.Length -gt 120) {
+            $commitTitle = $commitTitle.Substring(0, 120)
+        }
+        $createdCommit = Ensure-CommitForWorkingTree -CommitMessage $commitTitle
+
+        if ($env:OPSXJ_TEST_SKIP_GIT_PUSH -ne "1") {
+            Invoke-Git -CliArgs @("push", $remoteName, ("HEAD:refs/heads/{0}" -f $BranchName)) | Out-Null
+        }
+
+        if ($fakePrUrl) {
+            return @{
+                created = $true
+                url = $fakePrUrl
+                title = $Issue.summary
+                branch = $BranchName
+                committed = $createdCommit
+            }
+        }
+
+        $prTitle = $Issue.summary
+        if (-not $prTitle) { $prTitle = "Issue $($Issue.key)" }
+        $prBody = @(
+            "Generated by opsxj:orchestrate:publish from Jira issue $($Issue.key).",
+            "",
+            "- Jira: $($Issue.url)",
+            "- Satellite repo: $RepoName"
+        ) -join "`n"
+
+        if (-not [string]::IsNullOrWhiteSpace($githubToken)) {
+            if ([string]::IsNullOrWhiteSpace($githubRepo)) {
+                throw "GitHub repository could not be resolved for token-based PR creation."
+            }
+            $createdPr = Invoke-GitHubApi -Method "Post" -Uri "https://api.github.com/repos/$githubRepo/pulls" -Body @{
+                title = $prTitle
+                head = $BranchName
+                base = $baseBranch
+                body = $prBody
+            } -Token $githubToken
+            $prUrl = [string]$createdPr.html_url
+        }
+        else {
+            $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $BranchName, "--title", $prTitle, "--body", $prBody)
+            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                $createArgs += @("--repo", $githubRepo)
+            }
+            $prUrl = Invoke-Gh -CliArgs $createArgs
+        }
+
+        if (-not $prUrl) {
+            $createdPr = Get-ExistingPullRequest -BranchName $BranchName -Repo $githubRepo
+            if ($createdPr) {
+                $prUrl = [string]$createdPr.url
+            }
+        }
+        if (-not $prUrl) {
+            throw "Pull request was created but URL could not be resolved from GitHub."
+        }
+
+        return @{
+            created = $true
+            url = $prUrl
+            title = $prTitle
+            branch = $BranchName
+            committed = $createdCommit
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Invoke-OrchestratedRepoPublish {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$RepoName,
+        [string]$ChangeName,
+        [hashtable]$Issue,
+        [string]$CoordinatorRepoRoot,
+        [string]$Mode = "legacy"
+    )
+
+    $repoExecution = Resolve-OrchestratedRepoExecutionContext -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName -ChangeName $ChangeName -Issue $Issue -CoordinatorRepoRoot $CoordinatorRepoRoot
+    $targetRepoRoot = [string]$repoExecution.repoRoot
+    $executionRoot = [string]$repoExecution.executionRoot
+    $publishState = Get-OrchestratedRepoPublishState -RepoRoot $executionRoot -RepoName $RepoName -ChangeName $ChangeName
+    if ($publishState.existingPr) {
+        return @{
+            repo = $RepoName
+            branch = $publishState.branch
+            url = [string]$publishState.existingPr.url
+            created = $false
+            committed = $false
+            hasChanges = [bool]$publishState.hasChanges
+            published = $true
+            executionRoot = $executionRoot
+            executionMode = [string]$repoExecution.mode
+            metadataPath = [string]$repoExecution.metadataPath
+        }
+    }
+
+    if (-not $publishState.hasChanges) {
+        return @{
+            repo = $RepoName
+            branch = $publishState.branch
+            url = "n/a"
+            created = $false
+            committed = $false
+            hasChanges = $false
+            published = $false
+            executionRoot = $executionRoot
+            executionMode = [string]$repoExecution.mode
+            metadataPath = [string]$repoExecution.metadataPath
+        }
+    }
+
+    $pr = Ensure-OrchestratedRepoPublishPullRequest -RepoRoot $executionRoot -RepoName $RepoName -BranchName $ChangeName -Issue $Issue -Mode $Mode
+    return @{
+        repo = $RepoName
+        branch = $pr.branch
+        url = $pr.url
+        created = [bool]$pr.created
+        committed = [bool]$pr.committed
+        hasChanges = $true
+        published = $true
+        executionRoot = $executionRoot
+        executionMode = [string]$repoExecution.mode
+        metadataPath = [string]$repoExecution.metadataPath
     }
 }
 
@@ -3199,36 +3434,19 @@ function Invoke-OrchestrateNew {
         }
     }
 
-    $satelliteResults = @()
     foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
         $impactEntry = $impactPlan[$repoName]
         $impactType = [string]$impactEntry.impactType
-        if ($impactType -eq "traceability_only" -or $impactType -eq "no_code_change") {
-            $repoUpdates[$repoName] = @{
-                impact = [string]$impactEntry.impact
-                impactType = $impactType
-                reason = [string]$impactEntry.reason
-                opsNew = "n/a"
-                pr = "n/a"
-                opsArchive = "pending"
-                status = "tracked"
-            }
-            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_skip_pr" -Status "ok" -Message "Satellite repo tracked without PR." -Data @{ repo = $repoName; impactType = $impactType } -Mode $Mode
-            continue
-        }
-
-        $result = Invoke-OrchestratedRepoNew -WorkspaceRoot $workspaceRoot -RepoName $repoName -ChangeName $changeName -Issue $issue -CoordinatorRepoRoot $RepoRoot -Mode $Mode
-        $satelliteResults += $result
         $repoUpdates[$repoName] = @{
-            impact = "yes"
+            impact = [string]$impactEntry.impact
             impactType = $impactType
             reason = [string]$impactEntry.reason
-            opsNew = "done"
-            pr = [string]$result.url
+            opsNew = "pending"
+            pr = "n/a"
             opsArchive = "pending"
-            status = "in_review"
+            status = if ($impactType -eq "implementation_required") { "todo" } elseif ($impactType -eq "traceability_only") { "tracked" } else { "n_a" }
         }
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_pr" -Status "ok" -Message "Satellite PR ensured." -Data @{ repo = $repoName; url = $result.url; branch = $result.branch; created = [bool]$result.created; executionMode = [string]$result.executionMode; executionRoot = [string]$result.executionRoot; metadataPath = [string]$result.metadataPath } -Mode $Mode
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_deferred" -Status "ok" -Message "Satellite repo deferred for orchestrated publish." -Data @{ repo = $repoName; impactType = $impactType } -Mode $Mode
     }
 
     $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
@@ -3252,7 +3470,99 @@ function Invoke-OrchestrateNew {
     }
 
     Write-Output "Orchestrated repos: $($selectedRepos -join ', ')"
-    foreach ($result in $satelliteResults) {
+    foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
+        $impactEntry = $impactPlan[$repoName]
+        if ($null -eq $impactEntry) { continue }
+        Write-Output ("Satellite repo deferred [{0}]: {1}" -f $repoName, [string]$impactEntry.impactType)
+    }
+}
+
+function Invoke-OrchestratePublish {
+    param(
+        [string]$RepoRoot,
+        [string]$IssueKey,
+        [switch]$SelectRepos,
+        [string]$Mode = "legacy"
+    )
+
+    if ((Split-Path -Leaf $RepoRoot) -ne "DocuArchiCore") {
+        throw "opsxj:orchestrate:publish must run from the DocuArchiCore orchestrator repository."
+    }
+
+    $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $RepoRoot
+    $issue = Get-JiraIssueData -IssueKey $IssueKey.ToUpperInvariant()
+    $changeName = Resolve-ChangeNameFromIssueKey -RepoRoot $RepoRoot -IssueKey $issue.key
+    if ([string]::IsNullOrWhiteSpace($changeName)) {
+        throw "Active change could not be resolved for '$IssueKey'. Run opsxj:orchestrate:new first."
+    }
+
+    $entries = @(Get-SyncImpactEntries -RepoRoot $RepoRoot -ChangeName $changeName)
+    if ($entries.Count -eq 0) {
+        throw "sync.md does not contain impacted repos for '$changeName'."
+    }
+
+    $repoUpdates = @{}
+    $publishedResults = @()
+    $trackedResults = @()
+    foreach ($entry in $entries) {
+        if ($entry.impact -ne "yes") { continue }
+
+        $repoName = [string]$entry.repo
+        if ($repoName -eq "DocuArchiCore") {
+            continue
+        }
+
+        $result = Invoke-OrchestratedRepoPublish -WorkspaceRoot $workspaceRoot -RepoName $repoName -ChangeName $changeName -Issue $issue -CoordinatorRepoRoot $RepoRoot -Mode $Mode
+        if ($result.published) {
+            $publishedResults += $result
+            $repoUpdates[$repoName] = @{
+                impact = "yes"
+                impactType = "implementation_required"
+                reason = "implementacion publicada desde diff real"
+                opsNew = "done"
+                pr = [string]$result.url
+                opsArchive = "pending"
+                status = "in_review"
+            }
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_publish_repo_pr" -Status "ok" -Message "Satellite PR published from real implementation diff." -Data @{ repo = $repoName; url = $result.url; created = [bool]$result.created; executionMode = [string]$result.executionMode; executionRoot = [string]$result.executionRoot } -Mode $Mode
+        }
+        else {
+            $trackedResults += $repoName
+            $repoUpdates[$repoName] = @{
+                impact = "yes"
+                impactType = "traceability_only"
+                reason = "sin diff real publicado"
+                opsNew = "n/a"
+                pr = "n/a"
+                opsArchive = "pending"
+                status = "tracked"
+            }
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_publish_repo_skip" -Status "ok" -Message "Satellite repo kept as traceability only because no diff was detected." -Data @{ repo = $repoName; executionMode = [string]$result.executionMode; executionRoot = [string]$result.executionRoot } -Mode $Mode
+        }
+    }
+
+    $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
+    $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
+    if ($syncChanged) {
+        Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+        Push-Location $RepoRoot
+        try {
+            $coordinatorRepoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+            $commitMessage = "$($issue.key): publish orchestrated repo PRs"
+            if ($commitMessage.Length -gt 120) {
+                $commitMessage = $commitMessage.Substring(0, 120)
+            }
+            $createdCommit = Ensure-CommitForChangeArtifacts -ChangeName $changeName -CommitMessage $commitMessage
+            if ($createdCommit -and $env:OPSXJ_TEST_SKIP_GIT_PUSH -ne "1") {
+                Invoke-Git -CliArgs @("push", "--set-upstream", $coordinatorRepoContext.remoteName, $changeName) | Out-Null
+            }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    foreach ($result in $publishedResults) {
         if ($result.created) {
             Write-Output ("Satellite PR created [{0}]: {1}" -f $result.repo, $result.url)
         }
@@ -3260,12 +3570,8 @@ function Invoke-OrchestrateNew {
             Write-Output ("Satellite PR already exists [{0}]: {1}" -f $result.repo, $result.url)
         }
     }
-    foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
-        $impactEntry = $impactPlan[$repoName]
-        if ($null -eq $impactEntry) { continue }
-        if ([string]$impactEntry.impactType -eq "traceability_only") {
-            Write-Output ("Satellite repo tracked without PR [{0}]: traceability_only" -f $repoName)
-        }
+    foreach ($repoName in $trackedResults) {
+        Write-Output ("Satellite repo tracked without PR [{0}]: no diff detected" -f $repoName)
     }
 }
 
@@ -3705,6 +4011,12 @@ try {
             throw "Policy enforced: -SkipJira is not allowed in opsxj:orchestrate:new."
         }
         Invoke-OrchestrateNew -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Reopen:$Reopen -Mode $executionMode
+    }
+    elseif ($Command -eq "orchestrate:publish") {
+        if ($SkipJira) {
+            throw "Policy enforced: -SkipJira is not allowed in opsxj:orchestrate:publish."
+        }
+        Invoke-OrchestratePublish -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Mode $executionMode
     }
     elseif ($Command -eq "archive") {
         Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
