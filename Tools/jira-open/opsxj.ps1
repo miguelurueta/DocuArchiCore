@@ -1702,7 +1702,7 @@ function Update-SyncRows {
         $opsArchive = if ($null -ne $update.opsArchive) { [string]$update.opsArchive } else { Normalize-SyncCellValue -Value ([string]$Matches["opsArchive"]) }
         $status = if ($null -ne $update.status) { [string]$update.status } else { Normalize-SyncCellValue -Value ([string]$Matches["status"]) }
 
-        $newLine = "| `$repoName` | `$impact` | `$reason` | `$opsNew` | `$pr` | `$opsArchive` | `$status` |"
+        $newLine = ("| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` |" -f $repoName, $impact, $reason, $opsNew, $pr, $opsArchive, $status)
         if ($newLine -ne $line) {
             $lines[$i] = $newLine
             $changed = $true
@@ -2213,6 +2213,23 @@ function Get-SyncImpactEntries {
     return @($entries.ToArray())
 }
 
+function Assert-SyncHasConcreteRepos {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $syncPath = Join-Path $RepoRoot "openspec\\changes\\$ChangeName\\sync.md"
+    if (-not (Test-Path $syncPath)) {
+        throw "sync.md not found for '$ChangeName'."
+    }
+
+    $raw = Get-Content -Path $syncPath -Raw
+    if ($raw -match '\$repo(Name)?|\$impact|\$reason|\$opsNew|\$opsArchive|\$status|\$pr') {
+        throw "sync.md contains unresolved placeholder rows. Regenerate or repair sync.md before archive."
+    }
+}
+
 function Get-PullRequestMergeStatus {
     param(
         [string]$PrReference,
@@ -2316,6 +2333,8 @@ function Assert-OrchestratedReposReadyForArchive {
         [string]$RepoRoot,
         [string]$ChangeName
     )
+
+    Assert-SyncHasConcreteRepos -RepoRoot $RepoRoot -ChangeName $ChangeName
 
     $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $RepoRoot
     $entries = @(Get-SyncImpactEntries -RepoRoot $RepoRoot -ChangeName $ChangeName)
