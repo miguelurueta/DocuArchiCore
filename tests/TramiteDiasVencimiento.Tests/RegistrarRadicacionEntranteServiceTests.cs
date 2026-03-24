@@ -18,6 +18,7 @@ using MiApp.Services.Service.Radicacion.Tramite;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using MiApp.Services.Service.Usuario;
 using Moq;
+using System.Linq;
 using Xunit;
 
 namespace TramiteDiasVencimiento.Tests;
@@ -102,6 +103,27 @@ public sealed class RegistrarRadicacionEntranteServiceTests
 
         Assert.False(result.success);
         Assert.Equal("workflow lookup failed", result.message);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowLanzaExcepcion_RetornaErrorControlado()
+    {
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.CurrentUserService.Setup(s => s.GetClaimValue("defaulaliaswf")).Returns("WF");
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ThrowsAsync(new InvalidOperationException("workflow exploded"));
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
+
+        Assert.False(result.success);
+        Assert.Equal("Error al validar usuario workflow interno", result.message);
+        Assert.Contains(result.errors.Cast<AppError>(), error => error.Field == "ValidarUsuarioWorkflowInternoAsync" && error.Message.Contains("workflow exploded"));
+        fx.RegistrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SystemPlantillaRadicado>(),
+            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(), It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()), Times.Never);
     }
 
     [Fact]
