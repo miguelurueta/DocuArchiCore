@@ -2331,7 +2331,7 @@ function Assert-OrchestratedReposReadyForArchive {
 
         $repoName = [string]$entry.repo
         if (-not $catalogLookup.ContainsKey($repoName.ToLowerInvariant())) {
-            $pending.Add("$repoName: repo fuera del catalogo")
+            $pending.Add(("{0}: repo fuera del catalogo" -f $repoName))
             continue
         }
 
@@ -2340,7 +2340,7 @@ function Assert-OrchestratedReposReadyForArchive {
             $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $workspaceRoot -RepoName $canonicalRepo
         }
         catch {
-            $pending.Add("$canonicalRepo: $($_.Exception.Message)")
+            $pending.Add(("{0}: {1}" -f $canonicalRepo, $_.Exception.Message))
             continue
         }
 
@@ -2348,14 +2348,14 @@ function Assert-OrchestratedReposReadyForArchive {
             $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
         }
         catch {
-            $pending.Add("$canonicalRepo: $($_.Exception.Message)")
+            $pending.Add(("{0}: {1}" -f $canonicalRepo, $_.Exception.Message))
             continue
         }
 
         $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
         $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
         if (-not $prStatus.merged) {
-            $pending.Add("$canonicalRepo: $($entry.pr) [$($prStatus.state)]")
+            $pending.Add(("{0}: {1} [{2}]" -f $canonicalRepo, $entry.pr, $prStatus.state))
             continue
         }
 
