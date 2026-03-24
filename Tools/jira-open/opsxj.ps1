@@ -1742,9 +1742,14 @@ function Invoke-OrchestratedRepoNew {
         }
     }
 
-    $worktreeRoot = Join-Path $CoordinatorRepoRoot ".tmp\opsxj-orchestrate"
+    $workspaceRoot = Get-OrchestratorWorkspaceRoot -RepoRoot $CoordinatorRepoRoot
+    $worktreeRoot = Join-Path $workspaceRoot ".tmp\opsxj"
     New-Item -ItemType Directory -Path $worktreeRoot -Force | Out-Null
-    $worktreePath = Join-Path $worktreeRoot ("{0}-{1}" -f (To-KebabCase $RepoName), $ChangeName)
+    $repoSlug = (To-KebabCase $RepoName)
+    if ($repoSlug.Length -gt 12) { $repoSlug = $repoSlug.Substring(0, 12).Trim("-") }
+    $changeSlug = $ChangeName
+    if ($changeSlug.Length -gt 24) { $changeSlug = $changeSlug.Substring(0, 24).Trim("-") }
+    $worktreePath = Join-Path $worktreeRoot ("{0}-{1}" -f $repoSlug, $changeSlug)
     if (Test-Path -LiteralPath $worktreePath) {
         Remove-Item -Path $worktreePath -Recurse -Force
     }
