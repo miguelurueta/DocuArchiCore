@@ -2368,19 +2368,23 @@ function Assert-OrchestratedReposReadyForArchive {
             continue
         }
 
-        try {
-            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
-        }
-        catch {
-            $pending.Add(("{0}: {1}" -f $canonicalRepo, $_.Exception.Message))
-            continue
-        }
-
         $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $targetRepoRoot
         $prStatus = Get-PullRequestMergeStatus -PrReference $entry.pr -Repo $repoContext.githubRepo
         if (-not $prStatus.merged) {
             $pending.Add(("{0}: {1} [{2}]" -f $canonicalRepo, $entry.pr, $prStatus.state))
             continue
+        }
+
+        $baseBranch = [string]$repoContext.baseBranch
+        try {
+            $baseBranch = Assert-ChangeMergedInGit -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+        }
+        catch {
+            $message = [string]$_.Exception.Message
+            if ($message -notmatch "does not exist" -and $message -notmatch "couldn't find remote ref") {
+                $pending.Add(("{0}: {1}" -f $canonicalRepo, $message))
+                continue
+            }
         }
 
         $ready.Add([pscustomobject]@{
