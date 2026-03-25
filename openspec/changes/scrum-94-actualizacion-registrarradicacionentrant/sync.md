@@ -17,7 +17,7 @@ Use this template at the start of each Jira ticket (`SCRUM-94`) to decide exactl
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | no requiere ajuste de contratos para esta condicion | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | ajusta el criterio de validacion workflow segun util_tipo_modulo_envio | pending | n/a | pending | in_progress |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/47 | pending | in_review |
 | MiApp.Repository | no | no_code_change | el repositorio ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
 | MiApp.Models | no | no_code_change | el modelo ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
 
