@@ -155,9 +155,9 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
-- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, opens only the coordinator PR, and defers satellite PR creation to `opsxj:orchestrate:publish`.
-- `opsxj:orchestrate:publish -NonInteractive` promotes only satellite repos with real diffs to `implementation_required`, creates/reuses managed worktrees when needed, and opens PRs only for those repos.
-- Managed satellite worktrees persist across reruns for the same issue/repo and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
+- `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, opens only the coordinator PR, and prepares clean satellite primary checkouts on the ticket branch before deferring PR creation to `opsxj:orchestrate:publish`.
+- `opsxj:orchestrate:publish -NonInteractive` promotes only satellite repos with real diffs to `implementation_required`, publishes from the prepared primary checkout when available, creates/reuses managed worktrees only as fallback, and opens PRs only for those repos.
+- Managed satellite worktrees persist across reruns for the same issue/repo only when fallback isolation is required, and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
 - `sync.md` now records both `Impacta?` and `Tipo impacto` with `implementation_required`, `traceability_only`, and `no_code_change`.
 - `opsxj:orchestrate:new` now leaves impacted satellites deferred/tracked until `opsxj:orchestrate:publish` detects a real implementation diff.
 - `opsxj:orchestrate:publish` updates `sync.md` from `traceability_only` to `implementation_required` when a satellite repo actually gets published.

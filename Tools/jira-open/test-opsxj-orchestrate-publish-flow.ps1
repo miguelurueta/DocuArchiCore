@@ -202,9 +202,18 @@ try {
             Assert-Contains -Value $firstRun -Expected "Satellite repo deferred [MiApp.Services]"
 
             $changeName = "opsxj-3000-publish-only-real-satellite-diffs"
+            $satelliteBranch = (git -C $satelliteRoot branch --show-current | Out-String).Trim()
+            if ($satelliteBranch -ne $changeName) {
+                throw "Expected orchestrate:new to prepare the primary satellite checkout on '$changeName'. Actual: '$satelliteBranch'"
+            }
+
+            $metadataPath = Join-Path $orchestratorRoot ".opsxj/orchestrator/worktrees/opsxj-3000/miapp-services.json"
+            if (Test-Path $metadataPath) {
+                throw "Did not expect a managed worktree metadata file when the primary checkout is clean."
+            }
+
             Push-Location $satelliteRoot
             try {
-                & git checkout -b $changeName | Out-Null
                 Add-Content -Path "service.txt" -Value "`npublished from diff"
                 & git add "service.txt" | Out-Null
                 & git commit -m "OPSXJ-3000 service change" | Out-Null
