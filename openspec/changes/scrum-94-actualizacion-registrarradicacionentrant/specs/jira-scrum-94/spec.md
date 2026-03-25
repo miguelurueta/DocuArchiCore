@@ -13,3 +13,18 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: RegistrarRadicacionEntranteAsync usa tipo de envio para actividad relacionada
+`RegistrarRadicacionEntranteAsync` MUST decidir la validacion de actividad workflow relacionada con base en `citaEstructuraTipoDoEntrante.util_tipo_modulo_envio` y no solo en `requestCanonico.tipoModuloRadicacion`.
+
+#### Scenario: Tipo de envio requiere actividad relacionada aun en modulo workflow
+- **WHEN** `requestCanonico.tipoModuloRadicacion` es `2`
+- **AND** `citaEstructuraTipoDoEntrante.util_tipo_modulo_envio` es `2` o `3`
+- **THEN** el servicio consulta `UsuarioWorkflow`
+- **AND** consulta `SolicitaIdActividadRelacionadaGrupo`
+- **AND** solo continua con `_registrarRepository.RegistrarRadicacionEntranteAsync` si existe una actividad relacionada valida
+
+#### Scenario: Workflow sin tipo de envio relacionado conserva compatibilidad
+- **WHEN** `requestCanonico.tipoModuloRadicacion` es `2`
+- **AND** `citaEstructuraTipoDoEntrante.util_tipo_modulo_envio` no es `2` ni `3`
+- **THEN** el servicio conserva el flujo workflow actual sin consultar `UsuarioWorkflow` interno

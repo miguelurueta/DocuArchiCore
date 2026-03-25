@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-94`) to decide exactl
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | no | no_code_change | no requiere cambio funcional para esta actualizacion | n/a | n/a | n/a | n_a |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/104 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | no | no_code_change | no requiere ajuste de contratos para esta condicion | n/a | n/a | n/a | n_a |
+| MiApp.Services | yes | implementation_required | ajusta el criterio de validacion workflow segun util_tipo_modulo_envio | pending | n/a | pending | in_progress |
+| MiApp.Repository | no | no_code_change | el repositorio ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
+| MiApp.Models | no | no_code_change | el modelo ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
