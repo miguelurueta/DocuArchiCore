@@ -16,8 +16,8 @@ Esta guia define como trabajar tickets Jira en un entorno con repositorios separ
 Regla:
 - `opsxj:new` se ejecuta en el repo donde vive el cambio de codigo.
 - `opsxj:orchestrate:new` se ejecuta solo en `DocuArchiCore` cuando el ticket impacta varios repos y se quiere centralizar OpenSpec.
-- `opsxj:orchestrate:new` deja el ticket abierto y difiere los PRs satelite hasta que exista diff real.
-- `opsxj:orchestrate:publish` detecta repos satelite con implementacion real y solo ahi crea worktree/branch/PR si hace falta.
+- `opsxj:orchestrate:new` deja el ticket abierto, prepara el branch del ticket en los repos principales limpios y difiere los PRs satelite hasta que exista diff real.
+- `opsxj:orchestrate:publish` detecta repos satelite con implementacion real y publica desde el checkout principal cuando esta disponible; solo crea worktree/branch/PR si hace falta aislamiento.
 
 ## Configuracion minima por repo
 
@@ -76,7 +76,17 @@ Reglas:
 - `OPSXJ_READONLY_REPOS` sigue excluyendo repos de impacto real y los deja como `no_code_change`
 - `opsxj:orchestrate:archive` acepta PR satelite `MERGED` aunque GitHub ya haya borrado la branch remota del cambio
 
-## Worktrees gestionados
+## Checkout principal y worktrees gestionados
+
+Cuando el repo satelite principal esta limpio y no esta en `HEAD` detached, `opsxj:orchestrate:new` intenta dejarlo directamente en la rama del ticket. Ese es el camino preferido para implementar localmente y revisar el codigo sin depender de un worktree temporal.
+
+`opsxj:orchestrate:publish` reutiliza ese checkout principal cuando:
+
+- el repo esta limpio al abrir el ticket
+- la rama del ticket puede usarse en el repo principal
+- no existe otra ocupacion que obligue a aislar el repo
+
+Solo si eso no es posible, el flujo cae a worktree gestionado.
 
 Cuando `opsxj:orchestrate:publish` encuentra un repo impactado en cualquiera de estos estados:
 
@@ -94,6 +104,7 @@ Esto permite reruns idempotentes del comando sin mezclar tickets activos ni bloq
 
 Reglas:
 
+- el checkout principal del repo satelite se usa primero cuando esta limpio
 - el checkout principal del repo satelite no se modifica si esta ocupado
 - el worktree gestionado se reutiliza para el mismo `issue/repo`
 - `opsxj` ignora la metadata interna de `.opsxj/orchestrator/` al validar limpieza efectiva del repo coordinador

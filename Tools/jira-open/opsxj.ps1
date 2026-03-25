@@ -1915,8 +1915,33 @@ function Get-OrchestratedRepoCheckoutState {
         isDetached = [bool]$isDetached
         effectiveDirty = @($effectiveDirty)
         requiresIsolation = [bool]($reasons.Count -gt 0)
+        canPreparePrimaryCheckout = [bool](-not $isDetached -and $effectiveDirty.Count -eq 0)
         canUsePrimaryCheckout = [bool](-not $isDetached -and $effectiveDirty.Count -eq 0 -and $currentBranch -eq $ChangeName)
         reasons = @($reasons.ToArray())
+    }
+}
+
+function Try-Prepare-OrchestratedPrimaryCheckout {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    Push-Location $RepoRoot
+    try {
+        Ensure-ChangeBranch -BranchName $ChangeName | Out-Null
+        $preparedState = Get-OrchestratedRepoCheckoutState -RepoRoot $RepoRoot -ChangeName $ChangeName
+        if (-not $preparedState.canUsePrimaryCheckout) {
+            throw "Primary checkout could not be prepared for branch '$ChangeName'."
+        }
+
+        return $preparedState
+    }
+    catch {
+        return $null
+    }
+    finally {
+        Pop-Location
     }
 }
 
@@ -2040,6 +2065,21 @@ function Resolve-OrchestratedRepoExecutionContext {
             metadataPath = $null
             reused = $false
             created = $false
+        }
+    }
+
+    if ($checkoutState.canPreparePrimaryCheckout) {
+        $preparedState = Try-Prepare-OrchestratedPrimaryCheckout -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+        if ($null -ne $preparedState) {
+            return [pscustomobject]@{
+                repoRoot = $targetRepoRoot
+                executionRoot = $targetRepoRoot
+                mode = "primary"
+                checkoutState = $preparedState
+                metadataPath = $null
+                reused = $false
+                created = $false
+            }
         }
     }
 
@@ -3437,6 +3477,16 @@ function Invoke-OrchestrateNew {
     foreach ($repoName in ($selectedRepos | Where-Object { $_ -ne "DocuArchiCore" })) {
         $impactEntry = $impactPlan[$repoName]
         $impactType = [string]$impactEntry.impactType
+        $executionMode = "not_applicable"
+        $executionRoot = ""
+
+        if ([string]$impactEntry.impact -eq "yes") {
+            $repoExecution = Resolve-OrchestratedRepoExecutionContext -WorkspaceRoot $workspaceRoot -RepoName $repoName -ChangeName $changeName -Issue $issue -CoordinatorRepoRoot $RepoRoot
+            $executionMode = [string]$repoExecution.mode
+            $executionRoot = [string]$repoExecution.executionRoot
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_prepare" -Status "ok" -Message "Satellite local workspace prepared for orchestrated implementation." -Data @{ repo = $repoName; impactType = $impactType; executionMode = $executionMode; executionRoot = $executionRoot } -Mode $Mode
+        }
+
         $repoUpdates[$repoName] = @{
             impact = [string]$impactEntry.impact
             impactType = $impactType
@@ -3446,7 +3496,7 @@ function Invoke-OrchestrateNew {
             opsArchive = "pending"
             status = if ($impactType -eq "implementation_required") { "todo" } elseif ($impactType -eq "traceability_only") { "tracked" } else { "n_a" }
         }
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_deferred" -Status "ok" -Message "Satellite repo deferred for orchestrated publish." -Data @{ repo = $repoName; impactType = $impactType } -Mode $Mode
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issue.key -Step "orchestrate_repo_deferred" -Status "ok" -Message "Satellite repo deferred for orchestrated publish." -Data @{ repo = $repoName; impactType = $impactType; executionMode = $executionMode; executionRoot = $executionRoot } -Mode $Mode
     }
 
     $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
