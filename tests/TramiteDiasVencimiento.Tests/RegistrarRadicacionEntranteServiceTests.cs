@@ -14,6 +14,7 @@ using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using MiApp.Repository.Repositorio.Workflow.Flujo;
 using MiApp.Repository.Repositorio.Workflow.Grupo;
+using MiApp.Repository.Repositorio.Workflow.RutaTrabajo;
 using MiApp.Repository.Repositorio.Workflow.usuario;
 using MiApp.Services.Service.Radicacion.Configuracion;
 using MiApp.Services.Service.Radicacion.PlantillaRadicado;
@@ -198,6 +199,167 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         Assert.True(result.success);
         Assert.Equal("RAD-TEST-1", result.data?.ConsecutivoRadicado);
         fx.SolicitaExistenciaRadicadoRutaWorkflowService.Verify(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoNoExisteTareaWorkflow_RegistrarTareaWorkflowAsyncSeEjecuta()
+    {
+        var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow(),
+                    Relaciones = []
+                },
+                errors = []
+            });
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(18) });
+        fx.SolicitaDatosActividadInicioFlujoRepository.Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(99, "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo> { success = true, data = BuildActividadInicioFlujo(), errors = [] });
+        fx.SolicitaExistenciaRadicadoRutaWorkflowService.Setup(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
+            {
+                success = true,
+                message = "OK",
+                errors = [],
+                data = new SolicitaExistenciaRadicadoRutaWorkflowDto { IdTareaWorkflow = 0 }
+            });
+
+        var request = BuildRequest();
+        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto { id_tipo_flujo_workflow = 99 };
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
+
+        Assert.True(result.success);
+        fx.RegistroTareaWorkflowRepository.Verify(r => r.RegistrarTareaWorkflowAsync(
+            1,
+            "RUTA-1",
+            1,
+            null,
+            18,
+            901,
+            99,
+            77,
+            88,
+            0,
+            1,
+            0,
+            It.IsAny<IReadOnlyCollection<RelacionCamposRutaWorklflowDto>>(),
+            It.IsAny<DateTime>(),
+            "WF"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoYaExisteTareaWorkflow_NoRegistraNuevaTarea()
+    {
+        var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow(),
+                    Relaciones = []
+                },
+                errors = []
+            });
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(18) });
+        fx.SolicitaDatosActividadInicioFlujoRepository.Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(99, "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo> { success = true, data = BuildActividadInicioFlujo(), errors = [] });
+        fx.SolicitaExistenciaRadicadoRutaWorkflowService.Setup(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
+            {
+                success = true,
+                message = "OK",
+                errors = [],
+                data = new SolicitaExistenciaRadicadoRutaWorkflowDto { IdTareaWorkflow = 222 }
+            });
+
+        var request = BuildRequest();
+        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto { id_tipo_flujo_workflow = 99 };
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
+
+        Assert.True(result.success);
+        fx.RegistroTareaWorkflowRepository.Verify(r => r.RegistrarTareaWorkflowAsync(
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<int>(),
+            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+            It.IsAny<IReadOnlyCollection<RelacionCamposRutaWorklflowDto>>(), It.IsAny<DateTime>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoRegistroTareaWorkflowFalla_RetornaErrorControlado()
+    {
+        var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow(),
+                    Relaciones = []
+                },
+                errors = []
+            });
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(18) });
+        fx.SolicitaDatosActividadInicioFlujoRepository.Setup(r => r.SolicitaDatosActividadInicioFlujoAsync(99, "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaDatosActividadInicioFlujo> { success = true, data = BuildActividadInicioFlujo(), errors = [] });
+        fx.SolicitaExistenciaRadicadoRutaWorkflowService.Setup(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
+            {
+                success = true,
+                message = "OK",
+                errors = [],
+                data = new SolicitaExistenciaRadicadoRutaWorkflowDto { IdTareaWorkflow = 0 }
+            });
+        fx.RegistroTareaWorkflowRepository.Setup(r => r.RegistrarTareaWorkflowAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<IReadOnlyCollection<RelacionCamposRutaWorklflowDto>>(), It.IsAny<DateTime>(), It.IsAny<string>()))
+            .ReturnsAsync(new AppResponses<RegistroTareaWorkflowResultDto>
+            {
+                success = false,
+                message = "registro tarea workflow failed",
+                errors = [new AppError { Field = "workflow", Message = "registro tarea workflow failed", Type = "Workflow" }],
+                data = null
+            });
+
+        var request = BuildRequest();
+        request.RE_flujo_trabajo = new FlujoTrabajoRadicacionDto { id_tipo_flujo_workflow = 99 };
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(request, 10, "DA", "127.0.0.1", 1);
+
+        Assert.False(result.success);
+        Assert.Equal("registro tarea workflow failed", result.message);
     }
 
     [Fact]
@@ -451,6 +613,17 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 errors = [],
                 data = new SolicitaExistenciaRadicadoRutaWorkflowDto()
             });
+        fx.RegistroTareaWorkflowRepository.Setup(r => r.RegistrarTareaWorkflowAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<IReadOnlyCollection<RelacionCamposRutaWorklflowDto>>(), It.IsAny<DateTime>(), It.IsAny<string>()))
+            .ReturnsAsync(new AppResponses<RegistroTareaWorkflowResultDto>
+            {
+                success = true,
+                message = "OK",
+                errors = [],
+                data = new RegistroTareaWorkflowResultDto { idTareaWorkflow = 321 }
+            });
         fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(It.IsAny<int>(), "WF"))
             .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(11) });
         fx.RegistrarRepo.Setup(r => r.RegistrarRadicacionEntranteAsync(
@@ -464,6 +637,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             fx.ValidaCamposRadicacionService.Object, fx.ValidaPreRegistroWorkflowService.Object,
             fx.SolicitaDatosActividadInicioFlujoRepository.Object, fx.CurrentUserService.Object,
             fx.SolicitaEstructuraRutaWorkflowService.Object, fx.SolicitaExistenciaRadicadoRutaWorkflowService.Object,
+            fx.RegistroTareaWorkflowRepository.Object,
             fx.UsuarioWorkflowRepository.Object, fx.GruposWorkflowRepository.Object);
         return fx;
     }
@@ -593,6 +767,13 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         id_Actividad = idActividad
     };
 
+    private static SolicitaDatosActividadInicioFlujo BuildActividadInicioFlujo() => new()
+    {
+        IdRegistroActividadFlujoTrabajo = 66,
+        IdActividadFlujoTrabajo = 77,
+        IdUsuarioWorkflowFlujoTrabajo = 88
+    };
+
     private sealed class Fixture
     {
         public Mock<IDetallePlantillaRadicadoR> DetalleRepo { get; } = new();
@@ -608,6 +789,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         public Mock<ICurrentUserService> CurrentUserService { get; } = new();
         public Mock<ISolicitaEstructuraRutaWorkflowService> SolicitaEstructuraRutaWorkflowService { get; } = new();
         public Mock<ISolicitaExistenciaRadicadoRutaWorkflowService> SolicitaExistenciaRadicadoRutaWorkflowService { get; } = new();
+        public Mock<IRegistroRadicadoTareaWorkflowRepository> RegistroTareaWorkflowRepository { get; } = new();
         public Mock<IUsuarioWorkflowR> UsuarioWorkflowRepository { get; } = new();
         public Mock<IGruposWorkflowR> GruposWorkflowRepository { get; } = new();
         public RegistrarRadicacionEntranteService Service { get; set; } = null!;
