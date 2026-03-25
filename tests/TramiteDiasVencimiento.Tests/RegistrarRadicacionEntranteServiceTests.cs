@@ -31,19 +31,15 @@ namespace TramiteDiasVencimiento.Tests;
 public sealed class RegistrarRadicacionEntranteServiceTests
 {
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoRequestValidoNoWorkflow_ConsultaRutaYUsuarioWorkflowAntesDeRegistrar()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoRequestValidoNoWorkflow_ConsultaRutaYOmiteUsuarioWorkflow()
     {
         var fx = BuildFixture();
-        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
-            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
-        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
-            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901) });
 
         var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
         Assert.True(result.success);
         fx.SolicitaEstructuraRutaWorkflowService.Verify(r => r.SolicitaEstructuraRutaWorkflowAsync("WF"), Times.Once);
-        fx.UsuarioWorkflowRepository.Verify(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"), Times.Once);
+        fx.UsuarioWorkflowRepository.Verify(r => r.SolicitaEstructuraIdUsuarioWorkflowId(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
         fx.RegistrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
             It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, 10, "DA", It.IsAny<string>(), 1, "RADICACION",
             It.IsAny<SystemPlantillaRadicado>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -216,7 +212,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoRelacionWorkflowEsInvalida_RetornaValidacion()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoNoAplicaWorkflowPorTipoEnvio_RelacionWorkflowInvalidaNoBloqueaRegistro()
     {
         var fx = BuildFixture();
         fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
@@ -224,16 +220,29 @@ public sealed class RegistrarRadicacionEntranteServiceTests
 
         var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
 
-        Assert.False(result.success);
-        Assert.Equal("Destinatario sin Relacion_Workflow valida", result.message);
+        Assert.True(result.success);
+        fx.UsuarioWorkflowRepository.Verify(r => r.SolicitaEstructuraIdUsuarioWorkflowId(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowFalla_RetornaErrorControlado()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowFallaYTipoEnvioLoRequiere_RetornaErrorControlado()
     {
         var fx = BuildFixture();
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow()
+                },
+                errors = []
+            });
         fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
         fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
             .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = false, Message = "workflow lookup failed", ErrorMessage = "workflow lookup failed" });
 
@@ -278,11 +287,24 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     }
 
     [Fact]
-    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowLanzaExcepcion_RetornaErrorControlado()
+    public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowLanzaExcepcionYTipoEnvioLoRequiere_RetornaErrorControlado()
     {
         var fx = BuildFixture();
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow()
+                },
+                errors = []
+            });
         fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
         fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
             .ThrowsAsync(new InvalidOperationException("workflow exploded"));
 
