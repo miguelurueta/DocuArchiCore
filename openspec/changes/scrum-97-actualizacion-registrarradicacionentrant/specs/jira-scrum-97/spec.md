@@ -23,6 +23,13 @@ Backend update requests MUST follow repository, architecture and testing constra
 - **WHEN** se ejecuta `RegistrarRadicacionEntranteAsync`
 - **THEN** el servicio continua y retorna `registroResult`
 
+#### Scenario: Existencia workflow result remains available after registro validation
+- **GIVEN** el registro termina con `success=true` y `data` valida
+- **WHEN** se ejecuta `RegistrarRadicacionEntranteAsync`
+- **THEN** la variable `existenciaWorkflowResult` queda declarada fuera del bloque que valida `registroResult`
+- **AND** el resultado puede reutilizarse posteriormente en el metodo
+- **AND** no se utiliza una inicializacion nula para controlar el flujo
+
 #### Scenario: Existencia workflow returns technical error
 - **GIVEN** el registro termina con `success=true` y `data` valida
 - **AND** `ConsultarExistenciaRadicadoRutaWorkflowAsync` retorna `success=false`

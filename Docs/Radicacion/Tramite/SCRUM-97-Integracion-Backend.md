@@ -4,7 +4,7 @@
 
 - `RegistrarRadicacionEntranteService` ajusta el flujo final de `ConsultarExistenciaRadicadoRutaWorkflowAsync(...)`.
 - Cuando la consulta de existencia workflow retorna `success=true` con `data=null`, el servicio ya no cancela la ejecucion.
-- Se elimina el patron basado en `AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>? existenciaWorkflowResult = null`.
+- `existenciaWorkflowResult` queda declarado fuera del bloque `if (registroResult.success && registroResult.data != null)` para permitir reutilizacion posterior, usando una respuesta controlada por defecto y no una inicializacion nula.
 
 ## Impacto Real
 
@@ -15,10 +15,11 @@
 ## Flujo Ajustado
 
 1. El servicio registra la radicacion con `_registrarRepository.RegistrarRadicacionEntranteAsync(...)`.
-2. Si el registro fue exitoso y trae `data`, consulta `ConsultarExistenciaRadicadoRutaWorkflowAsync(...)`.
-3. Si esa consulta retorna `success=false`, el flujo responde con error controlado.
-4. Si esa consulta retorna `success=true` con `data=null`, el flujo continua sin cancelar el registro.
-5. El servicio retorna `registroResult` cuando no existe error tecnico en la consulta workflow.
+2. `existenciaWorkflowResult` se declara antes de evaluar el bloque final del registro.
+3. Si el registro fue exitoso y trae `data`, consulta `ConsultarExistenciaRadicadoRutaWorkflowAsync(...)`.
+4. Si esa consulta retorna `success=false`, el flujo responde con error controlado.
+5. Si esa consulta retorna `success=true` con `data=null`, el flujo continua sin cancelar el registro.
+6. El resultado queda disponible para reutilizacion posterior dentro del metodo.
 
 ## Cobertura Esperada
 
