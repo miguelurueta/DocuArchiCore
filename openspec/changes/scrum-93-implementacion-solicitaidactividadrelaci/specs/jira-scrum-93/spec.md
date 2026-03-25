@@ -13,3 +13,19 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Registro valida actividad workflow relacionada al grupo
+`RegistrarRadicacionEntranteAsync` MUST consultar `SolicitaIdActividadRelacionadaGrupo` antes del registro cuando el tipo de envio requiera actividad workflow relacionada.
+
+#### Scenario: Tipo modulo de envio requiere actividad workflow
+- **WHEN** `citaEstructuraTipoDoEntrante.util_tipo_modulo_envio` es `2` o `3`
+- **AND** `usuarioWorkflowInterno.Grupos_Workflow_Id_Grupo > 0`
+- **THEN** el servicio consulta `SolicitaIdActividadRelacionadaGrupo`
+- **AND** asigna el resultado a una variable local `GruposWorkflow`
+- **AND** solo continua con `_registrarRepository.RegistrarRadicacionEntranteAsync` si `GruposWorkflow.id_Actividad > 0`
+
+#### Scenario: Usuario workflow no tiene actividad relacionada
+- **WHEN** `citaEstructuraTipoDoEntrante.util_tipo_modulo_envio` es `2` o `3`
+- **AND** el repositorio `SolicitaIdActividadRelacionadaGrupo` retorna `null` o `id_Actividad <= 0`
+- **THEN** `RegistrarRadicacionEntranteAsync` retorna un error controlado
+- **AND** el repositorio de registro no se ejecuta
