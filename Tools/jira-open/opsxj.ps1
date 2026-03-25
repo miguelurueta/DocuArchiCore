@@ -1921,6 +1921,86 @@ function Get-OrchestratedRepoCheckoutState {
     }
 }
 
+function Test-OrchestratedSafeCleanupPath {
+    param([string]$RelativePath)
+
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        return $false
+    }
+
+    $normalized = $RelativePath.Replace('/', '\').Trim()
+    return (
+        $normalized -match '(^|\\)(obj|bin)(\\|$)' -or
+        $normalized -match '^\.tmp\\opsxj(\\|$)' -or
+        $normalized -match '^DocuArchi\.Api\.opsxj-check(\\|$)'
+    )
+}
+
+function Try-Cleanup-OrchestratedPrimaryCheckoutSafeArtifacts {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $checkoutState = Get-OrchestratedRepoCheckoutState -RepoRoot $RepoRoot -ChangeName $ChangeName
+    if (-not ($checkoutState.reasons -contains "dirty_worktree")) {
+        return $checkoutState
+    }
+
+    $currentBranch = [string]$checkoutState.currentBranch
+    if ($currentBranch -ne "main" -and $currentBranch -ne $ChangeName) {
+        return $checkoutState
+    }
+
+    $trackedPaths = New-Object System.Collections.Generic.List[string]
+    $untrackedPaths = New-Object System.Collections.Generic.List[string]
+    foreach ($line in @($checkoutState.effectiveDirty)) {
+        if ($line -notmatch '^(?<status>.{2})\s+(?<path>.+)$') {
+            return $checkoutState
+        }
+
+        $status = [string]$Matches["status"]
+        $path = ([string]$Matches["path"]).Trim()
+        if ($path.StartsWith('"') -and $path.EndsWith('"')) {
+            $path = $path.Substring(1, $path.Length - 2)
+        }
+
+        if (-not (Test-OrchestratedSafeCleanupPath -RelativePath $path)) {
+            return $checkoutState
+        }
+
+        if ($status -eq "??") {
+            $untrackedPaths.Add($path)
+        }
+        else {
+            $trackedPaths.Add($path)
+        }
+    }
+
+    if ($trackedPaths.Count -eq 0 -and $untrackedPaths.Count -eq 0) {
+        return $checkoutState
+    }
+
+    Push-Location $RepoRoot
+    try {
+        if ($trackedPaths.Count -gt 0) {
+            Invoke-Git -CliArgs @("restore", "--source=HEAD", "--staged", "--worktree", "--") + @($trackedPaths.ToArray()) | Out-Null
+        }
+
+        foreach ($relativePath in $untrackedPaths) {
+            $fullPath = Join-Path $RepoRoot $relativePath
+            if (Test-Path -LiteralPath $fullPath) {
+                Remove-Item -LiteralPath $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    return (Get-OrchestratedRepoCheckoutState -RepoRoot $RepoRoot -ChangeName $ChangeName)
+}
+
 function Try-Prepare-OrchestratedPrimaryCheckout {
     param(
         [string]$RepoRoot,
@@ -2056,6 +2136,12 @@ function Resolve-OrchestratedRepoExecutionContext {
 
     $targetRepoRoot = Resolve-RepoRootForCatalogName -WorkspaceRoot $WorkspaceRoot -RepoName $RepoName
     $checkoutState = Get-OrchestratedRepoCheckoutState -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+    if ($checkoutState.requiresIsolation) {
+        $cleanupState = Try-Cleanup-OrchestratedPrimaryCheckoutSafeArtifacts -RepoRoot $targetRepoRoot -ChangeName $ChangeName
+        if ($null -ne $cleanupState) {
+            $checkoutState = $cleanupState
+        }
+    }
     if ($checkoutState.canUsePrimaryCheckout) {
         return [pscustomobject]@{
             repoRoot = $targetRepoRoot
@@ -3189,8 +3275,14 @@ function Push-OrchestratorArchive {
 
     Push-Location $RepoRoot
     try {
-        Invoke-Git -CliArgs @("add", "--", "openspec/changes") | Out-Null
-        $staged = Invoke-Git -CliArgs @("diff", "--cached", "--name-only", "--", "openspec/changes")
+        $addTargets = @("openspec/changes")
+        $specsRoot = Join-Path $RepoRoot "openspec\specs"
+        if (Test-Path $specsRoot) {
+            $addTargets += "openspec/specs"
+        }
+
+        Invoke-Git -CliArgs (@("add", "--") + $addTargets) | Out-Null
+        $staged = Invoke-Git -CliArgs (@("diff", "--cached", "--name-only", "--") + $addTargets)
         if ([string]::IsNullOrWhiteSpace($staged)) {
             return @{
                 pushed = $false
@@ -3216,6 +3308,164 @@ function Push-OrchestratorArchive {
             pushed = $true
             branch = $branch
             remote = $remoteName
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Get-OpenPullRequest {
+    param(
+        [string]$BranchName,
+        [string]$Repo
+    )
+
+    $toolConfig = Get-ToolConfig
+    $githubToken = [string]$toolConfig.githubToken
+
+    if (-not [string]::IsNullOrWhiteSpace($githubToken) -and -not [string]::IsNullOrWhiteSpace($Repo)) {
+        try {
+            $owner = ($Repo -split "/", 2)[0]
+            $head = [uri]::EscapeDataString("${owner}:$BranchName")
+            $uri = "https://api.github.com/repos/$Repo/pulls?state=open&head=$head&per_page=1"
+            $items = @(Invoke-GitHubApi -Method "Get" -Uri $uri -Token $githubToken -Body $null)
+            foreach ($item in $items) {
+                $url = [string]$item.html_url
+                if ([string]::IsNullOrWhiteSpace($url)) {
+                    continue
+                }
+
+                return [pscustomobject]@{
+                    number = [string]$item.number
+                    title = [string]$item.title
+                    url = $url
+                }
+            }
+        }
+        catch {
+            return $null
+        }
+    }
+
+    try {
+        $args = @("pr", "list", "--head", $BranchName, "--state", "open", "--json", "number,title,url")
+        if (-not [string]::IsNullOrWhiteSpace($Repo)) {
+            $args += @("--repo", $Repo)
+        }
+
+        $json = Invoke-Gh -CliArgs $args
+        if (-not $json) { return $null }
+
+        $items = @($json | ConvertFrom-Json)
+        foreach ($item in $items) {
+            $url = [string]$item.url
+            if ([string]::IsNullOrWhiteSpace($url)) {
+                continue
+            }
+
+            return $item
+        }
+    }
+    catch {
+        return $null
+    }
+
+    return $null
+}
+
+function Finalize-OrchestratorArchiveToMain {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName,
+        [string]$IssueKey,
+        [string]$Mode = "legacy"
+    )
+
+    $repoName = Split-Path $RepoRoot -Leaf
+    if ($repoName -ne "DocuArchiCore") {
+        return @{
+            finalized = $false
+            reason = "not-orchestrator"
+        }
+    }
+
+    Push-Location $RepoRoot
+    try {
+        $repoContext = Resolve-GitHubRepoForRepoRoot -RepoRoot $RepoRoot
+        $remoteName = [string]$repoContext.remoteName
+        $githubRepo = [string]$repoContext.githubRepo
+        $baseBranch = [string]$repoContext.baseBranch
+        $currentBranch = Invoke-Git -CliArgs @("rev-parse", "--abbrev-ref", "HEAD")
+
+        if ($env:OPSXJ_TEST_SKIP_GIT_PUSH -eq "1") {
+            return @{
+                finalized = $false
+                reason = "test-skip-finalize"
+                branch = $currentBranch
+                baseBranch = $baseBranch
+            }
+        }
+
+        $hasDiff = $false
+        Invoke-Git -CliArgs @("diff", "--quiet", "$remoteName/$baseBranch..HEAD") -IgnoreExitCode | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            $hasDiff = $true
+        }
+        if (-not $hasDiff) {
+            return @{
+                finalized = $false
+                reason = "no-diff"
+                branch = $currentBranch
+                baseBranch = $baseBranch
+            }
+        }
+
+        $openPr = Get-OpenPullRequest -BranchName $currentBranch -Repo $githubRepo
+        if ($null -eq $openPr) {
+            $title = "$IssueKey archive closeout"
+            $body = @(
+                "Generated by opsxj:orchestrate:archive.",
+                "",
+                "- Jira: $IssueKey",
+                "- Archive closeout for branch: $currentBranch"
+            ) -join "`n"
+
+            $createArgs = @("pr", "create", "--base", $baseBranch, "--head", $currentBranch, "--title", $title, "--body", $body)
+            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                $createArgs += @("--repo", $githubRepo)
+            }
+            $prUrl = Invoke-Gh -CliArgs $createArgs
+            $openPr = Get-OpenPullRequest -BranchName $currentBranch -Repo $githubRepo
+            if ($null -eq $openPr -and -not [string]::IsNullOrWhiteSpace($prUrl)) {
+                return @{
+                    finalized = $false
+                    reason = "created-pr"
+                    url = $prUrl.Trim()
+                }
+            }
+        }
+
+        if ($null -ne $openPr) {
+            $mergeArgs = @("pr", "merge", [string]$openPr.number, "--merge", "--delete-branch=false")
+            if (-not [string]::IsNullOrWhiteSpace($githubRepo)) {
+                $mergeArgs += @("--repo", $githubRepo)
+            }
+            Invoke-Gh -CliArgs $mergeArgs | Out-Null
+            return @{
+                finalized = $true
+                number = [string]$openPr.number
+                url = [string]$openPr.url
+                branch = $currentBranch
+                baseBranch = $baseBranch
+            }
+        }
+
+        return @{
+            finalized = $false
+            reason = "pr-unresolved"
+            branch = $currentBranch
+            baseBranch = $baseBranch
         }
     }
     finally {
@@ -3931,6 +4181,12 @@ function Invoke-OrchestrateArchive {
         }
 
         Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
+
+        $finalizeResult = Finalize-OrchestratorArchiveToMain -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_finalize_main" -Status "ok" -Message "Archive closeout to main evaluated." -Data $finalizeResult -Mode $Mode
+        if ([bool]$finalizeResult.finalized) {
+            Write-Output ("Archive closeout merged into main: {0}" -f [string]$finalizeResult.url)
+        }
     }
     finally {
         $postCleanup = Remove-OrchestratedIssueArtifacts -RepoRoot $RepoRoot -IssueKey $issueKey -ChangeName $changeName
