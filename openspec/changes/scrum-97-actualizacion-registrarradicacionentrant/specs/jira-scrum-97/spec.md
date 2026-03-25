@@ -13,3 +13,18 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: RegistrarRadicacionEntranteAsync tolerates successful existencia workflow responses without data
+`RegistrarRadicacionEntranteAsync` MUST continue when `ConsultarExistenciaRadicadoRutaWorkflowAsync` returns `success=true` without payload data.
+
+#### Scenario: Existencia workflow returns success without data
+- **GIVEN** el registro termina con `success=true` y `data` valida
+- **AND** `ConsultarExistenciaRadicadoRutaWorkflowAsync` retorna `success=true` con `data=null`
+- **WHEN** se ejecuta `RegistrarRadicacionEntranteAsync`
+- **THEN** el servicio continua y retorna `registroResult`
+
+#### Scenario: Existencia workflow returns technical error
+- **GIVEN** el registro termina con `success=true` y `data` valida
+- **AND** `ConsultarExistenciaRadicadoRutaWorkflowAsync` retorna `success=false`
+- **WHEN** se ejecuta `RegistrarRadicacionEntranteAsync`
+- **THEN** el servicio retorna el error controlado de existencia workflow
