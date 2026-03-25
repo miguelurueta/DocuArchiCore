@@ -13,11 +13,11 @@ Use this template at the start of each Jira ticket (`SCRUM-95`) to decide exactl
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
 | DocuArchi.Api | no | no_code_change | no requiere cambio funcional para esta actualizacion | n/a | n/a | n/a | n_a |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/106 | pending | in_review |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/106 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | no requiere ajuste de contratos para esta actualizacion | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/48 | pending | in_review |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/48 | done | archived |
 | MiApp.Repository | no | no_code_change | el repositorio ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
 | MiApp.Models | no | no_code_change | el modelo ya existe y no requiere cambio adicional | n/a | n/a | n/a | n_a |
 
