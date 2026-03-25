@@ -6,11 +6,13 @@ using MiApp.DTOs.DTOs.Workflow.RutaTrabajo;
 using MiApp.Models.Models.GestorDocumental.usuario;
 using MiApp.Models.Models.Radicacion.PlantillaRadicado;
 using MiApp.Models.Models.Radicacion.TipoTramite;
+using MiApp.Models.Models.Workflow.Grupo;
 using MiApp.Models.Models.Workflow.Usuario;
 using MiApp.Repository.ErrorController;
 using MiApp.Repository.Repositorio.Radicador.PlantillaRadicado;
 using MiApp.Repository.Repositorio.Radicador.Tramite;
 using MiApp.Repository.Repositorio.Workflow.Flujo;
+using MiApp.Repository.Repositorio.Workflow.Grupo;
 using MiApp.Repository.Repositorio.Workflow.usuario;
 using MiApp.Services.Service.Radicacion.Configuracion;
 using MiApp.Services.Service.Radicacion.PlantillaRadicado;
@@ -18,6 +20,7 @@ using MiApp.Services.Service.Radicacion.RelacionCamposRutaWorklflow;
 using MiApp.Services.Service.Radicacion.Tramite;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using MiApp.Services.Service.Usuario;
+using MiApp.Services.Service.Workflow.RutaTrabajo;
 using Moq;
 using System.Linq;
 using Xunit;
@@ -44,6 +47,25 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, 10, "DA", It.IsAny<string>(), 1, "RADICACION",
             It.IsAny<SystemPlantillaRadicado>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
             It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloEnvioRequiereActividadRelacionada_ConsultaGrupoWorkflowAntesDeRegistrar()
+    {
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(18) });
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
+
+        Assert.True(result.success);
+        fx.GruposWorkflowRepository.Verify(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"), Times.Once);
     }
 
     [Fact]
@@ -163,6 +185,29 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     }
 
     [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoTipoModuloEnvioRequiereActividadYGrupoNoTieneActividad_RetornaValidacion()
+    {
+        var fx = BuildFixture();
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 3) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(0) });
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 1);
+
+        Assert.False(result.success);
+        Assert.Equal("El usuario workflow no tiene relacionada una actividad workflow", result.message);
+        fx.RegistrarRepo.Verify(r => r.RegistrarRadicacionEntranteAsync(
+            It.IsAny<RegistrarRadicacionEntranteRequestDto>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SystemPlantillaRadicado>(),
+            It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(), It.IsAny<ParametrosRadicadosDto>(), It.IsAny<TipoDocEntrante>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RegistrarRadicacionEntranteAsync_CuandoConsultaUsuarioWorkflowLanzaExcepcion_RetornaErrorControlado()
     {
         var fx = BuildFixture();
@@ -236,6 +281,8 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 errors = [],
                 data = new SolicitaExistenciaRadicadoRutaWorkflowDto()
             });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(It.IsAny<int>(), "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(11) });
         fx.RegistrarRepo.Setup(r => r.RegistrarRadicacionEntranteAsync(
                 It.IsAny<RegistrarRadicacionEntranteRequestDto>(), 55, 10, "DA", It.IsAny<string>(), It.IsAny<int>(), moduloRegistro,
                 It.IsAny<SystemPlantillaRadicado>(), It.IsAny<IReadOnlyCollection<DetallePlantillaRadicado>>(),
@@ -247,7 +294,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             fx.ValidaCamposRadicacionService.Object, fx.ValidaPreRegistroWorkflowService.Object,
             fx.SolicitaDatosActividadInicioFlujoRepository.Object, fx.CurrentUserService.Object,
             fx.SolicitaEstructuraRutaWorkflowService.Object, fx.SolicitaExistenciaRadicadoRutaWorkflowService.Object,
-            fx.UsuarioWorkflowRepository.Object);
+            fx.UsuarioWorkflowRepository.Object, fx.GruposWorkflowRepository.Object);
         return fx;
     }
 
@@ -282,7 +329,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         util_default_radicado = 1
     };
 
-    private static TipoDocEntrante BuildTipoDocEntrante() => new()
+    private static TipoDocEntrante BuildTipoDocEntrante(int utilTipoModuloEnvio = 1) => new()
     {
         id_Tipo_Doc_Entrante = 302,
         Descripcion_Doc = "TRAMITE",
@@ -296,7 +343,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         tipo_tramite = 1,
         estado_ruta_open_close = 1,
         activo_modulo_respuesta = 1,
-        util_tipo_modulo_envio = 1,
+        util_tipo_modulo_envio = utilTipoModuloEnvio,
         tipo_tramite_entrante_saliente = 1,
         id_gabinete = 1,
         util_radicacion_simple = 1
@@ -340,7 +387,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         Nombre_Ruta = "RUTA-1"
     };
 
-    private static UsuarioWorkflow BuildUsuarioWorkflow(int idUsuarioWorkflow) => new()
+    private static UsuarioWorkflow BuildUsuarioWorkflow(int idUsuarioWorkflow, int idGrupoWorkflow = 1) => new()
     {
         idU_suario = idUsuarioWorkflow,
         login_Usuario = $"wf{idUsuarioWorkflow}",
@@ -353,7 +400,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         pasw_encript = string.Empty,
         numerodias_pasw = 1,
         Grupos_Workflow_Rutas_Workflow_id_Ruta = 1,
-        Grupos_Workflow_Id_Grupo = 1,
+        Grupos_Workflow_Id_Grupo = idGrupoWorkflow,
         Relacion_Gestion = 1,
         Relacion_Gestion_Login = string.Empty,
         ESTADO_USUARIO = 1,
@@ -365,6 +412,16 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         Correo_Usuario = string.Empty,
         fecha_limite_acceso = DateTime.UtcNow.AddDays(1)
       };
+
+    private static GruposWorkflow BuildGrupoWorkflow(int idActividad) => new()
+    {
+        Id_Grupo = 7,
+        Rutas_Workflow_id_Ruta = 1,
+        Nombre_Grupo = "GRUPO-1",
+        Fecha_Creacion = DateTime.UtcNow,
+        Estado_Grupo = 1,
+        id_Actividad = idActividad
+    };
 
     private sealed class Fixture
     {
@@ -382,6 +439,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         public Mock<ISolicitaEstructuraRutaWorkflowService> SolicitaEstructuraRutaWorkflowService { get; } = new();
         public Mock<ISolicitaExistenciaRadicadoRutaWorkflowService> SolicitaExistenciaRadicadoRutaWorkflowService { get; } = new();
         public Mock<IUsuarioWorkflowR> UsuarioWorkflowRepository { get; } = new();
+        public Mock<IGruposWorkflowR> GruposWorkflowRepository { get; } = new();
         public RegistrarRadicacionEntranteService Service { get; set; } = null!;
     }
 }
