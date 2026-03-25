@@ -123,6 +123,45 @@ public sealed class RegistrarRadicacionEntranteServiceTests
     }
 
     [Fact]
+    public async Task RegistrarRadicacionEntranteAsync_CuandoExistenciaWorkflowFalla_RetornaErrorControlado()
+    {
+        var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
+        fx.ValidaPreRegistroWorkflowService.Setup(s => s.ValidaPreRegistroWorkflowAsync(It.IsAny<RegistrarRadicacionEntranteRequestDto>(), "DA", It.IsAny<TipoDocEntrante>()))
+            .ReturnsAsync(new AppResponses<ValidaPreRegistroWorkflowResultDto>
+            {
+                success = true,
+                data = new ValidaPreRegistroWorkflowResultDto
+                {
+                    NombreRuta = "RUTA-1",
+                    RutaWorkflow = BuildRutaWorkflow()
+                },
+                errors = []
+            });
+        fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
+            .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
+        fx.UsuarioWorkflowRepository.Setup(r => r.SolicitaEstructuraIdUsuarioWorkflowId(901, "WF"))
+            .ReturnsAsync(new AppResponse<UsuarioWorkflow> { Success = true, Message = "YES", Data = BuildUsuarioWorkflow(901, 7) });
+        fx.TipoDocEntranteRepo.Setup(r => r.SolicitaEstructuraTipoDoEntrante(302, "DA"))
+            .ReturnsAsync(new AppResponses<TipoDocEntrante> { success = true, data = BuildTipoDocEntrante(utilTipoModuloEnvio: 2) });
+        fx.GruposWorkflowRepository.Setup(r => r.SolicitaIdActividadRelacionadaGrupo(7, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow> { Success = true, Message = "YES", Data = BuildGrupoWorkflow(18) });
+        fx.SolicitaExistenciaRadicadoRutaWorkflowService.Setup(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"))
+            .ReturnsAsync(new AppResponses<SolicitaExistenciaRadicadoRutaWorkflowDto>
+            {
+                success = false,
+                message = "existencia workflow failed",
+                errors = [new AppError { Field = "workflow", Message = "existencia workflow failed", Type = "Workflow" }],
+                data = new SolicitaExistenciaRadicadoRutaWorkflowDto()
+            });
+
+        var result = await fx.Service.RegistrarRadicacionEntranteAsync(BuildRequest(), 10, "DA", "127.0.0.1", 2);
+
+        Assert.False(result.success);
+        Assert.Equal("existencia workflow failed", result.message);
+        fx.SolicitaExistenciaRadicadoRutaWorkflowService.Verify(r => r.SolicitaExistenciaRadicadoRutaWorkflowAsync("RAD-TEST-1", "RUTA-1", "WF"), Times.Once);
+    }
+
+    [Fact]
     public async Task RegistrarRadicacionEntranteAsync_CuandoPreRegistroWorkflowNoRetornaRuta_RetornaValidacionYNoRegistra()
     {
         var fx = BuildFixture(moduloRegistro: "CORRESPONDENCIA");
