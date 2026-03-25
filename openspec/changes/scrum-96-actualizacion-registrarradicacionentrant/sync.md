@@ -17,7 +17,7 @@ Use this template at the start of each Jira ticket (`SCRUM-96`) to decide exactl
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | sin cambios funcionales para este ticket | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | mueve existenciaWorkflowResult fuera del bloque de exito y conserva comportamiento | pending | n/a | pending | todo |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/50 | pending | in_review |
 | MiApp.Repository | no | no_code_change | sin cambios funcionales para este ticket | n/a | n/a | n/a | n_a |
 | MiApp.Models | no | no_code_change | sin cambios funcionales para este ticket | n/a | n/a | n/a | n_a |
 
