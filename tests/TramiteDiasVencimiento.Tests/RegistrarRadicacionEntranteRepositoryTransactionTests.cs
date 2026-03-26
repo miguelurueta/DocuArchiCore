@@ -144,6 +144,8 @@ public sealed class RegistrarRadicacionEntranteRepositoryTransactionTests
 
         Assert.True(result.success);
         Assert.Contains("Q08", factory.LastConnection!.ExecutedSteps);
+        Assert.Equal(1, result.data!.ReturnRegistraRadicacion.IdEstadoRadicado);
+        Assert.Equal(1, Assert.IsType<int>(result.data.MetadataOperativa["idEstadoRadicado"]!));
     }
 
     private static RegistrarRadicacionEntranteRequestDto BuildRequest(string tipoRadicacion, bool esRelacionado = false)
