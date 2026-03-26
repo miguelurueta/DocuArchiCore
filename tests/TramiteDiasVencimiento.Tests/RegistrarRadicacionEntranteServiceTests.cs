@@ -565,7 +565,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         var fx = BuildFixture(new RegistrarRadicacionEntranteResponseDto
         {
             ConsecutivoRadicado = "RAD-LEGACY-90",
-            MetadataOperativa = new Dictionary<string, object?> { ["idRadicado"] = 9001 }
+            MetadataOperativa = new Dictionary<string, object?> { ["idRadicado"] = 9001, ["idEstadoRadicado"] = 321 }
         });
         fx.RemitRepo.Setup(r => r.SolicitaEstructuraIdUsuarioGestion(33, "DA"))
             .ReturnsAsync(new AppResponses<RemitDestInterno> { success = true, data = BuildRemitDestInterno(55, 901) });
@@ -577,6 +577,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         Assert.True(result.success);
         Assert.NotNull(result.data?.ReturnRegistraRadicacion);
         Assert.Equal(9001, result.data!.ReturnRegistraRadicacion.IdRadicado);
+        Assert.Equal(321, result.data.ReturnRegistraRadicacion.IdEstadoRadicado);
     }
 
     private static Fixture BuildFixture(RegistrarRadicacionEntranteResponseDto? response = null, string moduloRegistro = "RADICACION")
