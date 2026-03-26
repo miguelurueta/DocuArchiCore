@@ -14,7 +14,7 @@ public sealed class RaRadEstadosModuloRadicacionRepositoryTests
         var dapper = new Mock<IDapperCrudEngine>();
         var repository = new RaRadEstadosModuloRadicacionR(dapper.Object);
 
-        var result = await repository.ActualizaEstadoModuloRadicacio(string.Empty, 10, 2);
+        var result = await repository.ActualizaEstadoModuloRadicacio(string.Empty, 10, 2, 321L);
 
         Assert.False(result.success);
         Assert.Equal("DefaultDbAlias requerido", result.message);
@@ -34,7 +34,7 @@ public sealed class RaRadEstadosModuloRadicacionRepositoryTests
             });
 
         var repository = new RaRadEstadosModuloRadicacionR(dapper.Object);
-        var result = await repository.ActualizaEstadoModuloRadicacio("DA", 10, 2);
+        var result = await repository.ActualizaEstadoModuloRadicacio("DA", 10, 2, 321L);
 
         Assert.True(result.success);
         Assert.True(result.data);
@@ -44,7 +44,8 @@ public sealed class RaRadEstadosModuloRadicacionRepositoryTests
                 q.TableName == "ra_rad_estados_modulo_radicacion"
                 && q.DefaultAlias == "DA"
                 && (long)q.Filters["id_estado_radicado"] == 10
-                && (int)q.ReglasValidacionCampo["estado"] == 2),
+                && (int)q.ReglasValidacionCampo["estado"] == 2
+                && (long)q.ReglasValidacionCampo["id_tarea_workflow"] == 321L),
             "ActualizaEstadoModuloRadicacio"), Times.Once);
     }
 
@@ -56,10 +57,23 @@ public sealed class RaRadEstadosModuloRadicacionRepositoryTests
             .ThrowsAsync(new InvalidOperationException("db failed"));
 
         var repository = new RaRadEstadosModuloRadicacionR(dapper.Object);
-        var result = await repository.ActualizaEstadoModuloRadicacio("DA", 10, 2);
+        var result = await repository.ActualizaEstadoModuloRadicacio("DA", 10, 2, 321L);
 
         Assert.False(result.success);
         Assert.Equal("Error al actualizar estado del modulo de radicacion", result.message);
         Assert.Contains(result.errors!.Cast<AppError>(), error => error.Field == "ActualizaEstadoModuloRadicacio" && error.Message.Contains("db failed"));
+    }
+
+    [Fact]
+    public async Task ActualizaEstadoModuloRadicacio_CuandoIdTareaWorkflowInvalido_RetornaValidacion()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        var repository = new RaRadEstadosModuloRadicacionR(dapper.Object);
+
+        var result = await repository.ActualizaEstadoModuloRadicacio("DA", 10, 2, 0L);
+
+        Assert.False(result.success);
+        Assert.Equal("IdTareaWorkflow requerido", result.message);
+        dapper.Verify(x => x.UpdateDynamicWithValidationAsync(It.IsAny<QueryOptions>(), It.IsAny<string>()), Times.Never);
     }
 }

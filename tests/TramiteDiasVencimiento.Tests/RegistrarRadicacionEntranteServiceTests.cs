@@ -258,7 +258,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
             It.IsAny<IReadOnlyCollection<RelacionCamposRutaWorklflowDto>>(),
             It.IsAny<DateTime>(),
             "WF"), Times.Once);
-        fx.RaRadEstadosModuloRadicacionRepository.Verify(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1), Times.Once);
+        fx.RaRadEstadosModuloRadicacionRepository.Verify(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1, 321), Times.Once);
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 errors = [],
                 data = new SolicitaExistenciaRadicadoRutaWorkflowDto { IdTareaWorkflow = 0 }
             });
-        fx.RaRadEstadosModuloRadicacionRepository.Setup(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1))
+        fx.RaRadEstadosModuloRadicacionRepository.Setup(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1, 321))
             .ReturnsAsync(new AppResponses<bool>
             {
                 success = false,
@@ -679,7 +679,7 @@ public sealed class RegistrarRadicacionEntranteServiceTests
                 errors = [],
                 data = new RegistroTareaWorkflowResultDto { idTareaWorkflow = 321 }
             });
-        fx.RaRadEstadosModuloRadicacionRepository.Setup(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1))
+        fx.RaRadEstadosModuloRadicacionRepository.Setup(r => r.ActualizaEstadoModuloRadicacio("DA", 444, 1, 321))
             .ReturnsAsync(new AppResponses<bool>
             {
                 success = true,
