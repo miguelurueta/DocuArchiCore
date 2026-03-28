@@ -20,6 +20,7 @@ obj/
 
 # Logs
 *.log
+openspec/logs/*.jsonl
 
 # Publish
 publish/
@@ -29,3 +30,4 @@ appsettings.Development.json
 
 # Others
 *.db
+.opsxj/
