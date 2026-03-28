@@ -179,12 +179,17 @@ Notas:
 
 - `UiColumnDto.key`:
   - MUI: `field`
+  - AG Grid: identificador estable auxiliar
   - AntD: `key`
 - `UiColumnDto.columnName`:
   - backend/source field
+  - AG Grid: base para `field`
   - AntD: normalmente `dataIndex`
+- `UiColumnDto.field`:
+  - alias explícito para `AgGridColDef.field`
 - `UiColumnDto.headerName`:
   - MUI: `headerName`
+  - AG Grid: `headerName`
   - AntD: `title`
 - `UiColumnDto.renderType`:
   - convención semántica
@@ -194,8 +199,11 @@ Notas:
 - `UiColumnDto.title`:
   - alias explícito para `Ant Design columns[].title`
 - `UiColumnDto.filterable` / `filterType`:
-  - metadata para filtros AntD
+  - metadata semántica para filtros
   - ejemplos: `text`, `select`, `date`, `datetime`, `none`
+- `UiColumnDto.agGridFilterType`:
+  - alias explícito para `AgGridColDef.filter`
+  - ejemplos: `agTextColumnFilter`, `agSetColumnFilter`, `agDateColumnFilter`, `none`
 - `UiActionDto.placement`:
   - `toolbar`, `bulk`, `row`
 - `UiActionDto.presentation`:
@@ -381,6 +389,58 @@ export function RadicadosPendientesAntTable({ token }: { token: string }) {
 - `cellActions` -> `render` condicionado por `columnKey`
 - `pagination.page/pageSize/total` -> `Table.pagination`
 - `sorting.sortField/sortDir` -> estado de sorter/control remoto
+
+## Ejemplo React + AG Grid
+
+```tsx
+import { AgGridReact } from "ag-grid-react";
+import { useEffect, useState } from "react";
+
+export function RadicadosPendientesAgGrid({ token }: { token: string }) {
+  const [rowData, setRowData] = useState<any[]>([]);
+  const [columnDefs, setColumnDefs] = useState<any[]>([]);
+
+  useEffect(() => {
+    queryDynamicTable(token, {
+      tableId: "radicadosPendientes",
+      page: 1,
+      pageSize: 25,
+      sortField: "fecha_registro",
+      sortDir: "asc",
+      includeConfig: true
+    }).then((data: any) => {
+      setRowData((data.rows || []).map((r: any) => ({ id: r.id, ...r.values })));
+      setColumnDefs(
+        (data.columns || [])
+          .filter((c: any) => c.visible)
+          .map((c: any) => ({
+            colId: c.key,
+            field: c.field || c.columnName || c.key,
+            headerName: c.headerName,
+            sortable: c.sortable,
+            filter: c.agGridFilterType !== "none" ? c.agGridFilterType : false,
+            width: c.width
+          }))
+      );
+    });
+  }, [token]);
+
+  return <AgGridReact rowData={rowData} columnDefs={columnDefs} pagination />;
+}
+```
+
+## Mapping AG Grid
+
+- `data.rows[].values` -> `rowData`
+- `data.rows[].id` -> `getRowId` o campo `id`
+- `column.key` -> `colId`
+- `column.field` -> `columnDefs[].field`
+- `column.headerName` -> `columnDefs[].headerName`
+- `column.agGridFilterType` -> `columnDefs[].filter`
+- `column.isActionColumn=true` -> columna custom con `cellRenderer`
+- `toolbarActions` / `bulkActions` / `rowActions` / `cellActions` -> toolbar, context menu o `cellRenderer`
+- `pagination.page/pageSize/total` -> paginación remota o estado del datasource
+- `sorting.sortField/sortDir` -> `sortModel`
 
 ## Requisitos desde frontend
 

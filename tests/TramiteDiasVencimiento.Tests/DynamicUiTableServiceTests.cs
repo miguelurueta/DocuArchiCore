@@ -251,19 +251,25 @@ public class DynamicUiTableServiceTests
         });
 
         Assert.Equal("asunto", payload.Columns[0].DataIndex);
+        Assert.Equal("asunto", payload.Columns[0].Field);
         Assert.Equal("Asunto", payload.Columns[0].Title);
         Assert.Equal("text", payload.Columns[0].FilterType);
+        Assert.Equal("agTextColumnFilter", payload.Columns[0].AgGridFilterType);
         Assert.True(payload.Columns[0].Filterable);
 
         Assert.Equal("fecha_registro", payload.Columns[1].DataIndex);
+        Assert.Equal("fecha_registro", payload.Columns[1].Field);
         Assert.Equal("Fecha", payload.Columns[1].Title);
         Assert.Equal("date", payload.Columns[1].FilterType);
+        Assert.Equal("agDateColumnFilter", payload.Columns[1].AgGridFilterType);
 
         Assert.True(payload.Columns[2].IsActionColumn);
+        Assert.Equal("actions", payload.Columns[2].Field);
         Assert.Equal("actions", payload.Columns[2].DataIndex);
         Assert.Equal("Opciones", payload.Columns[2].Title);
         Assert.False(payload.Columns[2].Filterable);
         Assert.Equal("none", payload.Columns[2].FilterType);
+        Assert.Equal("none", payload.Columns[2].AgGridFilterType);
     }
 
     [Fact]
@@ -308,8 +314,10 @@ public class DynamicUiTableServiceTests
         });
 
         Assert.Equal("estado", payload.Columns[0].DataIndex);
+        Assert.Equal("estado", payload.Columns[0].Field);
         Assert.Equal("Estado", payload.Columns[0].Title);
         Assert.Equal("select", payload.Columns[0].FilterType);
+        Assert.Equal("agSetColumnFilter", payload.Columns[0].AgGridFilterType);
         repository.Verify(r => r.GetColumnsAsync("DA", "radicados"), Times.Once);
     }
 
