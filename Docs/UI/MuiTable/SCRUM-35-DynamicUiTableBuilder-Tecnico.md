@@ -393,15 +393,15 @@ public sealed class RadicadosPendientesHandler : IDynamicUiTableHandler
 }
 ```
 
-## Adaptacion a Ant Design Table
+## Adaptacion a AG Grid y Ant Design Table
 
-El payload actual ya cubre el mapping base requerido por AntD:
+El payload actualizado cubre el mapping base requerido por AG Grid y AntD:
 
 ```text
 DynamicUiTableDto
-  ├─ Columns -----------------> Table.columns
-  ├─ Rows[].Values -----------> Table.dataSource
-  ├─ Rows[].Id ---------------> rowKey
+  ├─ Columns -----------------> columnDefs / Table.columns
+  ├─ Rows[].Values -----------> rowData / Table.dataSource
+  ├─ Rows[].Id ---------------> getRowId / rowKey
   ├─ Pagination -------------> pagination
   ├─ Sorting ----------------> sorter/control remoto
   ├─ ToolbarActions ---------> botones externos
@@ -410,6 +410,9 @@ DynamicUiTableDto
 ```
 
 Mapping recomendado:
+- `UiColumnDto.Field` -> `AgGridColDef.field`
+- `UiColumnDto.HeaderName` -> `AgGridColDef.headerName`
+- `UiColumnDto.AgGridFilterType` -> `AgGridColDef.filter`
 - `UiColumnDto.Key` -> `columns[].key`
 - `UiColumnDto.DataIndex` -> `columns[].dataIndex`
 - `UiColumnDto.Title` -> `columns[].title`
@@ -420,10 +423,11 @@ Mapping recomendado:
 - `UiRowDto.Id` -> `rowKey`
 
 Notas:
+- `Field` y `AgGridFilterType` se normalizan en backend para reducir lógica repetida en AG Grid.
 - Si `IsActionColumn=true`, AntD suele resolverla con `render`.
 - `RenderType` debe interpretarse como metadata semantica; el adapter decide si usa `Tag`, `Typography.Text`, fechas formateadas o render custom.
 - `Placement` y `Presentation` no obligan un componente concreto; solo expresan intencion de UI.
-- El builder normaliza `DataIndex`, `Title` y `FilterType` para reducir lógica repetida en adapters AntD.
+- El builder normaliza `Field`, `DataIndex`, `Title`, `FilterType` y `AgGridFilterType`.
 
 ### Response
 
