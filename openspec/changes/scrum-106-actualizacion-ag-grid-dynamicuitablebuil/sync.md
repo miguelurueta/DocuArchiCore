@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-106`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/128 | pending | in_review |
+| DocuArchi.Api | no | no_code_change | no requiere cambios funcionales para exponer metadata AG Grid | n/a | n/a | n/a | n_a |
+| DocuArchiCore | yes | implementation_required | coordinacion OpenSpec, pruebas y documentacion tecnica | done | https://github.com/miguelurueta/DocuArchiCore/pull/128 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | agrega aliases de contrato para AG Grid en DTOs de tabla dinamica | done | https://github.com/miguelurueta/MiApp.DTOs/pull/23 | pending | merged |
+| MiApp.Services | yes | implementation_required | normaliza metadata y filtros compatibles con AG Grid en el builder | done | https://github.com/miguelurueta/MiApp.Services/pull/56 | pending | merged |
+| MiApp.Repository | no | no_code_change | no requiere persistencia ni consulta adicional para este ajuste de contrato | n/a | n/a | n/a | n_a |
+| MiApp.Models | no | no_code_change | no hay cambios de modelo de dominio para esta compatibilidad | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
