@@ -1,7 +1,9 @@
 using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.UI.MuiTable;
+using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
 using MiApp.Repository.Repositorio.UI.MuiTable;
 using MiApp.Services.Service.UI.MuiTable;
+using MiApp.Services.Service.Workflow.BandejaCorrespondencia;
 using Moq;
 using Xunit;
 
@@ -319,6 +321,135 @@ public class DynamicUiTableServiceTests
         Assert.Equal("select", payload.Columns[0].FilterType);
         Assert.Equal("agSetColumnFilter", payload.Columns[0].AgGridFilterType);
         repository.Verify(r => r.GetColumnsAsync("DA", "radicados"), Times.Once);
+    }
+
+    [Fact]
+    public void WorkflowDynamicUiColumnBuilder_CuandoListaEsVacia_RetornaSoloColumnasEstaticas()
+    {
+        var builder = new WorkflowDynamicUiColumnBuilder();
+
+        var result = builder.Build([]);
+
+        Assert.Collection(
+            result,
+            column =>
+            {
+                Assert.Equal("id_tarea", column.Key);
+                Assert.False(column.Visible);
+            },
+            column =>
+            {
+                Assert.Equal("fecha_inicio", column.Key);
+                Assert.True(column.Visible);
+            },
+            column => Assert.Equal("ESTADO", column.Key),
+            column =>
+            {
+                Assert.Equal("acciones", column.Key);
+                Assert.True(column.IsActionColumn);
+                Assert.Equal("grid_actions", column.RenderType);
+            });
+    }
+
+    [Fact]
+    public void WorkflowDynamicUiColumnBuilder_RespetaOrdenYNormalizaMetadatos()
+    {
+        var builder = new WorkflowDynamicUiColumnBuilder();
+
+        var result = builder.Build(
+        [
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "fechaVencimiento",
+                ColumnName = "fecha_vencimiento",
+                DataType = "datetime",
+                Order = 20,
+                IsVisible = true,
+                IsSortable = true,
+                IsFilterable = true
+            },
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "asunto",
+                ColumnName = "asunto",
+                DataType = "text",
+                Order = 10,
+                IsVisible = true,
+                IsSortable = true,
+                IsFilterable = true
+            },
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "dias_vencidos",
+                ColumnName = "dias_vencidos",
+                DataType = "number",
+                Order = 30,
+                IsVisible = true,
+                IsSortable = true,
+                IsFilterable = true
+            }
+        ]);
+
+        Assert.Equal("asunto", result[0].Key);
+        Assert.Equal("Asunto", result[0].HeaderName);
+        Assert.Equal("grid_text", result[0].RenderType);
+        Assert.Equal("text", result[0].FilterType);
+
+        Assert.Equal("fechaVencimiento", result[1].Key);
+        Assert.Equal("Fecha Vencimiento", result[1].Title);
+        Assert.Equal("grid_datetime", result[1].RenderType);
+        Assert.Equal("date", result[1].FilterType);
+        Assert.Equal("agDateColumnFilter", result[1].AgGridFilterType);
+
+        Assert.Equal("dias_vencidos", result[2].Key);
+        Assert.Equal("right", result[2].Align);
+        Assert.Equal("number", result[2].FilterType);
+        Assert.Equal("agNumberColumnFilter", result[2].AgGridFilterType);
+
+        Assert.Equal(["asunto", "fechaVencimiento", "dias_vencidos", "id_tarea", "fecha_inicio", "ESTADO", "acciones"], result.Select(x => x.Key).ToArray());
+    }
+
+    [Fact]
+    public void WorkflowDynamicUiColumnBuilder_NoDuplicaKeysEstaticasNiDinamicas()
+    {
+        var builder = new WorkflowDynamicUiColumnBuilder();
+
+        var result = builder.Build(
+        [
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "acciones",
+                ColumnName = "acciones_custom",
+                DataType = "text",
+                Order = 1,
+                IsVisible = true,
+                IsSortable = false,
+                IsFilterable = false
+            },
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "asunto",
+                ColumnName = "asunto",
+                DataType = "text",
+                Order = 2,
+                IsVisible = true,
+                IsSortable = true,
+                IsFilterable = true
+            },
+            new WorkflowDynamicColumnDefinitionDto
+            {
+                Key = "asunto",
+                ColumnName = "asunto_duplicado",
+                DataType = "text",
+                Order = 3,
+                IsVisible = true,
+                IsSortable = true,
+                IsFilterable = true
+            }
+        ]);
+
+        Assert.Equal(1, result.Count(column => column.Key == "acciones"));
+        Assert.Equal(1, result.Count(column => column.Key == "asunto"));
     }
 
     private sealed class FakeHandler : IDynamicUiTableHandler
