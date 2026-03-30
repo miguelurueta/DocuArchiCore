@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-108`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registrar DI del repository en Program.cs | pending | n/a | pending | local_changes_present |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/35 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/134 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | usa contratos creados en SCRUM-107 sin cambios nuevos | pending | n/a | pending | tracked |
-| MiApp.Services | yes | no_code_change | sin service en esta fase | n/a | n/a | n/a | n_a |
-| MiApp.Repository | yes | implementation_required | nuevo repository y validator para metadata dinamica | pending | n/a | pending | local_changes_present |
-| MiApp.Models | yes | no_code_change | reutiliza `ConfiguracionListadoRuta` existente | n/a | n/a | n/a | n_a |
+| MiApp.DTOs | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.Services | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/29 | pending | in_review |
+| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
 
 ## Operating Rule
 
