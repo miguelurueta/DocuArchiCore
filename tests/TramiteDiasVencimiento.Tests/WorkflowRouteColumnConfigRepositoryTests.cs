@@ -1,6 +1,6 @@
 using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
 using MiApp.Repository.DataAccess;
-using MiApp.Repository.Repositorio.Workflow.RutaTrabajo;
+using MiApp.Repository.Repositorio.Workflow.BandejaCorrespondencia;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
