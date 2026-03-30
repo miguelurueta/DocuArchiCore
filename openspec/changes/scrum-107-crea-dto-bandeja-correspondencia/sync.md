@@ -17,9 +17,9 @@ Use this template at the start of each Jira ticket (`SCRUM-107`) to decide exact
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | implementation_required | nuevos DTOs y enum en `DTOs/Workflow/BandejaCorrespondencia` | done | https://github.com/miguelurueta/MiApp.DTOs/pull/24 | pending | in_review |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.Services | no | no_code_change | sin diff funcional para SCRUM-107; se excluye del publish satelite | n/a | n/a | n/a | n_a |
+| MiApp.Repository | no | no_code_change | sin diff funcional para SCRUM-107; se excluye del publish satelite | n/a | n/a | n/a | n_a |
+| MiApp.Models | no | no_code_change | sin diff funcional para SCRUM-107; se excluye del publish satelite | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
