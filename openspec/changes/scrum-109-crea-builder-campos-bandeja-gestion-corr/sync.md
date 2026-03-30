@@ -12,12 +12,12 @@ Use this template at the start of each Jira ticket (`SCRUM-109`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registrar builder en DI de Program.cs para consumo backend | pending | n/a | pending | pending |
+| DocuArchi.Api | yes | implementation_required | registrar builder en DI de Program.cs para consumo backend | done | https://github.com/miguelurueta/DocuArchi.Api/pull/36 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/136 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | no_code_change | contrato `WorkflowDynamicColumnDefinitionDto` ya existe y cubre la entrada del builder | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | implementar `IWorkflowDynamicUiColumnBuilder` y `WorkflowDynamicUiColumnBuilder` | pending | n/a | pending | pending |
+| MiApp.Services | yes | implementation_required | implementar `IWorkflowDynamicUiColumnBuilder` y `WorkflowDynamicUiColumnBuilder` | done | https://github.com/miguelurueta/MiApp.Services/pull/58 | pending | in_review |
 | MiApp.Repository | no | no_code_change | el builder no consulta base de datos ni usa repositorios en esta fase | n/a | n/a | n/a | n_a |
 | MiApp.Models | no | no_code_change | no se requiere nuevo modelo ni tabla para una transformacion en memoria | n/a | n/a | n/a | n_a |
 
