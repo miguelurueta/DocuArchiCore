@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-108`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | implementation_required | registrar DI del repository en Program.cs | pending | n/a | pending | local_changes_present |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/134 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | usa contratos creados en SCRUM-107 sin cambios nuevos | pending | n/a | pending | tracked |
+| MiApp.Services | yes | no_code_change | sin service en esta fase | n/a | n/a | n/a | n_a |
+| MiApp.Repository | yes | implementation_required | nuevo repository y validator para metadata dinamica | pending | n/a | pending | local_changes_present |
+| MiApp.Models | yes | no_code_change | reutiliza `ConfiguracionListadoRuta` existente | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
@@ -30,7 +30,7 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 
 ## Typical API Change Pattern
 
-- `DocuArchi.Api`: usually yes
+- `DocuArchi.Api`: yes when DI wiring changes
 - `MiApp.Services`: usually yes
 - `MiApp.Repository`: usually yes
 - `MiApp.DTOs`: usually yes
