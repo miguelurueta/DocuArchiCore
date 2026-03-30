@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-107
+- Jira summary: CREA-DTO-BANDEJA-CORRESPONDENCIA
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-107
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO — DTOs base para bandeja workflow dinámica Rol esperado: Arquitecto de software senior y desarrollador backend .NET OBJETIVO Implementar los DTOs base del módulo de bandeja workflow dinámica, respetando la arquitectura actual del proyecto y preparando la solución para las siguientes fases: consulta de metadata dinámica construcción de columnas UI construcción del query dinámico service final de bandeja controller final Tabla: configuracion_listado_ruta ALCANCE FUNCIONAL Esta fase únicamente define DTOs y enums. No debe: consultar base de datos usar repositorios usar servicios usar QueryOptions usar DapperCrudEngine implementar controller implementar lógica UI implementar lógica SQL ARQUITECTURA APLICABLE DTO / Enum ↓ Modelado de contratos ↓ Preparación para capas posteriores REGLA ARQUITECTÓNICA IMPORTANTE No generar capas innecesarias. No mezclar DTOs con lógica. No inventar estructuras fuera de lo ya definido funcionalmente. CONTEXTO FUNCIONAL La solución depende de: configuracion_listado_ruta dat_adic_tar + nombreRuta tipos de consulta 1, 2 y 3 construcción posterior de DynamicUiTableDto Los DTOs deben quedar listos para representar: metadata dinámica de columnas por ruta request de consulta de metadata por ruta request de bandeja workflow filtros estructurados de la bandeja resultado de columnas dinámicas resueltas ENTREGABLES OBLIGATORIOS Enum: WorkflowColumnListMode ListaTarea = 1 ListaGestionTramite = 2 DTO request metadata: WorkflowRouteColumnConfigRequestDto Propiedades: int IdRutaWorkflow string DefaultDbAlias WorkflowColumnListMode Mode DTO fila cruda: ConfiguracionListadoRutaDto Debe mapear: IdConfiguracion RutasWorkflowIdRuta IdCampo NombreCampo TipoCampo ListaTarea OrdenaTarea Prioridad CampoRadicado CampoTramite CampoFechaVence CampoBeneficiario ListaGestionTamite OrdenListaGestionTamite CampoCodigoBarras DTO metadata resuelta: WorkflowDynamicColumnDefinitionDto Debe incluir: string Key string ColumnName string SqlColumnName string DataType int Order bool IsVisible bool IsSortable bool IsFilterable bool IsRadicadoField bool IsTramiteField bool IsFechaVenceField bool IsBeneficiarioField bool IsCodigoBarrasField DTO resultado metadata: WorkflowRouteColumnConfigResultDto Debe incluir: int IdRutaWorkflow string Mode List<WorkflowDynamicColumnDefinitionDto> Columns DTO filtro estructurado: WorkflowStructuredFilterDto Debe incluir: string Field string Operator object? Value object? ValueFrom object? ValueTo DTO request principal bandeja: WorkflowInboxDynamicTableRequestDto Debe incluir exactamente: string TableId string DefaultDbAlias int IdUsuarioWorkflow int IdRutaWorkflow int IdActividad string NombreRuta string EstadoTramite int TipoConsulta string Search int Page int PageSize string SortField string SortDir WorkflowColumnListMode ColumnMode List<WorkflowStructuredFilterDto> StructuredFilters REGLAS TÉCNICAS Usar PascalCase. Inicializar listas con []. Asignar valores por defecto coherentes donde ya fueron definidos. No agregar propiedades no discutidas. Mantener nombres exactamente iguales a los definidos. Documentar con comentarios XML: propósito del DTO propósito de propiedades críticas No crear Model si la estructura ya corresponde a DTO. Mantener nombres consistentes con el estándar del proyecto. UBICACIÓN DE COMPONENTES Proyecto DTOs: MiApp.DTOs Ruta sugerida: /DTOs/Workflow/BandejaCorrespondencia PRUEBAS No aplicar pruebas en esta fase. ENTREGABLES Enum DTOs completos Comentarios XML Código listo para compilar
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-107-crea-dto-bandeja-correspondencia.
