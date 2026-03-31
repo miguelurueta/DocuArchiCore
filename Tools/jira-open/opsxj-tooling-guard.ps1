@@ -1,9 +1,9 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string]$RequiredKey = "Maria20230126*",
     [string]$RequiredModeMarker = "opsx:explore"
 )
+
+$ErrorActionPreference = "Stop"
 
 function Get-ChangedFiles {
     $eventName = [string]$env:GITHUB_EVENT_NAME

@@ -3473,6 +3473,21 @@ function Finalize-OrchestratorArchiveToMain {
     }
 }
 
+function Test-IsArchiveCloseoutPrEnabled {
+    $raw = [string]$env:OPSXJ_ENABLE_ARCHIVE_CLOSEOUT_PR
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $false
+    }
+
+    switch ($raw.Trim().ToLowerInvariant()) {
+        "1" { return $true }
+        "true" { return $true }
+        "yes" { return $true }
+        "on" { return $true }
+        default { return $false }
+    }
+}
+
 function Write-ChangeArtifacts {
     param(
         [string]$RepoRoot,
@@ -4182,10 +4197,15 @@ function Invoke-OrchestrateArchive {
 
         Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
 
-        $finalizeResult = Finalize-OrchestratorArchiveToMain -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode
-        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_finalize_main" -Status "ok" -Message "Archive closeout to main evaluated." -Data $finalizeResult -Mode $Mode
-        if ([bool]$finalizeResult.finalized) {
-            Write-Output ("Archive closeout merged into main: {0}" -f [string]$finalizeResult.url)
+        if (Test-IsArchiveCloseoutPrEnabled) {
+            $finalizeResult = Finalize-OrchestratorArchiveToMain -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_finalize_main" -Status "ok" -Message "Archive closeout to main evaluated." -Data $finalizeResult -Mode $Mode
+            if ([bool]$finalizeResult.finalized) {
+                Write-Output ("Archive closeout merged into main: {0}" -f [string]$finalizeResult.url)
+            }
+        }
+        else {
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_finalize_main" -Status "skipped" -Message "Archive closeout PR disabled by default to avoid reopening already archived changes." -Data @{ enabled = $false } -Mode $Mode
         }
     }
     finally {
