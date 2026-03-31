@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-115
+- Jira summary: ACTUALIZACION-REFACTOR-API-SolicitaBandejaWorkflow
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-115
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO — Refactor del contrato público del API y construcción del request interno enriquecido Rol esperado: Arquitecto de software senior y desarrollador backend .NET OBJETIVO Refactorizar el contrato público del API de bandeja workflow dinámica para eliminar del request público todos los parámetros que realmente se resuelven en backend, manteniendo una separación limpia entre: DTO público del API DTO interno enriquecido del backend CONTEXTO FUNCIONAL Actualmente quedaron como parámetros del API algunos valores que no deben venir del frontend porque se resuelven dentro del backend. Estos NO deben quedar como parámetros públicos del API: IdUsuarioGestion NombreRuta DefaultDbAlias IdActividad IdUsuarioWorkflow Estos sí deben permanecer como parámetros del API: ColumnMode EstadoTramite SearchType Search SortField SortDir Page PageSize StructuredFilters si ya se soportan ARQUITECTURA APLICABLE ApiController ↓ ClaimValidation ↓ Service ↓ ContextResolverService ↓ Repository ↓ QueryBuilder ↓ DynamicUiTableBuilder ENTREGABLES OBLIGATORIOS Crear DTO público: WorkflowInboxApiRequestDto Debe incluir exactamente: WorkflowColumnListMode ColumnMode string EstadoTramite int SearchType string Search string SortField string SortDir int Page int PageSize List<WorkflowStructuredFilterDto> StructuredFilters Mantener DTO interno: WorkflowInboxDynamicTableRequestDto Este DTO puede conservar: TableId DefaultDbAlias IdUsuarioGestion IdUsuarioWorkflow IdRutaWorkflow IdActividad NombreRuta EstadoTramite TipoConsulta Search Page PageSize SortField SortDir ColumnMode StructuredFilters IMPORTANTE WorkflowInboxDynamicTableRequestDto deja de ser contrato público del API y pasa a ser DTO interno del backend. Ajustar controller: WorkflowInboxController debe recibir [FromBody] WorkflowInboxApiRequestDto validar claims: defaulalias usuarioid convertir usuarioid a int idUsuarioGestion llamar al service con: request idUsuarioGestion defaultDbAlias Ajustar interface del service: IWorkflowInboxService Método: Task<AppResponses<DynamicUiTableDto>> SolicitaBandejaWorkflowAsync( WorkflowInboxApiRequestDto request, int idUsuarioGestion, string defaultDbAlias) Ajustar WorkflowInboxService: recibir DTO público llamar a WorkflowInboxContextResolverService obtener WorkflowInboxResolvedContextDto construir WorkflowInboxDynamicTableRequestDto interno usar ese request interno para metadata repository, repository final y DynamicUiTableBuilder REGLA IMPORTANTE WorkflowInboxService no debe usar del request público: IdUsuarioWorkflow NombreRuta IdActividad DefaultDbAlias IdUsuarioGestion Todos esos valores deben provenir de: claims WorkflowInboxContextResolverService REQUERIMIENTOS TÉCNICOS No romper la arquitectura actual. No mover lógica de contexto al controller. No mover UI al repository. Mantener nombres exactamente iguales. Usar AppResponses<T>. Usar try/catch. Usar AppError. Documentar con comentarios XML. Mantener código listo para producción. PRUEBAS UNITARIAS DTO público no contiene parámetros internos controller valida claims service construye request interno correctamente service ignora campos internos inexistentes en el request público flujo completo exitoso error controlado en claims error controlado en contexto ENTREGABLES WorkflowInboxApiRequestDto Ajuste de controller Ajuste de interface service Ajuste de WorkflowInboxService Comentarios XML Registro necesario en Program.cs Pruebas unitarias Código listo para copiar y pegar
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-115-actualizacion-refactor-api-solicitabande.

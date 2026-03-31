@@ -1,0 +1,119 @@
+using System.Security;
+using DocuArchi.Api.Controllers.WorkflowInboxGestion;
+using MiApp.DTOs.DTOs.Errors;
+using MiApp.DTOs.DTOs.UI.MuiTable;
+using MiApp.DTOs.DTOs.Utilidades;
+using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
+using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
+using MiApp.Services.Service.Workflow.BandejaCorrespondencia;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using Xunit;
+
+namespace TramiteDiasVencimiento.Tests;
+
+public sealed class WorkflowInboxControllerTests
+{
+    [Fact]
+    public async Task SolicitaBandejaWorkflow_CuandoClaimDefaulaliasEsInvalido_RetornaBadRequest()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        claimValidation
+            .Setup(service => service.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string>
+            {
+                Success = false,
+                ClaimValue = null,
+                Response = Validation("defaulalias")
+            });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, Mock.Of<IWorkflowInboxService>());
+
+        var result = await controller.SolicitaBandejaWorkflow(CreateRequest());
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task SolicitaBandejaWorkflow_CuandoClaimUsuarioIdNoEsEntero_LanzaSecurityException()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        claimValidation
+            .Setup(service => service.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA", Response = null });
+        claimValidation
+            .Setup(service => service.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "abc", Response = null });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, Mock.Of<IWorkflowInboxService>());
+
+        await Assert.ThrowsAsync<SecurityException>(() => controller.SolicitaBandejaWorkflow(CreateRequest()));
+    }
+
+    [Fact]
+    public async Task SolicitaBandejaWorkflow_CuandoClaimsSonValidos_DelegaAlServicio()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        var service = new Mock<IWorkflowInboxService>();
+
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA", Response = null });
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "10", Response = null });
+
+        service
+            .Setup(svc => svc.SolicitaBandejaWorkflowAsync(It.IsAny<WorkflowInboxApiRequestDto>(), 10, "DA"))
+            .ReturnsAsync(new AppResponses<DynamicUiTableDto>
+            {
+                success = true,
+                message = "OK",
+                data = new DynamicUiTableDto { TableId = "workflowInboxgestion" },
+                errors = []
+            });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, service.Object);
+
+        var result = await controller.SolicitaBandejaWorkflow(CreateRequest());
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        service.Verify(svc => svc.SolicitaBandejaWorkflowAsync(It.IsAny<WorkflowInboxApiRequestDto>(), 10, "DA"), Times.Once);
+    }
+
+    [Fact]
+    public void WorkflowInboxApiRequestDto_NoExponeCamposInternos()
+    {
+        var propertyNames = typeof(WorkflowInboxApiRequestDto)
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain("IdUsuarioGestion", propertyNames);
+        Assert.DoesNotContain("IdUsuarioWorkflow", propertyNames);
+        Assert.DoesNotContain("NombreRuta", propertyNames);
+        Assert.DoesNotContain("IdActividad", propertyNames);
+        Assert.DoesNotContain("DefaultDbAlias", propertyNames);
+    }
+
+    private static WorkflowInboxApiRequestDto CreateRequest() => new()
+    {
+        ColumnMode = WorkflowColumnListMode.ListaGestionTramite,
+        EstadoTramite = "Todos",
+        SearchType = 1,
+        Search = string.Empty,
+        SortField = string.Empty,
+        SortDir = "ASC",
+        Page = 1,
+        PageSize = 25,
+        StructuredFilters = []
+    };
+
+    private static AppResponses<string> Validation(string field) => new()
+    {
+        success = false,
+        message = field,
+        data = string.Empty,
+        errors = [new AppError { Field = field, Message = field, Type = "Validation" }]
+    };
+}

@@ -64,7 +64,19 @@ public sealed class WorkflowInboxServiceTests
             });
 
         inboxRepository
-            .Setup(repo => repo.GetInboxAsync(request, context, It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Setup(repo => repo.GetInboxAsync(
+                It.Is<WorkflowInboxDynamicTableRequestDto>(dto =>
+                    dto.TableId == "workflowInboxgestion" &&
+                    dto.IdUsuarioGestion == 10 &&
+                    dto.IdRutaWorkflow == context.IdRutaWorkflow &&
+                    dto.NombreRuta == context.NombreRuta &&
+                    dto.DefaultDbAlias == "DA" &&
+                    dto.IdActividad == context.IdActividad &&
+                    dto.IdUsuarioWorkflow == context.IdUsuarioWorkflow &&
+                    dto.TipoConsulta == request.SearchType),
+                context,
+                It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
+                "WF"))
             .ReturnsAsync(new AppResponses<List<ExpandoObject>>
             {
                 success = true,
@@ -91,9 +103,6 @@ public sealed class WorkflowInboxServiceTests
         var tableBuilder = new Mock<IDynamicUiTableBuilder>();
         var context = CreateContext();
         var request = CreateRequest();
-        request.IdUsuarioWorkflow = 1;
-        request.IdActividad = 2;
-        request.NombreRuta = "LEGACY";
 
         var columns = CreateColumns();
 
@@ -123,7 +132,20 @@ public sealed class WorkflowInboxServiceTests
             });
 
         inboxRepository
-            .Setup(repo => repo.GetInboxAsync(request, context, columns, "WF"))
+            .Setup(repo => repo.GetInboxAsync(
+                It.Is<WorkflowInboxDynamicTableRequestDto>(dto =>
+                    dto.TableId == "workflowInboxgestion" &&
+                    dto.IdUsuarioGestion == 10 &&
+                    dto.IdRutaWorkflow == context.IdRutaWorkflow &&
+                    dto.NombreRuta == context.NombreRuta &&
+                    dto.DefaultDbAlias == "DA" &&
+                    dto.IdActividad == context.IdActividad &&
+                    dto.IdUsuarioWorkflow == context.IdUsuarioWorkflow &&
+                    dto.TipoConsulta == request.SearchType &&
+                    dto.ColumnMode == request.ColumnMode),
+                context,
+                columns,
+                "WF"))
             .ReturnsAsync(new AppResponses<List<ExpandoObject>>
             {
                 success = true,
@@ -183,7 +205,19 @@ public sealed class WorkflowInboxServiceTests
                 dto.IdRutaWorkflow == context.IdRutaWorkflow &&
                 dto.DefaultDbAlias == "WF" &&
                 dto.Mode == request.ColumnMode)), Times.Once);
-        inboxRepository.Verify(repo => repo.GetInboxAsync(request, context, columns, "WF"), Times.Once);
+        inboxRepository.Verify(repo => repo.GetInboxAsync(
+            It.Is<WorkflowInboxDynamicTableRequestDto>(dto =>
+                dto.TableId == "workflowInboxgestion" &&
+                dto.IdUsuarioGestion == 10 &&
+                dto.IdRutaWorkflow == context.IdRutaWorkflow &&
+                dto.NombreRuta == context.NombreRuta &&
+                dto.DefaultDbAlias == "DA" &&
+                dto.IdActividad == context.IdActividad &&
+                dto.IdUsuarioWorkflow == context.IdUsuarioWorkflow &&
+                dto.TipoConsulta == request.SearchType),
+            context,
+            columns,
+            "WF"), Times.Once);
         Assert.Single(capturedInput!.CellActions);
         Assert.Equal("acciones", capturedInput.CellActions[0].ColumnKey);
         var actionRequest = Assert.IsType<DynamicUiActionRequestDto>(capturedInput.CellActions[0].Action.Request);
@@ -191,6 +225,28 @@ public sealed class WorkflowInboxServiceTests
         var payload = Assert.IsType<Dictionary<string, object?>>(capturedInput.Rows[0]);
         Assert.Equal(55, payload["id"]);
         Assert.Equal(55, payload["id_tarea"]);
+    }
+
+    [Fact]
+    public async Task SolicitaBandejaWorkflowAsync_CuandoContextResolverFalla_PropagaErrorControlado()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = false,
+                message = "Contexto invalido",
+                data = null!,
+                errors = [new AppError { Field = "context", Message = "Contexto invalido", Type = "Functional" }]
+            });
+
+        var service = CreateService(contextResolver: contextResolver);
+
+        var result = await service.SolicitaBandejaWorkflowAsync(CreateRequest(), 10, "DA");
+
+        Assert.False(result.success);
+        Assert.Equal("Contexto invalido", result.message);
     }
 
     private static WorkflowInboxService CreateService(
@@ -229,13 +285,15 @@ public sealed class WorkflowInboxServiceTests
             currentUserService.Object);
     }
 
-    private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
+    private static WorkflowInboxApiRequestDto CreateRequest() => new()
     {
         ColumnMode = WorkflowColumnListMode.ListaGestionTramite,
         Page = 1,
         PageSize = 25,
         SortDir = "ASC",
-        EstadoTramite = "Todos"
+        EstadoTramite = "Todos",
+        SearchType = 1,
+        StructuredFilters = []
     };
 
     private static WorkflowInboxResolvedContextDto CreateContext() => new()

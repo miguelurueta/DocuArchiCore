@@ -73,10 +73,19 @@ public sealed class WorkflowInboxRepositoryTests
 
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
     {
+        TableId = "workflowInboxgestion",
+        IdUsuarioGestion = 10,
+        IdRutaWorkflow = 7,
+        NombreRuta = "RUTA_A",
+        DefaultDbAlias = "DA",
+        IdActividad = 77,
+        IdUsuarioWorkflow = 99,
         EstadoTramite = "Todos",
+        TipoConsulta = 1,
         Page = 1,
         PageSize = 25,
-        SortDir = "ASC"
+        SortDir = "ASC",
+        StructuredFilters = []
     };
 
     private static WorkflowInboxResolvedContextDto CreateContext() => new()
