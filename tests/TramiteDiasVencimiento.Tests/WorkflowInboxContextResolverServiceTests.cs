@@ -9,6 +9,7 @@ using MiApp.Repository.ErrorController;
 using MiApp.Repository.Repositorio.Workflow.Grupo;
 using MiApp.Repository.Repositorio.Workflow.RutaTrabajo;
 using MiApp.Repository.Repositorio.Workflow.usuario;
+using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using MiApp.Services.Service.Usuario;
 using MiApp.Services.Service.Workflow.BandejaCorrespondencia;
 using Moq;
@@ -19,27 +20,47 @@ namespace TramiteDiasVencimiento.Tests;
 public sealed class WorkflowInboxContextResolverServiceTests
 {
     [Fact]
-    public async Task ResolveAsync_CuandoRequestEsNull_RetornaValidacion()
+    public async Task ResolveAsync_CuandoIdUsuarioGestionEsInvalido_RetornaValidacion()
     {
         var service = CreateService();
 
-        var result = await service.ResolveAsync(null!, "DA");
+        var result = await service.ResolveAsync(0);
 
         Assert.False(result.success);
-        Assert.Equal("Request requerido", result.message);
-        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "request");
+        Assert.Equal("IdUsuarioGestion requerido", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "idUsuarioGestion");
     }
 
     [Fact]
-    public async Task ResolveAsync_CuandoAliasEsVacio_RetornaValidacion()
+    public async Task ResolveAsync_CuandoAliasGestionNoExiste_RetornaValidacion()
     {
-        var service = CreateService();
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(service => service.GetClaimValue("defaulalias")).Returns((string?)null);
+        currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns("WF");
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "");
+        var service = CreateService(currentUserService: currentUser);
+
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
-        Assert.Equal("DefaultDbAlias requerido", result.message);
-        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "defaultDbAlias");
+        Assert.Equal("Claim defaulalias requerido para consultar usuario de gestion", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "defaulalias");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_CuandoAliasWorkflowNoExiste_RetornaValidacion()
+    {
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(service => service.GetClaimValue("defaulalias")).Returns("DA");
+        currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns((string?)null);
+
+        var service = CreateService(currentUserService: currentUser);
+
+        var result = await service.ResolveAsync(10);
+
+        Assert.False(result.success);
+        Assert.Equal("Claim defaulaliaswf requerido para consultar contexto workflow", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "defaulaliaswf");
     }
 
     [Fact]
@@ -91,15 +112,15 @@ public sealed class WorkflowInboxContextResolverServiceTests
             });
 
         usuarioRepo
-            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
             .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 7));
 
         rutaRepo
-            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("DA"))
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
             .ReturnsAsync(BuildRutaResponse(7, "RUTA_WORKFLOW_A"));
 
         grupoRepo
-            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "WF"))
             .ReturnsAsync(new AppResponse<GruposWorkflow>
             {
                 Success = true,
@@ -117,7 +138,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.True(result.success);
         Assert.NotNull(result.data);
@@ -143,7 +164,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo: remitRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible resolver el usuario de gestion.", result.message);
@@ -160,7 +181,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
             .ReturnsAsync(BuildUsuarioGestionResponse(91));
 
         usuarioRepo
-            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
             .ReturnsAsync(new AppResponse<UsuarioWorkflow>
             {
                 Success = false,
@@ -170,7 +191,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo, usuarioRepo: usuarioRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible resolver el usuario workflow.", result.message);
@@ -188,11 +209,11 @@ public sealed class WorkflowInboxContextResolverServiceTests
             .ReturnsAsync(BuildUsuarioGestionResponse(91));
 
         usuarioRepo
-            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
             .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 7));
 
         rutaRepo
-            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("DA"))
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
             .ReturnsAsync(new AppResponses<List<RutasWorkflow>?>
             {
                 success = false,
@@ -203,7 +224,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo, usuarioRepo, rutaRepo: rutaRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible resolver la ruta workflow.", result.message);
@@ -222,15 +243,15 @@ public sealed class WorkflowInboxContextResolverServiceTests
             .ReturnsAsync(BuildUsuarioGestionResponse(91));
 
         usuarioRepo
-            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
             .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 7));
 
         rutaRepo
-            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("DA"))
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
             .ReturnsAsync(BuildRutaResponse(7, "RUTA_A"));
 
         grupoRepo
-            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "WF"))
             .ReturnsAsync(new AppResponse<GruposWorkflow>
             {
                 Success = false,
@@ -240,7 +261,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible resolver el grupo workflow.", result.message);
@@ -258,16 +279,16 @@ public sealed class WorkflowInboxContextResolverServiceTests
             .ReturnsAsync(BuildUsuarioGestionResponse(91));
 
         usuarioRepo
-            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "DA"))
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
             .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 99));
 
         rutaRepo
-            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("DA"))
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
             .ReturnsAsync(BuildRutaResponse(7, "RUTA_A"));
 
         var service = CreateService(remitRepo, usuarioRepo, rutaRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("No fue posible completar el contexto workflow con una ruta valida.", result.message);
@@ -283,7 +304,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
 
         var service = CreateService(remitRepo: remitRepo);
 
-        var result = await service.ResolveAsync(new WorkflowInboxDynamicTableRequestDto { IdUsuarioGestion = 10 }, "DA");
+        var result = await service.ResolveAsync(10);
 
         Assert.False(result.success);
         Assert.Equal("Error al resolver el contexto workflow de la bandeja.", result.message);
@@ -294,13 +315,22 @@ public sealed class WorkflowInboxContextResolverServiceTests
         Mock<IRemitDestInternoR>? remitRepo = null,
         Mock<IUsuarioWorkflowR>? usuarioRepo = null,
         Mock<ISolicitaEstructuraRutaWorkflowRepository>? rutaRepo = null,
-        Mock<IGruposWorkflowR>? grupoRepo = null)
+        Mock<IGruposWorkflowR>? grupoRepo = null,
+        Mock<ICurrentUserService>? currentUserService = null)
     {
+        if (currentUserService == null)
+        {
+            currentUserService = new Mock<ICurrentUserService>();
+            currentUserService.Setup(service => service.GetClaimValue("defaulalias")).Returns("DA");
+            currentUserService.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns("WF");
+        }
+
         return new WorkflowInboxContextResolverService(
             (remitRepo ?? new Mock<IRemitDestInternoR>()).Object,
             (usuarioRepo ?? new Mock<IUsuarioWorkflowR>()).Object,
             (rutaRepo ?? new Mock<ISolicitaEstructuraRutaWorkflowRepository>()).Object,
-            (grupoRepo ?? new Mock<IGruposWorkflowR>()).Object);
+            (grupoRepo ?? new Mock<IGruposWorkflowR>()).Object,
+            currentUserService.Object);
     }
 
     private static AppResponses<RemitDestInterno> BuildUsuarioGestionResponse(int idUsuarioWorkflow)

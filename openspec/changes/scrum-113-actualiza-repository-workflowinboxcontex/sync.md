@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-113`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | no | no_code_change | el DI del resolvedor ya existe desde SCRUM-112 y no cambia en esta actualización | n/a | n/a | n/a | n_a |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/142 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | no | no_code_change | los DTOs creados en SCRUM-112 siguen vigentes sin cambio de contrato para esta corrección | n/a | n/a | n/a | n_a |
+| MiApp.Services | yes | implementation_required | ajustar `WorkflowInboxContextResolverService` a firma simplificada y resolución multi-alias desde claims | pending | n/a | pending | pending |
+| MiApp.Repository | yes | traceability_only | se reutilizan los repositories existentes sin crear contratos nuevos ni cambiar su implementación | pending | n/a | pending | tracked |
+| MiApp.Models | no | no_code_change | se reutilizan los modelos existentes sin cambio de entidad | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
@@ -30,9 +30,9 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 
 ## Typical API Change Pattern
 
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
+- `DocuArchi.Api`: only if controller o DI cambian
+- `MiApp.Services`: yes when alias orchestration or workflow backend logic changes
+- `MiApp.Repository`: only if repository contracts or implementation must change
+- `MiApp.DTOs`: only if service contracts change
+- `MiApp.Models`: only if entity shape changes
 - `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
