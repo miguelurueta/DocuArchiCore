@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-116`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/145 | pending | in_review |
+| DocuArchi.Api | yes | no_code_change | sin cambios de controller ni contrato publico del API | n/a | n/a | n/a | n_a |
+| DocuArchiCore | yes | implementation_required | alinear spec, sync y pruebas del flujo workflow inbox normalizado | done | https://github.com/miguelurueta/DocuArchiCore/pull/145 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | no_code_change | sin cambios de contratos DTO para la normalizacion de salida | n/a | n/a | n/a | n_a |
+| MiApp.Services | yes | implementation_required | normalizar filas en WorkflowInboxRepository y consumir diccionarios tipados en service | pending | pending | pending | todo |
+| MiApp.Repository | yes | no_code_change | DapperCrudEngine se reutiliza sin cambios funcionales | n/a | n/a | n/a | n_a |
+| MiApp.Models | yes | no_code_change | sin cambios de modelo para la normalizacion de salida | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
