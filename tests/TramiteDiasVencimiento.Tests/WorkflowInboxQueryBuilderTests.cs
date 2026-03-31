@@ -12,7 +12,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(searchType: 1, search: "rad"), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(searchType: 1, search: "rad"), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Equal("dat_adic_tarRUTA_A DAT", result.TableName);
         Assert.Equal("WF", result.DefaultAlias);
@@ -25,7 +25,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(searchType: 2, search: "O'Hara"), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(searchType: 2, search: "O'Hara"), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
@@ -50,7 +50,7 @@ public sealed class WorkflowInboxQueryBuilderTests
             }
         };
 
-        var result = builder.Build(CreateRequest(searchType: 2, search: "rad"), columns);
+        var result = builder.Build(CreateRequest(searchType: 2, search: "rad"), CreateContext(), columns, "WF");
 
         Assert.Empty(result.RawConditions);
     }
@@ -62,7 +62,9 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         var result = builder.Build(
             CreateRequest(searchType: 3, search: "asunto LIKE '%2026%' AND fecha_inicio >= '2026-01-01'"),
-            CreateDynamicColumns());
+            CreateContext(),
+            CreateDynamicColumns(),
+            "WF");
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
@@ -77,7 +79,9 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         var result = builder.Build(
             CreateRequest(searchType: 3, search: "asunto LIKE '%x%' ; DROP TABLE x"),
-            CreateDynamicColumns());
+            CreateContext(),
+            CreateDynamicColumns(),
+            "WF");
 
         Assert.Empty(result.RawConditions);
     }
@@ -87,7 +91,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(sortField: "id_tarea", sortDir: "DESC"), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(sortField: "id_tarea", sortDir: "DESC"), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Single(result.OrderByFields);
         Assert.Equal("etw.Inicio_Tareas_Workflow_id_Tarea", result.OrderByFields[0].Column);
@@ -99,7 +103,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(sortField: "no_existe"), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(sortField: "no_existe"), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Single(result.OrderByFields);
         Assert.Equal("etw.Fecha_Inicio", result.OrderByFields[0].Column);
@@ -111,7 +115,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(page: 0, pageSize: 0), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(page: 0, pageSize: 0), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Equal(25, result.Limit);
         Assert.Equal(0, result.Offset);
@@ -122,7 +126,7 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(estadoTramite: "Abierto", page: 3, pageSize: 10), CreateDynamicColumns());
+        var result = builder.Build(CreateRequest(estadoTramite: "Abierto", page: 3, pageSize: 10), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Contains("etw.Inicio_Tareas_Workflow_id_Tarea AS id_tarea", result.Columns);
         Assert.Contains("DAT.ESTADO_TRAMITE AS ESTADO", result.Columns);
@@ -137,6 +141,32 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal(1, result.Filters["estado_modulo_radicado"]);
         Assert.Equal("Abierto", result.Filters["estado_tramite"]);
         Assert.Single(result.Joins);
+    }
+
+    [Fact]
+    public void Build_CuandoContextoDifiereDelRequest_UsaValoresDelContexto()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest();
+        request.NombreRuta = "RUTA_LEGACY";
+        request.IdActividad = 1;
+        request.IdUsuarioWorkflow = 2;
+
+        var context = new WorkflowInboxResolvedContextDto
+        {
+            IdUsuarioWorkflow = 99,
+            IdGrupoWorkflow = 14,
+            IdRutaWorkflow = 7,
+            NombreRuta = "RUTA_REAL",
+            IdActividad = 77
+        };
+
+        var result = builder.Build(request, context, CreateDynamicColumns(), "WF_CTX");
+
+        Assert.Equal("dat_adic_tarRUTA_REAL DAT", result.TableName);
+        Assert.Equal("WF_CTX", result.DefaultAlias);
+        Assert.Equal(77, result.Filters["Id_Actividad"]);
+        Assert.Equal(99, result.Filters["Id_Usuario"]);
     }
 
     private static WorkflowInboxDynamicTableRequestDto CreateRequest(
@@ -209,5 +239,17 @@ public sealed class WorkflowInboxQueryBuilderTests
                 IsSortable = true
             }
         ];
+    }
+
+    private static WorkflowInboxResolvedContextDto CreateContext()
+    {
+        return new WorkflowInboxResolvedContextDto
+        {
+            IdUsuarioWorkflow = 99,
+            IdGrupoWorkflow = 14,
+            IdRutaWorkflow = 7,
+            NombreRuta = "RUTA_A",
+            IdActividad = 7
+        };
     }
 }

@@ -144,6 +144,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
         Assert.NotNull(result.data);
         Assert.Equal(91, result.data.IdUsuarioWorkflow);
         Assert.Equal(14, result.data.IdGrupoWorkflow);
+        Assert.Equal(7, result.data.IdRutaWorkflow);
         Assert.Equal("RUTA_WORKFLOW_A", result.data.NombreRuta);
         Assert.Equal(44, result.data.IdActividad);
     }
