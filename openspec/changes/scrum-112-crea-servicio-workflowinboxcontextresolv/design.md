@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-112
+- Jira summary: CREA-SERVICIO-WorkflowInboxContextResolverService
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-112
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO — Servicio resolvedor de contexto workflow para bandeja dinámica Rol esperado: Arquitecto de software senior y desarrollador backend .NET Nombre: WorkflowInboxContextResolverService Ruta del servicio: MiApp.Services/Service/Workflow/BandejaCorrespondencia/ OBJETIVO Implementar un servicio intermedio encargado de resolver en backend el contexto workflow necesario para la bandeja dinámica, antes de invocar el repository final y el QueryBuilder. IMPORTANTE Los siguientes valores NO deben venir del frontend: IdUsuarioWorkflow NombreRuta IdActividad Deben resolverse consultando repositorios existentes. ARQUITECTURA APLICABLE ApiController ↓ Service final de bandeja ↓ WorkflowInboxContextResolverService ↓ Repositorios existentes ↓ Repository final ↓ QueryBuilder ALCANCE FUNCIONAL Este servicio debe: recibir request base del frontend resolver contexto workflow retornar un DTO con el contexto listo NO debe: construir UI usar DynamicUiTableBuilder ejecutar QueryBuilder consultar configuracion_listado_ruta reemplazar repository final DATOS A RESOLVER IdUsuarioWorkflow Origen: repositorio existente: SolicitaEstructuraIdUsuarioGestion Fuente: RemitDestInterno.Relacion_Workflow IdGrupoWorkflow Origen: repositorio existente: SolicitaEstructuraUserWorkflow(IdUsuarioWorkflow) NombreRuta Origen: repositorio existente: SolicitaEstructuraRutaWorkflowAsync Fuente: RutasWorkflow.Nombre_Ruta IdActividad Origen: repositorio existente: SolicitaEstructuraGrupoWorkflow(IdGrupoWorkflow) Fuente: GruposWorkflow.id_Actividad ENTREGABLES OBLIGATORIOS DTO: WorkflowInboxResolvedContextDto Propiedades: int IdUsuarioWorkflow int IdGrupoWorkflow string NombreRuta int IdActividad Interface: IWorkflowInboxContextResolverService Clase: WorkflowInboxContextResolverService Método: Task<AppResponses<WorkflowInboxResolvedContextDto>> ResolveAsync( WorkflowInboxDynamicTableRequestDto request, string defaultDbAlias) REQUERIMIENTOS FUNCIONALES Validar: request requerido defaultDbAlias requerido Consultar: SolicitaEstructuraIdUsuarioGestion SolicitaEstructuraUserWorkflow SolicitaEstructuraRutaWorkflowAsync SolicitaEstructuraGrupoWorkflow Construir WorkflowInboxResolvedContextDto Retornar AppResponses<T> Si faltan datos: manejar de forma controlada no lanzar excepciones innecesarias seguir el estándar del proyecto REQUERIMIENTOS TÉCNICOS Patrón Service Try/catch AppResponses<T> AppError en errores Comentarios XML Registro en Program.cs No crear repositorios nuevos si ya existen Inyectar interfaces existentes ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ubicación: /Docs/Workflow/BandejaCorrespondencia/BandejaCorrespondencia/WorkflowInboxContextResolverService Archivos a crear o actualizar: SCRUM-[ID]-Diagramas.md Debe incluir: • Diagrama de casos de uso (si aplica) • Diagrama de clases (si aplica) • Diagrama de secuencia del nuevo flujo • Diagrama de estados (si aplica) Debe incluir: • Descripción técnica del contrato Documentar con comentarios XML: propósito de la clase propósito del método parámetros retorno comportamiento sin resultados comportamiento ante excepciones PRUEBAS UNITARIAS Incluir pruebas para: request nulo alias vacío éxito completo falla en cada repositorio intermedio contexto incompleto excepción controlada RESTRICCIONES No romper arquitectura actual No mover esta lógica al controller No mover esta lógica al repository final No construir UI aquí
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-112-crea-servicio-workflowinboxcontextresolv.
