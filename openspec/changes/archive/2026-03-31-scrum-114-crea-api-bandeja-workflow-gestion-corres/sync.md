@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-114`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | exponer endpoint y registrar DI del flujo de bandeja workflow | done | #40 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | coordinar spec, sync y pruebas del flujo end-to-end | done | #143 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | exponer endpoint y registrar DI del flujo de bandeja workflow | done | #40 | done | archived |
+| DocuArchiCore | yes | implementation_required | coordinar spec, sync y pruebas del flujo end-to-end | done | #143 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | extender request/context DTOs requeridos por la bandeja workflow | done | #28 | pending | in_review |
-| MiApp.Services | yes | implementation_required | resolver contexto, construir query y servir la bandeja dinamica workflow | done | #62 | pending | in_review |
-| MiApp.Repository | yes | traceability_only | reutiliza contratos/repositorios existentes sin diff funcional nuevo | n/a | n/a | pending | tracked |
-| MiApp.Models | yes | no_code_change | sin cambios de modelo para este flujo | n/a | n/a | n/a | n_a |
+| MiApp.DTOs | yes | implementation_required | extender request/context DTOs requeridos por la bandeja workflow | done | #28 | done | archived |
+| MiApp.Services | yes | implementation_required | resolver contexto, construir query y servir la bandeja dinamica workflow | done | #62 | done | archived |
+| MiApp.Repository | yes | traceability_only | reutiliza contratos/repositorios existentes sin diff funcional nuevo | n/a | n/a | done | archived |
+| MiApp.Models | yes | no_code_change | sin cambios de modelo para este flujo | n/a | n/a | done | archived |
 
 ## Operating Rule
 
