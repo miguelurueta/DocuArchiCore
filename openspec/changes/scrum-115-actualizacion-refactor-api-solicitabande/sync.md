@@ -12,12 +12,12 @@ Use this template at the start of each Jira ticket (`SCRUM-115`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | refactorizar el contrato publico del controller hacia WorkflowInboxApiRequestDto | pending | pending | pending | todo |
-| DocuArchiCore | yes | implementation_required | alinear specs, sync y pruebas del refactor del contrato publico | done | https://github.com/miguelurueta/DocuArchiCore/pull/144 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | refactorizar el contrato publico del controller hacia WorkflowInboxApiRequestDto | done | #41 | pending | in_review |
+| DocuArchiCore | yes | implementation_required | alinear specs, sync y pruebas del refactor del contrato publico | done | #144 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | crear DTO publico WorkflowInboxApiRequestDto y completar contratos internos de inbox | pending | pending | pending | todo |
-| MiApp.Services | yes | implementation_required | construir request interno enriquecido desde el DTO publico y preservar flujo actual | pending | pending | pending | todo |
+| MiApp.DTOs | yes | implementation_required | crear DTO publico WorkflowInboxApiRequestDto y completar contratos internos de inbox | done | #29 | pending | in_review |
+| MiApp.Services | yes | implementation_required | construir request interno enriquecido desde el DTO publico y preservar flujo actual | done | #63 | pending | in_review |
 | MiApp.Repository | yes | no_code_change | el query final reutiliza contratos existentes sin cambios de repositorio | n/a | n/a | n/a | n_a |
 | MiApp.Models | yes | no_code_change | sin cambios de modelo para el refactor del contrato publico | n/a | n/a | n/a | n_a |
 
