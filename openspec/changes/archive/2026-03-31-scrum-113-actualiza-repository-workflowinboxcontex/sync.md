@@ -13,12 +13,12 @@ Use this template at the start of each Jira ticket (`SCRUM-113`) to decide exact
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
 | DocuArchi.Api | no | no_code_change | el DI del resolvedor ya existe desde SCRUM-112 y no cambia en esta actualización | n/a | n/a | n/a | n_a |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/142 | pending | in_review |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/142 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | los DTOs creados en SCRUM-112 siguen vigentes sin cambio de contrato para esta corrección | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | ajustar `WorkflowInboxContextResolverService` a firma simplificada y resolución multi-alias desde claims | done | https://github.com/miguelurueta/MiApp.Services/pull/61 | pending | in_review |
-| MiApp.Repository | yes | traceability_only | se reutilizan los repositories existentes sin crear contratos nuevos ni cambiar su implementación | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | ajustar WorkflowInboxContextResolverService a firma simplificada y resolución multi-alias desde claims | done | https://github.com/miguelurueta/MiApp.Services/pull/61 | done | archived |
+| MiApp.Repository | yes | traceability_only | se reutilizan los repositories existentes sin crear contratos nuevos ni cambiar su implementación | pending | n/a | done | archived |
 | MiApp.Models | no | no_code_change | se reutilizan los modelos existentes sin cambio de entidad | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
