@@ -12,12 +12,12 @@ Use this template at the start of each Jira ticket (`SCRUM-112`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registrar `IWorkflowInboxContextResolverService` en DI del API usando un worktree limpio del ticket | pending | n/a | pending | pending |
+| DocuArchi.Api | yes | implementation_required | registrar `IWorkflowInboxContextResolverService` en DI del API usando un worktree limpio del ticket | done | https://github.com/miguelurueta/DocuArchi.Api/pull/39 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/141 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | agregar `WorkflowInboxResolvedContextDto` y extender request base con `IdUsuarioGestion` para resolver contexto sin depender del frontend | pending | n/a | pending | pending |
-| MiApp.Services | yes | implementation_required | crear `WorkflowInboxContextResolverService` consumiendo repositorios existentes y retornando `AppResponses<WorkflowInboxResolvedContextDto>` | pending | n/a | pending | pending |
+| MiApp.DTOs | yes | implementation_required | agregar `WorkflowInboxResolvedContextDto` y extender request base con `IdUsuarioGestion` para resolver contexto sin depender del frontend | done | https://github.com/miguelurueta/MiApp.DTOs/pull/27 | pending | in_review |
+| MiApp.Services | yes | implementation_required | crear `WorkflowInboxContextResolverService` consumiendo repositorios existentes y retornando `AppResponses<WorkflowInboxResolvedContextDto>` | done | https://github.com/miguelurueta/MiApp.Services/pull/60 | pending | in_review |
 | MiApp.Repository | yes | traceability_only | los repositorios requeridos ya existen (`RemitDestInternoR`, `UsuarioWorkflowR`, `SolicitaEstructuraRutaWorkflowRepository`, `GruposWorkflowR`) y se consumen sin crear nuevos contratos | pending | n/a | pending | tracked |
 | MiApp.Models | no | no_code_change | se reutilizan `RemitDestInterno`, `UsuarioWorkflow`, `RutasWorkflow` y `GruposWorkflow` sin cambios de modelo | n/a | n/a | n/a | n_a |
 
