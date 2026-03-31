@@ -17,7 +17,7 @@ Use this template at the start of each Jira ticket (`SCRUM-113`) to decide exact
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | los DTOs creados en SCRUM-112 siguen vigentes sin cambio de contrato para esta corrección | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | ajustar `WorkflowInboxContextResolverService` a firma simplificada y resolución multi-alias desde claims | pending | n/a | pending | pending |
+| MiApp.Services | yes | implementation_required | ajustar `WorkflowInboxContextResolverService` a firma simplificada y resolución multi-alias desde claims | done | https://github.com/miguelurueta/MiApp.Services/pull/61 | pending | in_review |
 | MiApp.Repository | yes | traceability_only | se reutilizan los repositories existentes sin crear contratos nuevos ni cambiar su implementación | pending | n/a | pending | tracked |
 | MiApp.Models | no | no_code_change | se reutilizan los modelos existentes sin cambio de entidad | n/a | n/a | n/a | n_a |
 
