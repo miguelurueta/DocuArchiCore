@@ -1,4 +1,3 @@
-using System.Dynamic;
 using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
 using MiApp.Repository.DataAccess;
@@ -25,8 +24,8 @@ public sealed class WorkflowInboxRepositoryTests
             .Returns(expectedQuery);
 
         dapper
-            .Setup(engine => engine.GetAllAsync<ExpandoObject>(expectedQuery))
-            .ReturnsAsync(new QueryResult<ExpandoObject>
+            .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
+            .ReturnsAsync(new QueryResult<object>
             {
                 Success = true,
                 Message = "YES",
@@ -58,8 +57,8 @@ public sealed class WorkflowInboxRepositoryTests
             .Returns(expectedQuery);
 
         dapper
-            .Setup(engine => engine.GetAllAsync<ExpandoObject>(expectedQuery))
-            .ReturnsAsync(new QueryResult<ExpandoObject>
+            .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
+            .ReturnsAsync(new QueryResult<object>
             {
                 Success = false,
                 Message = "boom"
@@ -86,8 +85,8 @@ public sealed class WorkflowInboxRepositoryTests
             .Returns(expectedQuery);
 
         dapper
-            .Setup(engine => engine.GetAllAsync<ExpandoObject>(expectedQuery))
-            .ReturnsAsync(new QueryResult<ExpandoObject>
+            .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
+            .ReturnsAsync(new QueryResult<object>
             {
                 Success = true,
                 Message = "YES",
@@ -144,18 +143,20 @@ public sealed class WorkflowInboxRepositoryTests
         }
     ];
 
-    private static ExpandoObject CreateRow(int idTarea)
+    private static Dictionary<string, object?> CreateRow(int idTarea)
     {
-        dynamic row = new ExpandoObject();
-        row.id_tarea = idTarea;
-        row.asunto = "Caso";
-        return row;
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["id_tarea"] = idTarea,
+            ["asunto"] = "Caso"
+        };
     }
 
-    private static ExpandoObject CreateRowWithoutId()
+    private static Dictionary<string, object?> CreateRowWithoutId()
     {
-        dynamic row = new ExpandoObject();
-        row.asunto = "Caso";
-        return row;
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["asunto"] = "Caso"
+        };
     }
 }
