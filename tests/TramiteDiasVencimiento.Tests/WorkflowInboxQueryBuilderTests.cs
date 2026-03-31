@@ -1,6 +1,6 @@
 using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
 using MiApp.Repository.DataAccess;
-using MiApp.Repository.Repositorio.Workflow.BandejaCorrespondencia;
+using MiApp.Services.Service.Workflow.BandejaCorrespondencia;
 using Xunit;
 
 namespace TramiteDiasVencimiento.Tests;
