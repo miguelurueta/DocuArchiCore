@@ -180,17 +180,21 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         return new WorkflowInboxDynamicTableRequestDto
         {
+            TableId = "workflowInboxgestion",
+            IdUsuarioGestion = 10,
+            IdRutaWorkflow = 7,
             NombreRuta = "RUTA_A",
             DefaultDbAlias = "WF",
             IdActividad = 7,
             IdUsuarioWorkflow = 99,
             EstadoTramite = estadoTramite,
-            SearchType = searchType,
+            TipoConsulta = searchType,
             Search = search,
             SortField = sortField,
             SortDir = sortDir,
             Page = page,
-            PageSize = pageSize
+            PageSize = pageSize,
+            StructuredFilters = []
         };
     }
 
