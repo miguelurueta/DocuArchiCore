@@ -40,6 +40,9 @@ public sealed class WorkflowInboxRepositoryTests
 
         Assert.True(result.success);
         Assert.Single(result.data);
+        Assert.IsType<Dictionary<string, object?>>(result.data[0]);
+        Assert.Equal(10, result.data[0]["id_tarea"]);
+        Assert.Equal(10, result.data[0]["id"]);
         builder.Verify(q => q.Build(request, context, columns, "WF"), Times.Once);
     }
 
@@ -69,6 +72,36 @@ public sealed class WorkflowInboxRepositoryTests
         Assert.False(result.success);
         Assert.Equal("Error consultando bandeja workflow", result.message);
         Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "GetInboxAsync");
+    }
+
+    [Fact]
+    public async Task GetInboxAsync_CuandoFilaNoTieneIdTarea_NoAgregaId()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        var builder = new Mock<IWorkflowInboxQueryBuilder>();
+        var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+
+        builder
+            .Setup(q => q.Build(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Returns(expectedQuery);
+
+        dapper
+            .Setup(engine => engine.GetAllAsync<ExpandoObject>(expectedQuery))
+            .ReturnsAsync(new QueryResult<ExpandoObject>
+            {
+                Success = true,
+                Message = "YES",
+                Data = [CreateRowWithoutId()],
+                TotalRecords = 1
+            });
+
+        var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
+
+        var result = await repository.GetInboxAsync(CreateRequest(), CreateContext(), CreateColumns(), "WF");
+
+        Assert.True(result.success);
+        Assert.Single(result.data);
+        Assert.DoesNotContain("id", result.data[0].Keys, StringComparer.OrdinalIgnoreCase);
     }
 
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
@@ -115,6 +148,13 @@ public sealed class WorkflowInboxRepositoryTests
     {
         dynamic row = new ExpandoObject();
         row.id_tarea = idTarea;
+        row.asunto = "Caso";
+        return row;
+    }
+
+    private static ExpandoObject CreateRowWithoutId()
+    {
+        dynamic row = new ExpandoObject();
         row.asunto = "Caso";
         return row;
     }

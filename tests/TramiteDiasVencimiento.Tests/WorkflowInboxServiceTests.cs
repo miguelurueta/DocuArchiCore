@@ -1,4 +1,3 @@
-using System.Dynamic;
 using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.UI.MuiTable;
 using MiApp.DTOs.DTOs.Utilidades;
@@ -77,7 +76,7 @@ public sealed class WorkflowInboxServiceTests
                 context,
                 It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
                 "WF"))
-            .ReturnsAsync(new AppResponses<List<ExpandoObject>>
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
             {
                 success = true,
                 message = "Sin resultados",
@@ -146,7 +145,7 @@ public sealed class WorkflowInboxServiceTests
                 context,
                 columns,
                 "WF"))
-            .ReturnsAsync(new AppResponses<List<ExpandoObject>>
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
             {
                 success = true,
                 message = "OK",
@@ -249,6 +248,67 @@ public sealed class WorkflowInboxServiceTests
         Assert.Equal("Contexto invalido", result.message);
     }
 
+    [Fact]
+    public async Task SolicitaBandejaWorkflowAsync_CuandoRepositoryRetornaDiccionario_NoUsaCastingDinamico()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var request = CreateRequest();
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.GetInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
+            {
+                success = true,
+                message = "OK",
+                data =
+                [
+                    new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["id_tarea"] = 80,
+                        ["id"] = 80,
+                        ["asunto"] = "Caso"
+                    }
+                ],
+                errors = []
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.SolicitaBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.Equal("OK", result.message);
+    }
+
     private static WorkflowInboxService CreateService(
         Mock<IWorkflowInboxContextResolverService>? contextResolver = null,
         Mock<IWorkflowRouteColumnConfigRepository>? metadataRepository = null,
@@ -319,11 +379,13 @@ public sealed class WorkflowInboxServiceTests
         }
     ];
 
-    private static ExpandoObject CreateRow(int idTarea)
+    private static Dictionary<string, object?> CreateRow(int idTarea)
     {
-        dynamic row = new ExpandoObject();
-        row.id_tarea = idTarea;
-        row.asunto = "Caso";
-        return row;
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["id_tarea"] = idTarea,
+            ["id"] = idTarea,
+            ["asunto"] = "Caso"
+        };
     }
 }
