@@ -12,13 +12,13 @@ Use this template at the start of each Jira ticket (`SCRUM-111`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | actualizar DI y using para consumir `IWorkflowInboxQueryBuilder` desde `MiApp.Services.Service.Workflow.BandejaCorrespondencia` | pending | n/a | pending | pending |
+| DocuArchi.Api | yes | implementation_required | actualizar DI y using para consumir `IWorkflowInboxQueryBuilder` desde `MiApp.Services.Service.Workflow.BandejaCorrespondencia` | done | https://github.com/miguelurueta/DocuArchi.Api/pull/38 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/140 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | el contrato `WorkflowInboxDynamicTableRequestDto` no cambia en esta reubicacion | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | reubicar `WorkflowInboxQueryBuilder` e `IWorkflowInboxQueryBuilder` a `Service/Workflow/BandejaCorrespondencia` | pending | n/a | pending | pending |
-| MiApp.Repository | yes | implementation_required | retirar el builder de `Repositorio/Workflow/BandejaCorrespondencia` y mantener solo `QueryOptions`/repositorio ejecutor | pending | n/a | pending | pending |
+| MiApp.Services | yes | implementation_required | reubicar `WorkflowInboxQueryBuilder` e `IWorkflowInboxQueryBuilder` a `Service/Workflow/BandejaCorrespondencia` | done | https://github.com/miguelurueta/MiApp.Services/pull/59 | pending | in_review |
+| MiApp.Repository | yes | implementation_required | retirar el builder de `Repositorio/Workflow/BandejaCorrespondencia` y mantener solo `QueryOptions`/repositorio ejecutor | done | https://github.com/miguelurueta/MiApp.Repository/pull/31 | pending | in_review |
 | MiApp.Models | no | no_code_change | no hay cambios de modelo asociados al movimiento de capa | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
