@@ -12,13 +12,13 @@ Use this template at the start of each Jira ticket (`SCRUM-110`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registrar `IWorkflowInboxQueryBuilder` en DI para que el componente quede disponible en runtime | done | https://github.com/miguelurueta/DocuArchi.Api/pull/37 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/139 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | registrar IWorkflowInboxQueryBuilder en DI para que el componente quede disponible en runtime | done | https://github.com/miguelurueta/DocuArchi.Api/pull/37 | done | archived |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/139 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | crear contrato `WorkflowInboxDynamicTableRequestDto` faltante para el querybuilder | done | https://github.com/miguelurueta/MiApp.DTOs/pull/26 | pending | in_review |
+| MiApp.DTOs | yes | implementation_required | crear contrato WorkflowInboxDynamicTableRequestDto faltante para el querybuilder | done | https://github.com/miguelurueta/MiApp.DTOs/pull/26 | done | archived |
 | MiApp.Services | no | no_code_change | el componente construye QueryOptions dentro de repository, sin service nuevo | n/a | n/a | n/a | n_a |
-| MiApp.Repository | yes | implementation_required | implementar `IWorkflowInboxQueryBuilder`, `WorkflowInboxQueryBuilder` y policy en `Workflow/BandejaCorrespondencia` | done | https://github.com/miguelurueta/MiApp.Repository/pull/30 | pending | in_review |
+| MiApp.Repository | yes | implementation_required | implementar IWorkflowInboxQueryBuilder, WorkflowInboxQueryBuilder y policy en Workflow/BandejaCorrespondencia | done | https://github.com/miguelurueta/MiApp.Repository/pull/30 | done | archived |
 | MiApp.Models | no | no_code_change | no se requiere nuevo modelo ni tabla; solo composicion de QueryOptions | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
