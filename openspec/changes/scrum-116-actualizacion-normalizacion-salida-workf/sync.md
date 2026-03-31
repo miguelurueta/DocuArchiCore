@@ -17,7 +17,7 @@ Use this template at the start of each Jira ticket (`SCRUM-116`) to decide exact
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | no_code_change | sin cambios de contratos DTO para la normalizacion de salida | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | normalizar filas en WorkflowInboxRepository y consumir diccionarios tipados en service | pending | pending | pending | todo |
+| MiApp.Services | yes | implementation_required | normalizar filas en WorkflowInboxRepository y consumir diccionarios tipados en service | done | https://github.com/miguelurueta/MiApp.Services/pull/64 | pending | in_review |
 | MiApp.Repository | yes | no_code_change | DapperCrudEngine se reutiliza sin cambios funcionales | n/a | n/a | n/a | n_a |
 | MiApp.Models | yes | no_code_change | sin cambios de modelo para la normalizacion de salida | n/a | n/a | n/a | n_a |
 
