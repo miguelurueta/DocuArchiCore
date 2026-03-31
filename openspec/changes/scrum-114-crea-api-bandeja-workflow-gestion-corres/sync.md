@@ -12,20 +12,20 @@ Use this template at the start of each Jira ticket (`SCRUM-114`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | <definir alcance> | pending | pending | pending | todo |
+| DocuArchi.Api | yes | implementation_required | exponer endpoint y registrar DI del flujo de bandeja workflow | pending | pending | pending | todo |
+| DocuArchiCore | yes | implementation_required | coordinar spec, sync y pruebas del flujo end-to-end | pending | pending | pending | todo |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | extender request/context DTOs requeridos por la bandeja workflow | pending | pending | pending | todo |
+| MiApp.Services | yes | implementation_required | resolver contexto, construir query y servir la bandeja dinamica workflow | pending | pending | pending | todo |
+| MiApp.Repository | yes | traceability_only | reutiliza contratos/repositorios existentes sin diff funcional nuevo | n/a | n/a | pending | tracked |
+| MiApp.Models | yes | no_code_change | sin cambios de modelo para este flujo | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
 Run `opsxj:new SCRUM-114` only in rows with `Impacta? = yes`.
 Only repos marked `implementation_required` should open branch/commit/PR.
-Repos marked `traceability_only` stay in `sync.md` without opening empty PRs.
+Repos marked `traceability_only` stay in `sync.md` without opening empty PRs unless a later implementation decision changes the matrix.
 Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 
 ## Typical API Change Pattern
