@@ -70,6 +70,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
         var usuarioRepo = new Mock<IUsuarioWorkflowR>();
         var rutaRepo = new Mock<ISolicitaEstructuraRutaWorkflowRepository>();
         var grupoRepo = new Mock<IGruposWorkflowR>();
+        var configuracionRepo = new Mock<ISolicitaConfiguracionListaUsuarioWorkflowRepository>();
 
         remitRepo
             .Setup(repo => repo.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
@@ -136,7 +137,22 @@ public sealed class WorkflowInboxContextResolverServiceTests
                 }
             });
 
-        var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo);
+        configuracionRepo
+            .Setup(repo => repo.SolicitaConfiguracionListaUsuarioWorkflowAsync(91, "WF"))
+            .ReturnsAsync(new AppResponses<configuracionUsuarioDTO?>
+            {
+                success = true,
+                message = "YES",
+                data = new configuracionUsuarioDTO
+                {
+                    id_config = 1,
+                    Usuario_Workflow_idU_suario = 91,
+                    Numero_Tarea_Lista = 40
+                },
+                errors = []
+            });
+
+        var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo, configuracionRepo);
 
         var result = await service.ResolveAsync(10);
 
@@ -147,6 +163,126 @@ public sealed class WorkflowInboxContextResolverServiceTests
         Assert.Equal(7, result.data.IdRutaWorkflow);
         Assert.Equal("RUTA_WORKFLOW_A", result.data.NombreRuta);
         Assert.Equal(44, result.data.IdActividad);
+        Assert.Equal(40, result.data.NumeroTareaLista);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_CuandoNoHayConfiguracion_ContinuaConFallback()
+    {
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var usuarioRepo = new Mock<IUsuarioWorkflowR>();
+        var rutaRepo = new Mock<ISolicitaEstructuraRutaWorkflowRepository>();
+        var grupoRepo = new Mock<IGruposWorkflowR>();
+        var configuracionRepo = new Mock<ISolicitaConfiguracionListaUsuarioWorkflowRepository>();
+
+        remitRepo
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(BuildUsuarioGestionResponse(91));
+
+        usuarioRepo
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
+            .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 7));
+
+        rutaRepo
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
+            .ReturnsAsync(BuildRutaResponse(7, "RUTA_WORKFLOW_A"));
+
+        grupoRepo
+            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow>
+            {
+                Success = true,
+                Message = "YES",
+                Data = new GruposWorkflow
+                {
+                    Id_Grupo = 14,
+                    Rutas_Workflow_id_Ruta = 7,
+                    Nombre_Grupo = "Grupo A",
+                    Fecha_Creacion = new DateTime(2026, 3, 31),
+                    Estado_Grupo = 1,
+                    id_Actividad = 44
+                }
+            });
+
+        configuracionRepo
+            .Setup(repo => repo.SolicitaConfiguracionListaUsuarioWorkflowAsync(91, "WF"))
+            .ReturnsAsync(new AppResponses<configuracionUsuarioDTO?>
+            {
+                success = true,
+                message = "Sin resultados",
+                data = null,
+                errors = []
+            });
+
+        var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo, configuracionRepo);
+
+        var result = await service.ResolveAsync(10);
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Null(result.data.NumeroTareaLista);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_CuandoNumeroTareaListaEsInvalido_UsaFallback()
+    {
+        var remitRepo = new Mock<IRemitDestInternoR>();
+        var usuarioRepo = new Mock<IUsuarioWorkflowR>();
+        var rutaRepo = new Mock<ISolicitaEstructuraRutaWorkflowRepository>();
+        var grupoRepo = new Mock<IGruposWorkflowR>();
+        var configuracionRepo = new Mock<ISolicitaConfiguracionListaUsuarioWorkflowRepository>();
+
+        remitRepo
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioGestion(10, "DA"))
+            .ReturnsAsync(BuildUsuarioGestionResponse(91));
+
+        usuarioRepo
+            .Setup(repo => repo.SolicitaEstructuraIdUsuarioWorkflowId(91, "WF"))
+            .ReturnsAsync(BuildUsuarioWorkflowResponse(14, 7));
+
+        rutaRepo
+            .Setup(repo => repo.SolicitaEstructuraRutaWorkflowAsync("WF"))
+            .ReturnsAsync(BuildRutaResponse(7, "RUTA_WORKFLOW_A"));
+
+        grupoRepo
+            .Setup(repo => repo.SolicitaEstructuraGrupoWorkflow(14, "WF"))
+            .ReturnsAsync(new AppResponse<GruposWorkflow>
+            {
+                Success = true,
+                Message = "YES",
+                Data = new GruposWorkflow
+                {
+                    Id_Grupo = 14,
+                    Rutas_Workflow_id_Ruta = 7,
+                    Nombre_Grupo = "Grupo A",
+                    Fecha_Creacion = new DateTime(2026, 3, 31),
+                    Estado_Grupo = 1,
+                    id_Actividad = 44
+                }
+            });
+
+        configuracionRepo
+            .Setup(repo => repo.SolicitaConfiguracionListaUsuarioWorkflowAsync(91, "WF"))
+            .ReturnsAsync(new AppResponses<configuracionUsuarioDTO?>
+            {
+                success = true,
+                message = "YES",
+                data = new configuracionUsuarioDTO
+                {
+                    id_config = 1,
+                    Usuario_Workflow_idU_suario = 91,
+                    Numero_Tarea_Lista = 0
+                },
+                errors = []
+            });
+
+        var service = CreateService(remitRepo, usuarioRepo, rutaRepo, grupoRepo, configuracionRepo);
+
+        var result = await service.ResolveAsync(10);
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Null(result.data.NumeroTareaLista);
     }
 
     [Fact]
@@ -317,6 +453,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
         Mock<IUsuarioWorkflowR>? usuarioRepo = null,
         Mock<ISolicitaEstructuraRutaWorkflowRepository>? rutaRepo = null,
         Mock<IGruposWorkflowR>? grupoRepo = null,
+        Mock<ISolicitaConfiguracionListaUsuarioWorkflowRepository>? configuracionRepo = null,
         Mock<ICurrentUserService>? currentUserService = null)
     {
         if (currentUserService == null)
@@ -331,6 +468,7 @@ public sealed class WorkflowInboxContextResolverServiceTests
             (usuarioRepo ?? new Mock<IUsuarioWorkflowR>()).Object,
             (rutaRepo ?? new Mock<ISolicitaEstructuraRutaWorkflowRepository>()).Object,
             (grupoRepo ?? new Mock<IGruposWorkflowR>()).Object,
+            (configuracionRepo ?? new Mock<ISolicitaConfiguracionListaUsuarioWorkflowRepository>()).Object,
             currentUserService.Object);
     }
 

@@ -117,8 +117,42 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         var result = builder.Build(CreateRequest(page: 0, pageSize: 0), CreateContext(), CreateDynamicColumns(), "WF");
 
-        Assert.Equal(25, result.Limit);
+        Assert.Equal(1000, result.Limit);
         Assert.Equal(0, result.Offset);
+    }
+
+    [Fact]
+    public void Build_CuandoContextoIncluyeNumeroTareaLista_PriorizaEseLimit()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var context = CreateContext();
+        context.NumeroTareaLista = 40;
+
+        var result = builder.Build(
+            CreateRequest(page: 3, pageSize: 10),
+            context,
+            CreateDynamicColumns(),
+            "WF");
+
+        Assert.Equal(40, result.Limit);
+        Assert.Equal(80, result.Offset);
+    }
+
+    [Fact]
+    public void Build_CuandoNumeroTareaListaEsInvalido_UsaFallbackDePageSize()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var context = CreateContext();
+        context.NumeroTareaLista = 0;
+
+        var result = builder.Build(
+            CreateRequest(page: 2, pageSize: 10),
+            context,
+            CreateDynamicColumns(),
+            "WF");
+
+        Assert.Equal(10, result.Limit);
+        Assert.Equal(10, result.Offset);
     }
 
     [Fact]
