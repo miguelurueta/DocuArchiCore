@@ -87,6 +87,127 @@ public sealed class WorkflowInboxQueryBuilderTests
     }
 
     [Fact]
+    public void Build_CuandoStructuredFiltersSonValidos_LosAgregaComoCondicionesAdicionales()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest();
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "asunto",
+                Operator = "contains",
+                Value = "contrato"
+            },
+            new WorkflowStructuredFilterDto
+            {
+                Field = "fecha_inicio",
+                Operator = "between",
+                ValueFrom = "2026-01-01",
+                ValueTo = "2026-12-31"
+            },
+            new WorkflowStructuredFilterDto
+            {
+                Field = "id_tarea",
+                Operator = "gte",
+                Value = 50
+            }
+        ];
+
+        var result = builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Equal(3, result.RawConditions.Count);
+        Assert.Equal("AND (DAT.asunto LIKE '%contrato%')", result.RawConditions[0]);
+        Assert.Equal("AND (etw.Fecha_Inicio BETWEEN '2026-01-01' AND '2026-12-31')", result.RawConditions[1]);
+        Assert.Equal("AND (etw.Inicio_Tareas_Workflow_id_Tarea >= 50)", result.RawConditions[2]);
+    }
+
+    [Fact]
+    public void Build_CuandoStructuredFiltersSeCombinanConSearchTypeDos_ConservaAmbasCapas()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest(searchType: 2, search: "rad");
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "remitente",
+                Operator = "startsWith",
+                Value = "ana"
+            }
+        ];
+
+        var result = builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Equal(2, result.RawConditions.Count);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' OR DAT.remitente LIKE '%rad%')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
+    }
+
+    [Fact]
+    public void Build_CuandoStructuredFilterTieneCampoInvalido_LanzaErrorControlado()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest();
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "campo_no_permitido",
+                Operator = "eq",
+                Value = "x"
+            }
+        ];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF"));
+
+        Assert.Contains("campo no permitido", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_CuandoStructuredFilterTieneOperadorInvalido_LanzaErrorControlado()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest();
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "asunto",
+                Operator = "hack",
+                Value = "x"
+            }
+        ];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF"));
+
+        Assert.Contains("operador", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_CuandoStructuredFilterContainsRecibeCampoNoTexto_LanzaErrorControlado()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest();
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "fecha_radicado",
+                Operator = "contains",
+                Value = "2026"
+            }
+        ];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF"));
+
+        Assert.Contains("solo aplica a campos texto", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Build_CuandoSortEsValido_ResuelveColumnaSolicitada()
     {
         var builder = new WorkflowInboxQueryBuilder();
