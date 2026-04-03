@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-109
+- Jira summary: CREA-BUILDER-CAMPOS-BANDEJA-GESTION-CORRESPONDENCIA
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-109
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO — Builder de columnas UI dinámicas para bandeja workflow Rol esperado: Arquitecto de software senior y desarrollador backend .NET Nombre: WorkflowDynamicUiColumnBuilder DTOs Proyecto: MiApp.Services Ruta: /Services/Workflow/BandejaCorrespondencia OBJETIVO Implementar un builder que transforme metadata dinámica de columnas en columnas UI compatibles con DynamicUiTableDto, respetando el contrato de UiColumnDto y sin hardcodear nombres de columnas dinámicas. ALCANCE FUNCIONAL El builder: no consulta base de datos no usa repositorios no usa QueryOptions no usa DapperCrudEngine no ejecuta lógica de negocio solo transforma: List<WorkflowDynamicColumnDefinitionDto> → List<UiColumnDto> ENTRADA List<WorkflowDynamicColumnDefinitionDto> columns RETORNO List<UiColumnDto> ARQUITECTURA APLICABLE Service / Builder ↓ Transformación en memoria ↓ UiColumnDto REGLA ARQUITECTÓNICA IMPORTANTE No hardcodear columnas dinámicas funcionales como: RADICADO BENEFICIARIO TRAMITE ASUNTO FECHARADICADO FECHAVENCIMIENTO Las columnas dinámicas se deben tratar genéricamente. SÍ se permiten columnas estáticas del sistema porque no vienen de la metadata dinámica: id_tarea fecha_inicio ESTADO acciones REGLAS FUNCIONALES Las columnas dinámicas van primero. Las columnas estáticas van después. id_tarea: oculto fecha_inicio: primer estático visible ESTADO: visible acciones: visible IsActionColumn = true RenderType = grid_actions La columna acciones debe quedar preparada para: botón icono "Gestionar trámite" submenú: Gestionar trámite Reasignar trámite Redireccionar a entidad externa Archivar trámite IMPORTANTE En esta fase el builder debe definir solo la columna "acciones" como columna UI. La lógica concreta de CellActions/UiActionDto se puede construir en el service final si esa es la convención del proyecto. REQUERIMIENTOS TÉCNICOS Crear interfaz: IWorkflowDynamicUiColumnBuilder Crear clase: WorkflowDynamicUiColumnBuilder Método principal: List<UiColumnDto> Build(List<WorkflowDynamicColumnDefinitionDto> columns) Para columnas dinámicas: respetar Order Key = col.Key ColumnName = col.ColumnName Field = col.Key DataIndex = col.Key HeaderName y Title amigables derivados de ColumnName Sortable = col.IsSortable Filterable = col.IsFilterable DataType normalizado RenderType según tipo FilterType según tipo AgGridFilterType según tipo Width según tipo Align según tipo Reglas de tipo: text => grid_text date/datetime => grid_datetime number => grid_text filter date => agDateColumnFilter number align => right resto align => left Columnas estáticas exactas: id_tarea fecha_inicio ESTADO acciones Orden exacto: dinámicas por Order id_tarea Order = 9000 fecha_inicio Order = 9001 ESTADO Order = 9002 acciones Order = 9003 No inventar nuevos nombres de columnas. No crear acceso a datos. No crear service adicional fuera del builder. Mantener métodos auxiliares pequeños: MapDynamicColumn BuildStaticColumns NormalizeType ResolveRender ResolveFilter ResolveAgFilter ResolveAlign ResolveWidth BuildHeader PRUEBAS UNITARIAS Incluir pruebas para: build con lista vacía build con columnas dinámicas orden correcto header amigable tipos text/date/datetime/number id_tarea oculto fecha_inicio primer estático visible columna acciones creada correctamente no duplicar keys REGISTRO EN Program.cs Registrar: IWorkflowDynamicUiColumnBuilder WorkflowDynamicUiColumnBuilder ENTREGABLES Interface Builder Comentarios XML Registro DI Pruebas unitarias Sin repository Sin controller
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-109-crea-builder-campos-bandeja-gestion-corr.
