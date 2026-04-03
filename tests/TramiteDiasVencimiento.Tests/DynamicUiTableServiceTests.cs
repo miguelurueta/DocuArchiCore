@@ -165,6 +165,26 @@ public class DynamicUiTableServiceTests
                 ],
                 ToolbarActions = [new UiActionDto { ActionId = "refresh", Placement = "toolbar", Presentation = "button" }],
                 RowActions = [new UiActionDto { ActionId = "open", Placement = "row", Presentation = "menu_item" }],
+                MenuActions =
+                [
+                    new UiActionDto
+                    {
+                        ActionId = "open",
+                        Placement = "row",
+                        Presentation = "menu_item"
+                    },
+                    new UiActionDto
+                    {
+                        ActionId = "advanced",
+                        Placement = "row",
+                        Presentation = "menu_item",
+                        Children =
+                        [
+                            new UiActionDto { ActionId = "archive", Placement = "row", Presentation = "menu_item" },
+                            new UiActionDto { IsDivider = true, Behavior = string.Empty }
+                        ]
+                    }
+                ],
                 Pagination = new PaginationDto { Page = 1, PageSize = 25, Total = 1 },
                 Sorting = new SortingDto { SortField = "asunto", SortDir = "asc" }
             });
@@ -200,6 +220,8 @@ public class DynamicUiTableServiceTests
         Assert.True(payload.Columns[1].IsActionColumn);
         Assert.Equal("button", payload.ToolbarActions[0].Presentation);
         Assert.Equal("menu_item", payload.RowActions[0].Presentation);
+        Assert.Equal("advanced", payload.MenuActions[1].ActionId);
+        Assert.True(payload.MenuActions[1].Children![1].IsDivider);
         Assert.Equal("1", payload.Rows[0].Id);
         Assert.Equal("Prueba", payload.Rows[0].Values["asunto"]);
         Assert.Equal(1, payload.Pagination!.Page);
@@ -229,6 +251,20 @@ public class DynamicUiTableServiceTests
             Total = 1,
             Actions = [],
             CellActions = [],
+            MenuActions =
+            [
+                new UiActionDto
+                {
+                    ActionId = "open",
+                    Placement = "row",
+                    Presentation = "menu_item",
+                    Children =
+                    [
+                        new UiActionDto { ActionId = "archive", Placement = "row", Presentation = "menu_item" },
+                        new UiActionDto { IsDivider = true, Behavior = string.Empty }
+                    ]
+                }
+            ],
             Columns =
             [
                 new UiColumnDto
@@ -264,6 +300,8 @@ public class DynamicUiTableServiceTests
         Assert.Equal("Fecha", payload.Columns[1].Title);
         Assert.Equal("date", payload.Columns[1].FilterType);
         Assert.Equal("agDateColumnFilter", payload.Columns[1].AgGridFilterType);
+        Assert.Equal("open", payload.MenuActions[0].ActionId);
+        Assert.True(payload.MenuActions[0].Children![1].IsDivider);
 
         Assert.True(payload.Columns[2].IsActionColumn);
         Assert.Equal("actions", payload.Columns[2].Field);
