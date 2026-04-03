@@ -299,6 +299,35 @@ public sealed class WorkflowInboxQueryBuilderTests
     }
 
     [Fact]
+    public void BuildCount_CuandoRequestEsValido_ReutilizaFiltrosSinOrderNiPaginacion()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest(searchType: 2, search: "rad", sortField: "id_tarea", sortDir: "DESC", page: 3, pageSize: 10, estadoTramite: "Abierto");
+        request.StructuredFilters =
+        [
+            new WorkflowStructuredFilterDto
+            {
+                Field = "remitente",
+                Operator = "startsWith",
+                Value = "ana"
+            }
+        ];
+
+        var result = builder.BuildCount(request, CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Equal("COUNT(1) AS total_count", result.RawSelect);
+        Assert.Empty(result.Columns);
+        Assert.Null(result.Limit);
+        Assert.Null(result.Offset);
+        Assert.Empty(result.OrderByFields);
+        Assert.Equal("Abierto", result.Filters["estado_tramite"]);
+        Assert.Equal(2, result.RawConditions.Count);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' OR DAT.remitente LIKE '%rad%')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
+        Assert.Single(result.Joins);
+    }
+
+    [Fact]
     public void Build_CuandoContextoDifiereDelRequest_UsaValoresDelContexto()
     {
         var builder = new WorkflowInboxQueryBuilder();
