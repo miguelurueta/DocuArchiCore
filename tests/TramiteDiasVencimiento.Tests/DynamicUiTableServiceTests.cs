@@ -2,8 +2,8 @@ using MiApp.DTOs.DTOs.Errors;
 using MiApp.DTOs.DTOs.UI.MuiTable;
 using MiApp.DTOs.DTOs.Workflow.BandejaCorrespondencia;
 using MiApp.Repository.Repositorio.UI.MuiTable;
-using MiApp.Services.Service.UI.MuiTable;
 using MiApp.Services.Service.Workflow.BandejaCorrespondencia;
+using MiApp.Services.Service.UI.MuiTable;
 using Moq;
 using Xunit;
 
@@ -359,6 +359,74 @@ public class DynamicUiTableServiceTests
         Assert.Equal("select", payload.Columns[0].FilterType);
         Assert.Equal("agSetColumnFilter", payload.Columns[0].AgGridFilterType);
         repository.Verify(r => r.GetColumnsAsync("DA", "radicados"), Times.Once);
+    }
+
+    [Fact]
+    public async Task BuildAsync_PreservaPinnedYLockPinnedValidosYNormalizaValoresInvalidos()
+    {
+        var repository = new Mock<IUiTableConfigRepository>();
+        var builder = new DynamicUiTableBuilder(repository.Object);
+
+        var payload = await builder.BuildAsync(new DynamicUiTableBuildInput
+        {
+            Request = new DynamicUiTableQueryRequestDto
+            {
+                TableId = "radicados",
+                DefaultDbAlias = "DA",
+                Page = 1,
+                PageSize = 25,
+                UseColumnConfigFromDb = false
+            },
+            Rows =
+            [
+                new Dictionary<string, object?> { ["id"] = "1", ["radicado"] = "R-1", ["acciones"] = "" }
+            ],
+            Total = 1,
+            Actions = [],
+            CellActions = [],
+            Columns =
+            [
+                new UiColumnDto
+                {
+                    Key = "radicado",
+                    ColumnName = "radicado",
+                    HeaderName = "Radicado",
+                    DataType = "text",
+                    RenderType = "grid_text",
+                    Order = 1,
+                    Pinned = " LEFT ",
+                    LockPinned = true
+                },
+                new UiColumnDto
+                {
+                    Key = "estado",
+                    ColumnName = "estado",
+                    HeaderName = "Estado",
+                    DataType = "text",
+                    RenderType = "grid_text",
+                    Order = 2,
+                    Pinned = "center"
+                }
+            ]
+        });
+
+        Assert.Equal("left", payload.Columns[0].Pinned);
+        Assert.True(payload.Columns[0].LockPinned);
+        Assert.Null(payload.Columns[1].Pinned);
+        Assert.True(payload.Columns[2].IsActionColumn);
+    }
+
+    [Fact]
+    public void WorkflowDynamicUiColumnBuilder_FijaColumnaAccionesALaDerecha()
+    {
+        var builder = new WorkflowDynamicUiColumnBuilder();
+
+        var columns = builder.Build([]);
+
+        var actionColumn = Assert.Single(columns, c => c.Key == "acciones");
+        Assert.True(actionColumn.IsActionColumn);
+        Assert.Equal("right", actionColumn.Pinned);
+        Assert.True(actionColumn.LockPinned);
     }
 
     [Fact]
