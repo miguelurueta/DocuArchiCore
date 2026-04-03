@@ -1,7 +1,7 @@
 ## Context
 
 - Jira issue key: SCRUM-123
-- Jira summary: Normalizar workflowInboxgestion para paginaci?n consistente y claims reales
+- Jira summary: Normalizar workflowInboxgestion para paginacion consistente y claims reales
 - Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-123
 
 ## Context Reference
@@ -11,11 +11,21 @@
 
 ## Problem Statement
 
-Ticket creado para migrar la iniciativa desde DPM-2 al proyecto SCRUM del espacio DocuAchiCore.
+El inbox workflow usa una ruta backend que combina contexto, metadata de columnas, consulta SQL dinamica y construccion de `DynamicUiTableDto`. El contrato publicado al frontend tenia tres desviaciones:
+
+1. `data = null` cuando la consulta no retornaba filas.
+2. `PageSize` publicado sin respetar la prioridad real de `NumeroTareaLista`.
+3. ausencia de `UserClaims` reales en el payload final.
 
 ## Approach
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-123-normalizar-workflowinboxgestion-para-pag.
+- Mantener el patron actual `Service + Repository + AppResponses + try/catch` definido en `openspec/context/OPSXJ_BACKEND_RULES.md`.
+- Extender la respuesta del repositorio con un DTO interno que preserve `Rows` y `TotalRecords`.
+- Normalizar en `WorkflowInboxService` el `Page` y el `PageSize` con la misma logica efectiva de consulta.
+- Construir siempre la tabla final, incluso para listas vacias.
+- Propagar `_currentUserService.Permisos` al builder de `DynamicUiTableDto`.
+- Validar con pruebas unitarias enfocadas en:
+  - sin filas
+  - claims propagados
+  - page size efectivo por `NumeroTareaLista`
+  - total records preservado desde repositorio

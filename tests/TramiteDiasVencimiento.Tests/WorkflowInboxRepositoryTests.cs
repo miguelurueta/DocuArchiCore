@@ -30,7 +30,7 @@ public sealed class WorkflowInboxRepositoryTests
                 Success = true,
                 Message = "YES",
                 Data = [CreateRow(10)],
-                TotalRecords = 1
+                TotalRecords = 50
             });
 
         var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
@@ -38,10 +38,12 @@ public sealed class WorkflowInboxRepositoryTests
         var result = await repository.GetInboxAsync(request, context, columns, "WF");
 
         Assert.True(result.success);
-        Assert.Single(result.data);
-        Assert.IsType<Dictionary<string, object?>>(result.data[0]);
-        Assert.Equal(10, result.data[0]["id_tarea"]);
-        Assert.Equal(10, result.data[0]["id"]);
+        Assert.NotNull(result.data);
+        Assert.Equal(50, result.data!.TotalRecords);
+        Assert.Single(result.data.Rows);
+        Assert.IsType<Dictionary<string, object?>>(result.data.Rows[0]);
+        Assert.Equal(10, result.data.Rows[0]["id_tarea"]);
+        Assert.Equal(10, result.data.Rows[0]["id"]);
         builder.Verify(q => q.Build(request, context, columns, "WF"), Times.Once);
     }
 
@@ -99,8 +101,9 @@ public sealed class WorkflowInboxRepositoryTests
         var result = await repository.GetInboxAsync(CreateRequest(), CreateContext(), CreateColumns(), "WF");
 
         Assert.True(result.success);
-        Assert.Single(result.data);
-        Assert.DoesNotContain("id", result.data[0].Keys, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(result.data);
+        Assert.Single(result.data!.Rows);
+        Assert.DoesNotContain("id", result.data.Rows[0].Keys, StringComparer.OrdinalIgnoreCase);
     }
 
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
