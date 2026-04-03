@@ -440,6 +440,82 @@ public sealed class WorkflowInboxServiceTests
         Assert.Equal(40, capturedInput.Request.PageSize);
     }
 
+    [Fact]
+    public async Task SolicitaBandejaWorkflowAsync_CuandoPaginaEstaFueraDeRango_MantieneTotalCorrectoConRowsVacias()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var tableBuilder = new Mock<IDynamicUiTableBuilder>();
+        var context = CreateContext();
+        var request = CreateRequest();
+        request.Page = 5;
+        request.PageSize = 25;
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.GetInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
+            {
+                success = true,
+                message = "Sin resultados",
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows = [],
+                    TotalRecords = 88
+                },
+                errors = []
+            });
+
+        DynamicUiTableBuildInput? capturedInput = null;
+        tableBuilder
+            .Setup(builder => builder.BuildAsync(It.IsAny<DynamicUiTableBuildInput>()))
+            .Callback<DynamicUiTableBuildInput>(input => capturedInput = input)
+            .ReturnsAsync((DynamicUiTableBuildInput input) => new DynamicUiTableDto
+            {
+                TableId = "workflowInboxgestion",
+                Rows = [],
+                Pagination = new PaginationDto { Page = input.Request.Page, PageSize = input.Request.PageSize, Total = input.Total }
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository, tableBuilder: tableBuilder);
+
+        var result = await service.SolicitaBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.Equal("Sin resultados", result.message);
+        Assert.NotNull(capturedInput);
+        Assert.Empty(capturedInput!.Rows);
+        Assert.Equal(88, capturedInput.Total);
+        Assert.Equal(5, capturedInput.Request.Page);
+        Assert.Equal(25, capturedInput.Request.PageSize);
+    }
+
     private static WorkflowInboxService CreateService(
         Mock<IWorkflowInboxContextResolverService>? contextResolver = null,
         Mock<IWorkflowRouteColumnConfigRepository>? metadataRepository = null,

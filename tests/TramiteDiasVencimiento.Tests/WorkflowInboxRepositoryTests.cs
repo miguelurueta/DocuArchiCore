@@ -15,6 +15,7 @@ public sealed class WorkflowInboxRepositoryTests
         var dapper = new Mock<IDapperCrudEngine>();
         var builder = new Mock<IWorkflowInboxQueryBuilder>();
         var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var expectedCountQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF", RawSelect = "COUNT(1) AS total_count" };
         var context = CreateContext();
         var request = CreateRequest();
         var columns = CreateColumns();
@@ -22,6 +23,9 @@ public sealed class WorkflowInboxRepositoryTests
         builder
             .Setup(q => q.Build(request, context, columns, "WF"))
             .Returns(expectedQuery);
+        builder
+            .Setup(q => q.BuildCount(request, context, columns, "WF"))
+            .Returns(expectedCountQuery);
 
         dapper
             .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
@@ -29,8 +33,15 @@ public sealed class WorkflowInboxRepositoryTests
             {
                 Success = true,
                 Message = "YES",
-                Data = [CreateRow(10)],
-                TotalRecords = 50
+                Data = [CreateRow(10)]
+            });
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxCountRowDto>(expectedCountQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxCountRowDto>
+            {
+                Success = true,
+                Message = "YES",
+                Data = [new WorkflowInboxCountRowDto { Total_Count = 50 }]
             });
 
         var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
@@ -45,6 +56,7 @@ public sealed class WorkflowInboxRepositoryTests
         Assert.Equal(10, result.data.Rows[0]["id_tarea"]);
         Assert.Equal(10, result.data.Rows[0]["id"]);
         builder.Verify(q => q.Build(request, context, columns, "WF"), Times.Once);
+        builder.Verify(q => q.BuildCount(request, context, columns, "WF"), Times.Once);
     }
 
     [Fact]
@@ -53,10 +65,14 @@ public sealed class WorkflowInboxRepositoryTests
         var dapper = new Mock<IDapperCrudEngine>();
         var builder = new Mock<IWorkflowInboxQueryBuilder>();
         var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var expectedCountQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF", RawSelect = "COUNT(1) AS total_count" };
 
         builder
             .Setup(q => q.Build(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
             .Returns(expectedQuery);
+        builder
+            .Setup(q => q.BuildCount(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Returns(expectedCountQuery);
 
         dapper
             .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
@@ -81,10 +97,14 @@ public sealed class WorkflowInboxRepositoryTests
         var dapper = new Mock<IDapperCrudEngine>();
         var builder = new Mock<IWorkflowInboxQueryBuilder>();
         var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var expectedCountQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF", RawSelect = "COUNT(1) AS total_count" };
 
         builder
             .Setup(q => q.Build(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
             .Returns(expectedQuery);
+        builder
+            .Setup(q => q.BuildCount(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Returns(expectedCountQuery);
 
         dapper
             .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
@@ -92,8 +112,15 @@ public sealed class WorkflowInboxRepositoryTests
             {
                 Success = true,
                 Message = "YES",
-                Data = [CreateRowWithoutId()],
-                TotalRecords = 1
+                Data = [CreateRowWithoutId()]
+            });
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxCountRowDto>(expectedCountQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxCountRowDto>
+            {
+                Success = true,
+                Message = "YES",
+                Data = [new WorkflowInboxCountRowDto { Total_Count = 1 }]
             });
 
         var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
@@ -104,6 +131,45 @@ public sealed class WorkflowInboxRepositoryTests
         Assert.NotNull(result.data);
         Assert.Single(result.data!.Rows);
         Assert.DoesNotContain("id", result.data.Rows[0].Keys, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetInboxAsync_CuandoConteoFalla_RetornaErrorControlado()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        var builder = new Mock<IWorkflowInboxQueryBuilder>();
+        var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var expectedCountQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF", RawSelect = "COUNT(1) AS total_count" };
+
+        builder
+            .Setup(q => q.Build(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Returns(expectedQuery);
+        builder
+            .Setup(q => q.BuildCount(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), "WF"))
+            .Returns(expectedCountQuery);
+
+        dapper
+            .Setup(engine => engine.GetAllAsync<object>(expectedQuery))
+            .ReturnsAsync(new QueryResult<object>
+            {
+                Success = true,
+                Message = "YES",
+                Data = []
+            });
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxCountRowDto>(expectedCountQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxCountRowDto>
+            {
+                Success = false,
+                Message = "count boom"
+            });
+
+        var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
+
+        var result = await repository.GetInboxAsync(CreateRequest(), CreateContext(), CreateColumns(), "WF");
+
+        Assert.False(result.success);
+        Assert.Equal("Error consultando total de bandeja workflow", result.message);
     }
 
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
