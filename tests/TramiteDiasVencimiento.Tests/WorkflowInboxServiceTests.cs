@@ -219,8 +219,17 @@ public sealed class WorkflowInboxServiceTests
             "WF"), Times.Once);
         Assert.Single(capturedInput!.CellActions);
         Assert.Equal("acciones", capturedInput.CellActions[0].ColumnKey);
+        Assert.Equal(3, capturedInput.MenuActions.Count);
+        Assert.Equal(["gestionar_tramite", "reasignar_tramite", "acciones_avanzadas"], capturedInput.MenuActions.Select(action => action.ActionId).ToArray());
+        Assert.NotNull(capturedInput.MenuActions[2].Children);
+        Assert.Equal("redireccionar_externo", capturedInput.MenuActions[2].Children![0].ActionId);
+        Assert.True(capturedInput.MenuActions[2].Children![1].IsDivider);
+        Assert.Equal(string.Empty, capturedInput.MenuActions[2].Children![1].Behavior);
+        Assert.Equal("archivar_tramite", capturedInput.MenuActions[2].Children![2].ActionId);
         var actionRequest = Assert.IsType<DynamicUiActionRequestDto>(capturedInput.CellActions[0].Action.Request);
         Assert.Equal("id_tarea", actionRequest.RowIdField);
+        var menuItems = Assert.IsType<string[]>(capturedInput.CellActions[0].Action.BehaviorConfig!["menuItems"]);
+        Assert.Equal(["gestionar_tramite", "reasignar_tramite", "acciones_avanzadas"], menuItems);
         var payload = Assert.IsType<Dictionary<string, object?>>(capturedInput.Rows[0]);
         Assert.Equal(55, payload["id"]);
         Assert.Equal(55, payload["id_tarea"]);
