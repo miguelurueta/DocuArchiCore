@@ -11,11 +11,20 @@
 
 ## Problem Statement
 
-Cerrar el hueco real detectado en workflowInboxgestion: el controller sigue usando idUsuarioGestion y defaultDbAlias hardcodeados en lugar de claims reales, por lo que el backend no esta listo para la integracion final del frontend server mode. Alcance: restaurar validacion real de defaulalias y usuarioid en WorkflowInboxController eliminar hardcodes 144 y DA del endpoint POST /api/workflowInboxgestion/inboxgestion alinear WorkflowInboxControllerTests con la implementacion final y validar claim invalido, claim ausente y delegacion correcta al servicio dejar el controller limitado a validacion de claims y delegacion, sin mover logica de contexto workflow al controller Criterio de aceptacion: el endpoint deja de depender de hardcodes usa claims reales y propaga usuarioid parseado al servicio la suite WorkflowInboxControllerTests queda consistente con la implementacion bloqueo backend para SCRUMCORE-42 y SCRUMCORE-43 queda resuelto
+El backend del inbox workflow ya delega correctamente a `WorkflowInboxService`, pero el controller quedó temporalmente con hardcodes:
+
+- `idUsuarioGestion = 144`
+- `defaultDbAlias = "DA"`
+
+Eso ignora los claims reales del token y hace que el endpoint no represente la sesión autenticada.
 
 ## Approach
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-125-corregir-workflowinboxcontroller-claims.
+- Reutilizar `IClaimValidationService` como en otros controllers protegidos.
+- Validar `defaulalias` y `usuarioid` en el controller.
+- Parsear `usuarioid` como entero y lanzar error de seguridad si el claim es inválido.
+- Delegar al servicio con valores reales sin mover lógica de contexto workflow al controller.
+- Cubrir con pruebas unitarias:
+  - claim `defaulalias` ausente
+  - claim `usuarioid` inválido
+  - delegación correcta con claims válidos
