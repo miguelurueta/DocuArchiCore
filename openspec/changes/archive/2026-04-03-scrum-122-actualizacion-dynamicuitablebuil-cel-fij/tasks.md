@@ -20,4 +20,4 @@
 
 - [x] 4.1 Implementar pruebas de contrato para `Pinned/LockPinned` y para el builder de workflow.
 - [x] 4.2 Ejecutar `dotnet test` filtrado a `DynamicUiTableServiceTests` y documentar evidencia.
-- [ ] 4.3 Validar el change con OpenSpec y dejarlo listo para publish/archive.
+- [x] 4.3 Validar el change con OpenSpec y dejarlo listo para publish/archive.
