@@ -1,23 +1,23 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-122 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el issue Jira SCRUM-122 y confirmar alcance del contrato backend para `UiColumnDto`.
+- [x] 1.2 Confirmar repos impactados y rutas destino (`MiApp.DTOs`, `MiApp.Services`, `DocuArchiCore/tests`).
+- [x] 1.3 Validar productores reales de `DynamicUiTableDto.Columns`, especialmente `workflowInboxgestion`.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-122/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Completar `specs/jira-scrum-122/spec.md` con requisitos finales del contrato `Pinned/LockPinned`.
+- [x] 2.2 Mantener referencia explícita a `openspec/context/OPSXJ_BACKEND_RULES.md` en artifacts del change.
+- [x] 2.3 Verificar escenarios testables por requisito.
 
 ## 3. Application
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Extender `UiColumnDto` con `Pinned` y `LockPinned`.
+- [x] 3.2 Normalizar `Pinned` en `DynamicUiTableBuilder` para aceptar solo `left/right` y preservar compatibilidad.
+- [x] 3.3 Ajustar `WorkflowDynamicUiColumnBuilder` para fijar la columna `acciones` de `workflowInboxgestion`.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Implementar pruebas de contrato para `Pinned/LockPinned` y para el builder de workflow.
+- [x] 4.2 Ejecutar `dotnet test` filtrado a `DynamicUiTableServiceTests` y documentar evidencia.
+- [ ] 4.3 Validar el change con OpenSpec y dejarlo listo para publish/archive.
