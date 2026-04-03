@@ -29,13 +29,18 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
-    public async Task SolicitaBandejaWorkflowAsync_CuandoRepositorioNoRetornaFilas_PropagaSinResultados()
+    public async Task SolicitaBandejaWorkflowAsync_CuandoRepositorioNoRetornaFilas_RetornaTablaConsistente()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
         var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
         var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var dynamicColumnsBuilder = new Mock<IWorkflowDynamicUiColumnBuilder>();
+        var tableBuilder = new Mock<IDynamicUiTableBuilder>();
+        var currentUser = new Mock<ICurrentUserService>();
         var context = CreateContext();
         var request = CreateRequest();
+        currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns("WF");
+        currentUser.SetupGet(service => service.Permisos).Returns(["wf.ver", "wf.gestionar"]);
 
         contextResolver
             .Setup(service => service.ResolveAsync(10))
@@ -76,20 +81,58 @@ public sealed class WorkflowInboxServiceTests
                 context,
                 It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
                 "WF"))
-            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
             {
                 success = true,
                 message = "Sin resultados",
-                data = [],
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows = [],
+                    TotalRecords = 0
+                },
                 errors = []
             });
 
-        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+        dynamicColumnsBuilder
+            .Setup(builder => builder.Build(It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>()))
+            .Returns(
+            [
+                new UiColumnDto
+                {
+                    Key = "asunto",
+                    ColumnName = "asunto",
+                    HeaderName = "Asunto",
+                    Visible = true,
+                    RenderType = "grid_text"
+                }
+            ]);
+
+        DynamicUiTableBuildInput? capturedInput = null;
+        tableBuilder
+            .Setup(builder => builder.BuildAsync(It.IsAny<DynamicUiTableBuildInput>()))
+            .Callback<DynamicUiTableBuildInput>(input => capturedInput = input)
+            .ReturnsAsync((DynamicUiTableBuildInput input) => new DynamicUiTableDto
+            {
+                TableId = "workflowInboxgestion",
+                Columns = input.Columns,
+                Rows = [],
+                UserClaims = input.Request.UserClaims,
+                Pagination = new PaginationDto { Page = input.Request.Page, PageSize = input.Request.PageSize, Total = input.Total }
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository, dynamicColumnsBuilder, tableBuilder, currentUser);
 
         var result = await service.SolicitaBandejaWorkflowAsync(request, 10, "DA");
 
         Assert.True(result.success);
         Assert.Equal("Sin resultados", result.message);
+        var payload = Assert.IsType<DynamicUiTableDto>(result.data);
+        Assert.Equal("workflowInboxgestion", payload.TableId);
+        Assert.Empty(payload.Rows);
+        Assert.Equal(["wf.ver", "wf.gestionar"], payload.UserClaims);
+        Assert.NotNull(capturedInput);
+        Assert.Equal(25, capturedInput!.Request.PageSize);
+        Assert.Equal(0, capturedInput.Total);
     }
 
     [Fact]
@@ -145,11 +188,15 @@ public sealed class WorkflowInboxServiceTests
                 context,
                 columns,
                 "WF"))
-            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
             {
                 success = true,
                 message = "OK",
-                data = [CreateRow(55)],
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows = [CreateRow(55)],
+                    TotalRecords = 88
+                },
                 errors = []
             });
 
@@ -226,6 +273,8 @@ public sealed class WorkflowInboxServiceTests
         Assert.True(capturedInput.MenuActions[2].Children![1].IsDivider);
         Assert.Equal(string.Empty, capturedInput.MenuActions[2].Children![1].Behavior);
         Assert.Equal("archivar_tramite", capturedInput.MenuActions[2].Children![2].ActionId);
+        Assert.Equal(88, capturedInput.Total);
+        Assert.Equal(["wf.ver"], capturedInput.Request.UserClaims);
         var actionRequest = Assert.IsType<DynamicUiActionRequestDto>(capturedInput.CellActions[0].Action.Request);
         Assert.Equal("id_tarea", actionRequest.RowIdField);
         var menuItems = Assert.IsType<string[]>(capturedInput.CellActions[0].Action.BehaviorConfig!["menuItems"]);
@@ -294,19 +343,23 @@ public sealed class WorkflowInboxServiceTests
 
         inboxRepository
             .Setup(repo => repo.GetInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
-            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
             {
                 success = true,
                 message = "OK",
-                data =
-                [
-                    new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["id_tarea"] = 80,
-                        ["id"] = 80,
-                        ["asunto"] = "Caso"
-                    }
-                ],
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows =
+                    [
+                        new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["id_tarea"] = 80,
+                            ["id"] = 80,
+                            ["asunto"] = "Caso"
+                        }
+                    ],
+                    TotalRecords = 1
+                },
                 errors = []
             });
 
@@ -316,6 +369,75 @@ public sealed class WorkflowInboxServiceTests
 
         Assert.True(result.success);
         Assert.Equal("OK", result.message);
+    }
+
+    [Fact]
+    public async Task SolicitaBandejaWorkflowAsync_CuandoNumeroTareaListaExiste_NormalizaPageSizeConEseValor()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var tableBuilder = new Mock<IDynamicUiTableBuilder>();
+        var context = CreateContext();
+        context.NumeroTareaLista = 40;
+        var request = CreateRequest();
+        request.Page = 0;
+        request.PageSize = 5;
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.GetInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows = [CreateRow(55)],
+                    TotalRecords = 55
+                },
+                errors = []
+            });
+
+        DynamicUiTableBuildInput? capturedInput = null;
+        tableBuilder
+            .Setup(builder => builder.BuildAsync(It.IsAny<DynamicUiTableBuildInput>()))
+            .Callback<DynamicUiTableBuildInput>(input => capturedInput = input)
+            .ReturnsAsync(new DynamicUiTableDto { TableId = "workflowInboxgestion" });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository, tableBuilder: tableBuilder);
+
+        var result = await service.SolicitaBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(capturedInput);
+        Assert.Equal(1, capturedInput!.Request.Page);
+        Assert.Equal(40, capturedInput.Request.PageSize);
     }
 
     private static WorkflowInboxService CreateService(
@@ -330,6 +452,7 @@ public sealed class WorkflowInboxServiceTests
         {
             currentUserService = new Mock<ICurrentUserService>();
             currentUserService.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns("WF");
+            currentUserService.SetupGet(service => service.Permisos).Returns(["wf.ver"]);
         }
 
         if (dynamicColumnsBuilder == null)
