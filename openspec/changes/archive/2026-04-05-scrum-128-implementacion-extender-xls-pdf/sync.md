@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-128`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/167 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | ajustar endpoint `/api/AppTable/export` para despachar csv/xlsx/pdf y mantener contrato FileResult | pending | pending | pending | todo |
+| DocuArchiCore | yes | implementation_required | orquestador openspec, trazabilidad, tests de contrato y evidencia cross-repo | done | https://github.com/miguelurueta/DocuArchiCore/pull/167 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | extender contrato de exportacion y metadata reusable para branding/archivo si aplica | pending | pending | pending | todo |
+| MiApp.Services | yes | implementation_required | extender servicio de exportacion, builders csv/xlsx/pdf y reutilizar query state actual | pending | pending | pending | todo |
+| MiApp.Repository | no | no_code_change | la consulta exportable ya se reutiliza desde el pipeline actual sin nuevo repositorio dedicado | n/a | n/a | n/a | n_a |
+| MiApp.Models | no | no_code_change | no se requiere modelo persistente nuevo para generar archivos exportables | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
