@@ -82,7 +82,7 @@ public sealed class WorkflowInboxControllerTests
     }
 
     [Fact]
-    public async Task ExportaBandejaWorkflowCsv_CuandoClaimsSonValidos_RetornaArchivo()
+    public async Task ExportaBandejaWorkflow_CuandoClaimsSonValidos_RetornaArchivo()
     {
         var claimValidation = new Mock<IClaimValidationService>();
         var service = new Mock<IWorkflowInboxService>();
@@ -95,15 +95,16 @@ public sealed class WorkflowInboxControllerTests
             .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "10", Response = null });
 
         service
-            .Setup(svc => svc.ExportBandejaWorkflowCsvAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"))
+            .Setup(svc => svc.ExportBandejaWorkflowAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"))
             .ReturnsAsync(new AppResponses<WorkflowInboxExportFileDto>
             {
                 success = true,
                 message = "OK",
                 data = new WorkflowInboxExportFileDto
                 {
-                    ContentType = "text/csv",
-                    FileName = "workflow_inbox_20260405_120000.csv",
+                    Format = WorkflowInboxExportFormats.Xlsx,
+                    ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    FileName = "workflow_inbox_20260405_120000.xlsx",
                     FileBytes = [1, 2, 3]
                 },
                 errors = []
@@ -111,12 +112,15 @@ public sealed class WorkflowInboxControllerTests
 
         var controller = new WorkflowInboxController(claimValidation.Object, service.Object);
 
-        var result = await controller.ExportaBandejaWorkflowCsv(CreateExportRequest());
+        var request = CreateExportRequest();
+        request.Format = WorkflowInboxExportFormats.Xlsx;
+
+        var result = await controller.ExportaBandejaWorkflow(request);
 
         var file = Assert.IsType<FileContentResult>(result);
-        Assert.Equal("text/csv", file.ContentType);
-        Assert.Equal("workflow_inbox_20260405_120000.csv", file.FileDownloadName);
-        service.Verify(svc => svc.ExportBandejaWorkflowCsvAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"), Times.Once);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.ContentType);
+        Assert.Equal("workflow_inbox_20260405_120000.xlsx", file.FileDownloadName);
+        service.Verify(svc => svc.ExportBandejaWorkflowAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"), Times.Once);
     }
 
     [Fact]

@@ -29,14 +29,14 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
-    public async Task ExportBandejaWorkflowCsvAsync_CuandoClaimWorkflowNoExiste_RetornaValidacion()
+    public async Task ExportBandejaWorkflowAsync_CuandoClaimWorkflowNoExiste_RetornaValidacion()
     {
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns((string?)null);
 
         var service = CreateService(currentUserService: currentUser);
 
-        var result = await service.ExportBandejaWorkflowCsvAsync(CreateExportRequest(), 10, "DA");
+        var result = await service.ExportBandejaWorkflowAsync(CreateExportRequest(), 10, "DA");
 
         Assert.False(result.success);
         Assert.Equal("Claim defaulaliaswf requerido para exportar bandeja workflow", result.message);
@@ -44,7 +44,7 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
-    public async Task ExportBandejaWorkflowCsvAsync_CuandoTotalSuperaLimite_RetornaErrorControlado()
+    public async Task ExportBandejaWorkflowAsync_CuandoTotalSuperaLimite_RetornaErrorControlado()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
         var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
@@ -90,7 +90,7 @@ public sealed class WorkflowInboxServiceTests
 
         var service = CreateService(contextResolver, metadataRepository, inboxRepository);
 
-        var result = await service.ExportBandejaWorkflowCsvAsync(request, 10, "DA");
+        var result = await service.ExportBandejaWorkflowAsync(request, 10, "DA");
 
         Assert.False(result.success);
         Assert.Contains("50000", result.message);
@@ -98,7 +98,7 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
-    public async Task ExportBandejaWorkflowCsvAsync_CuandoEsValido_RetornaCsvYMantieneDatasetAllMatching()
+    public async Task ExportBandejaWorkflowAsync_CuandoEsValido_RetornaCsvYMantieneDatasetAllMatching()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
         var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
@@ -167,7 +167,7 @@ public sealed class WorkflowInboxServiceTests
 
         var service = CreateService(contextResolver, metadataRepository, inboxRepository);
 
-        var result = await service.ExportBandejaWorkflowCsvAsync(request, 10, "DA");
+        var result = await service.ExportBandejaWorkflowAsync(request, 10, "DA");
 
         Assert.True(result.success);
         Assert.NotNull(result.data);
@@ -179,6 +179,93 @@ public sealed class WorkflowInboxServiceTests
         var csv = System.Text.Encoding.UTF8.GetString(result.data.FileBytes);
         Assert.Contains("id_tarea,fecha_inicio,ESTADO,asunto", csv);
         Assert.Contains("\"Caso, prioridad alta\"", csv);
+    }
+
+    [Fact]
+    public async Task ExportBandejaWorkflowAsync_CuandoFormatoEsInvalido_RetornaValidacion()
+    {
+        var service = CreateService();
+        var request = CreateExportRequest();
+        request.Format = "xml";
+
+        var result = await service.ExportBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.False(result.success);
+        Assert.Equal("Formato de exportacion no soportado", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "format");
+    }
+
+    [Fact]
+    public async Task ExportBandejaWorkflowAsync_CuandoFormatoEsXlsx_RetornaArchivoValido()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var request = CreateExportRequest();
+        request.Format = WorkflowInboxExportFormats.Xlsx;
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto> { success = true, message = "OK", data = context, errors = [] });
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?> { success = true, message = "OK", data = new WorkflowRouteColumnConfigResultDto { IdRutaWorkflow = context.IdRutaWorkflow, Mode = request.ColumnMode.ToString(), Columns = columns }, errors = [] });
+        inboxRepository
+            .Setup(repo => repo.GetInboxCountAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<int> { success = true, message = "OK", data = 1, errors = [] });
+        inboxRepository
+            .Setup(repo => repo.ExportInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>> { success = true, message = "OK", data = [CreateExportRow()], errors = [] });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.ExportBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Equal(WorkflowInboxExportFormats.Xlsx, result.data!.Format);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", result.data.ContentType);
+        Assert.EndsWith(".xlsx", result.data.FileName, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(result.data.FileBytes);
+    }
+
+    [Fact]
+    public async Task ExportBandejaWorkflowAsync_CuandoFormatoEsPdf_RetornaArchivoValido()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var request = CreateExportRequest();
+        request.Format = WorkflowInboxExportFormats.Pdf;
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto> { success = true, message = "OK", data = context, errors = [] });
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?> { success = true, message = "OK", data = new WorkflowRouteColumnConfigResultDto { IdRutaWorkflow = context.IdRutaWorkflow, Mode = request.ColumnMode.ToString(), Columns = columns }, errors = [] });
+        inboxRepository
+            .Setup(repo => repo.GetInboxCountAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<int> { success = true, message = "OK", data = 1, errors = [] });
+        inboxRepository
+            .Setup(repo => repo.ExportInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>> { success = true, message = "OK", data = [CreateExportRow()], errors = [] });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.ExportBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Equal(WorkflowInboxExportFormats.Pdf, result.data!.Format);
+        Assert.Equal("application/pdf", result.data.ContentType);
+        Assert.EndsWith(".pdf", result.data.FileName, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.data.FileBytes.Length > 4);
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(result.data.FileBytes, 0, 4));
     }
 
     [Fact]
@@ -763,6 +850,17 @@ public sealed class WorkflowInboxServiceTests
             ["id_tarea"] = idTarea,
             ["id"] = idTarea,
             ["asunto"] = "Caso"
+        };
+    }
+
+    private static Dictionary<string, object?> CreateExportRow()
+    {
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["id_tarea"] = 55,
+            ["fecha_inicio"] = new DateTime(2026, 4, 5, 12, 30, 0, DateTimeKind.Utc),
+            ["ESTADO"] = "Abierto",
+            ["asunto"] = "Caso, prioridad alta"
         };
     }
 }
