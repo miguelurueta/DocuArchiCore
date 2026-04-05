@@ -658,6 +658,34 @@ function Get-ArchivedChangeDirectory {
     return $matches[0].FullName
 }
 
+function Get-ChangeDirectory {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $activePath = Join-Path $RepoRoot "openspec\\changes\\$ChangeName"
+    if (Test-Path -LiteralPath $activePath) {
+        return $activePath
+    }
+
+    return Get-ArchivedChangeDirectory -RepoRoot $RepoRoot -ChangeName $ChangeName
+}
+
+function Get-ChangeSyncPath {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $changePath = Get-ChangeDirectory -RepoRoot $RepoRoot -ChangeName $ChangeName
+    if (-not $changePath) {
+        return $null
+    }
+
+    return Join-Path $changePath "sync.md"
+}
+
 function Get-DetectedImpactRepos {
     param(
         [hashtable]$Issue,
@@ -3087,7 +3115,7 @@ function Get-SyncImpactEntries {
         [string]$ChangeName
     )
 
-    $syncPath = Join-Path $RepoRoot "openspec\\changes\\$ChangeName\\sync.md"
+    $syncPath = Get-ChangeSyncPath -RepoRoot $RepoRoot -ChangeName $ChangeName
     if (-not (Test-Path $syncPath)) {
         return @()
     }
@@ -3119,7 +3147,7 @@ function Assert-SyncHasConcreteRepos {
         [string]$ChangeName
     )
 
-    $syncPath = Join-Path $RepoRoot "openspec\\changes\\$ChangeName\\sync.md"
+    $syncPath = Get-ChangeSyncPath -RepoRoot $RepoRoot -ChangeName $ChangeName
     if (-not (Test-Path $syncPath)) {
         throw "sync.md not found for '$ChangeName'."
     }
@@ -3719,18 +3747,41 @@ function Resolve-ChangeNameFromIssueKey {
     )
     $changesRoot = Join-Path $RepoRoot "openspec\\changes"
     $prefix = (To-KebabCase $IssueKey) + "-"
-    $matches = Get-ChildItem -Path $changesRoot -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -like "$prefix*" }
+    $matches = New-Object System.Collections.Generic.List[string]
+
+    $activeMatches = Get-ChildItem -Path $changesRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "$prefix*" } |
+        ForEach-Object { $_.Name }
+    foreach ($name in $activeMatches) {
+        [void]$matches.Add([string]$name)
+    }
+
+    $archiveRoots = @(
+        (Join-Path $RepoRoot "openspec\\archive"),
+        (Join-Path $RepoRoot "openspec\\changes\\archive")
+    )
+    foreach ($archiveRoot in $archiveRoots) {
+        if (-not (Test-Path $archiveRoot)) { continue }
+        $archivedNames = Get-ChildItem -Path $archiveRoot -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match ('^\d{4}-\d{2}-\d{2}-(' + [regex]::Escape($prefix) + '.*)$') } |
+            ForEach-Object { $_.Name -replace '^\d{4}-\d{2}-\d{2}-', '' }
+        foreach ($name in $archivedNames) {
+            if (-not [string]::IsNullOrWhiteSpace($name)) {
+                [void]$matches.Add([string]$name)
+            }
+        }
+    }
+
+    $matches = @($matches | Sort-Object -Unique)
 
     if ($matches.Count -eq 0) {
         throw "No change found for issue key '$IssueKey'. Expected prefix '$prefix'."
     }
     if ($matches.Count -gt 1) {
-        $names = $matches | ForEach-Object { $_.Name } | Sort-Object
-        throw "Multiple changes found for '$IssueKey': $($names -join ', '). Use explicit change name."
+        throw "Multiple changes found for '$IssueKey': $($matches -join ', '). Use explicit change name."
     }
 
-    return $matches[0].Name
+    return [string]$matches[0]
 }
 
 function Invoke-OrchestrateNew {
@@ -4240,10 +4291,13 @@ function Invoke-OrchestrateArchive {
             }
         }
 
-        $syncPath = Join-Path $RepoRoot "openspec\changes\$changeName\sync.md"
+        $syncPath = Get-ChangeSyncPath -RepoRoot $RepoRoot -ChangeName $changeName
         $syncChanged = Update-SyncRows -SyncPath $syncPath -RepoUpdates $repoUpdates
         if ($syncChanged) {
-            Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+            $activeChangePath = Join-Path $RepoRoot "openspec\changes\$changeName"
+            if (Test-Path -LiteralPath $activeChangePath) {
+                Invoke-OpenSpec -RepoRoot $RepoRoot -CliArgs @("validate", $changeName)
+            }
             Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_sync_update" -Status "ok" -Message "sync.md updated before archive." -Data @{ change = $changeName } -Mode $Mode
         }
 
