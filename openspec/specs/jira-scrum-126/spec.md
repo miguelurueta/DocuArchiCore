@@ -1,7 +1,7 @@
 # jira-scrum-126 Specification
 
 ## Purpose
-TBD - created by archiving change scrum-126-apptable-export-19-definir-estrategia-ba. Update Purpose after archive.
+Definir y mantener el contrato backend oficial para exportar a CSV todos los registros `allMatching` de la bandeja workflow reutilizando filtros, orden, seguridad y metadata existentes.
 ## Requirements
 ### Requirement: Traceability to Jira issue
 The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-126.
@@ -99,4 +99,3 @@ The system MUST include automated tests for controller, service, query builder a
 #### Scenario: Tests cover the export contract and file response
 - **WHEN** controller and service tests run
 - **THEN** they verify the CSV file contract, the controlled error path and the fact that `Page` and `PageSize` do not change the exported dataset
-
