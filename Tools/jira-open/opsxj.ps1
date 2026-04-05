@@ -4209,7 +4209,8 @@ function Invoke-Archive {
     }
     catch {
         $archiveError = $_.Exception.Message
-        if ($archiveError -match "already exists") {
+        $existingArchivePath = Get-ArchivedChangeDirectory -RepoRoot $RepoRoot -ChangeName $changeName
+        if ($archiveError -match "already exists" -or (($archiveError -match "not found") -and $existingArchivePath)) {
             $archiveAlreadyExisted = $true
             Write-Output "Archive already exists for '$changeName'. Applying idempotent cleanup."
             $changePath = Join-Path $RepoRoot "openspec\\changes\\$changeName"
