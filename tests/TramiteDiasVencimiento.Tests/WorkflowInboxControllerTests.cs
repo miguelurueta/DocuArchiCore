@@ -82,9 +82,62 @@ public sealed class WorkflowInboxControllerTests
     }
 
     [Fact]
+    public async Task ExportaBandejaWorkflowCsv_CuandoClaimsSonValidos_RetornaArchivo()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        var service = new Mock<IWorkflowInboxService>();
+
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA", Response = null });
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "10", Response = null });
+
+        service
+            .Setup(svc => svc.ExportBandejaWorkflowCsvAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"))
+            .ReturnsAsync(new AppResponses<WorkflowInboxExportFileDto>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowInboxExportFileDto
+                {
+                    ContentType = "text/csv",
+                    FileName = "workflow_inbox_20260405_120000.csv",
+                    FileBytes = [1, 2, 3]
+                },
+                errors = []
+            });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, service.Object);
+
+        var result = await controller.ExportaBandejaWorkflowCsv(CreateExportRequest());
+
+        var file = Assert.IsType<FileContentResult>(result);
+        Assert.Equal("text/csv", file.ContentType);
+        Assert.Equal("workflow_inbox_20260405_120000.csv", file.FileDownloadName);
+        service.Verify(svc => svc.ExportBandejaWorkflowCsvAsync(It.IsAny<WorkflowInboxExportRequestDto>(), 10, "DA"), Times.Once);
+    }
+
+    [Fact]
     public void WorkflowInboxApiRequestDto_NoExponeCamposInternos()
     {
         var propertyNames = typeof(WorkflowInboxApiRequestDto)
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain("IdUsuarioGestion", propertyNames);
+        Assert.DoesNotContain("IdUsuarioWorkflow", propertyNames);
+        Assert.DoesNotContain("NombreRuta", propertyNames);
+        Assert.DoesNotContain("IdActividad", propertyNames);
+        Assert.DoesNotContain("DefaultDbAlias", propertyNames);
+    }
+
+    [Fact]
+    public void WorkflowInboxExportRequestDto_NoExponeCamposInternos()
+    {
+        var propertyNames = typeof(WorkflowInboxExportRequestDto)
             .GetProperties()
             .Select(property => property.Name)
             .ToHashSet(StringComparer.Ordinal);
@@ -106,6 +159,22 @@ public sealed class WorkflowInboxControllerTests
         SortDir = "ASC",
         Page = 1,
         PageSize = 25,
+        StructuredFilters = []
+    };
+
+    private static WorkflowInboxExportRequestDto CreateExportRequest() => new()
+    {
+        ColumnMode = WorkflowColumnListMode.ListaGestionTramite,
+        EstadoTramite = "Todos",
+        SearchType = 2,
+        Search = "radicado",
+        SortField = "fecha_inicio",
+        SortDir = "DESC",
+        Page = 7,
+        PageSize = 10,
+        Format = "csv",
+        ExportMode = "allMatching",
+        ReportTitle = "workflow inbox",
         StructuredFilters = []
     };
 
