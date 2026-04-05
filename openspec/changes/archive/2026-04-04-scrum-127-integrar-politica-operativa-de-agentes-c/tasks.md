@@ -20,4 +20,4 @@
 
 - [x] 4.1 Documentar evidencia operativa del hint en `doctor`.
 - [x] 4.2 Ejecutar validación operativa mínima y `openspec.cmd validate`.
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.3 Validar y archivar con OpenSpec.
