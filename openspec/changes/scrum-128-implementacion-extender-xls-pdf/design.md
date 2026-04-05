@@ -1,0 +1,21 @@
+## Context
+
+- Jira issue key: SCRUM-128
+- Jira summary: IMPLEMENTACION-EXTENDER-XLS-PDF
+- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-128
+
+## Context Reference
+
+- openspec/context/multi-repo-context.md
+- openspec/context/OPSXJ_BACKEND_RULES.md
+
+## Problem Statement
+
+PROMPT ARQUITECTÓNICO Extender exportación allMatching a formatos XLSX y PDF con branding corporativo Rol esperado Arquitecto de software senior y desarrollador backend .NET con experiencia en generación de documentos, branding y formatos empresariales. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Extender la exportación backend allMatching para soportar: XLSX PDF incluyendo: encabezado ejecutivo metadata del reporte logo corporativo embebido ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DEPENDENCIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Requiere: endpoint allMatching ya implementado (V1) QueryBuilder reutilizable contrato de exportación definido ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ALCANCE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ soportar nuevos formatos: xlsx pdf implementar generadores de archivo backend incorporar branding corporativo incorporar metadata del reporte mantener misma semántica de consulta ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA CRÍTICA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ La generación de archivos debe usar exactamente: mismo query state mismos filtros misma seguridad mismo dataset que CSV NO se permite divergencia entre formatos. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Extender: WorkflowInboxExportRequestDto Format: csv xlsx pdf ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA DE IMPLEMENTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ reutilizar BuildExportQuery() reutilizar Repository existente NO duplicar consultas Generador de archivo debe ser independiente del query. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA DE LIBRERÍA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Debe definirse explícitamente: XLSX: ClosedXML / EPPlus / equivalente PDF: iText / QuestPDF / equivalente No usar soluciones improvisadas. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA DE BRANDING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ incluir encabezado ejecutivo incluir logo embebido (NO URL) resolver logo desde backend Ruta sugerida: public/branding/reports/company-report-logo.png Si backend no accede a public: crear proveedor de branding backend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ METADATA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ título del reporte módulo origen fecha/hora usuario filtros aplicados orden aplicado total de registros ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA POR FORMATO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ XLSX: encabezado con logo metadata visible formato tabular limpio PDF: encabezado corporativo metadata visible diseño legible CSV: sin logo mantener compatibilidad ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA DE PERFORMANCE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ respetar límite definido en V1 evitar cargar todo en memoria si no es necesario evaluar streaming si aplica ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA DE RESPUESTA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ FileResult content-type correcto por formato filename: {modulo}_{yyyyMMdd_HHmmss}.{ext} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ export xlsx válido export pdf válido metadata correcta logo embebido correctamente consistencia con CSV filtros respetados sort respetado seguridad respetada ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ soporta xlsx y pdf correctamente branding embebido funcional metadata consistente misma semántica que CSV no rompe arquitectura existente solución reusable para otros módulos
+
+## Approach
+
+- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
+- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
+- Definir alcance y no-alcance antes de implementar.
+- Validar con openspec.cmd validate scrum-128-implementacion-extender-xls-pdf.
