@@ -3747,13 +3747,13 @@ function Resolve-ChangeNameFromIssueKey {
     )
     $changesRoot = Join-Path $RepoRoot "openspec\\changes"
     $prefix = (To-KebabCase $IssueKey) + "-"
-    $matches = New-Object System.Collections.Generic.List[string]
+    $changeMatches = New-Object System.Collections.Generic.List[string]
 
     $activeMatches = Get-ChildItem -Path $changesRoot -Directory -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -like "$prefix*" } |
         ForEach-Object { $_.Name }
     foreach ($name in $activeMatches) {
-        [void]$matches.Add([string]$name)
+        [void]$changeMatches.Add([string]$name)
     }
 
     $archiveRoots = @(
@@ -3767,21 +3767,21 @@ function Resolve-ChangeNameFromIssueKey {
             ForEach-Object { $_.Name -replace '^\d{4}-\d{2}-\d{2}-', '' }
         foreach ($name in $archivedNames) {
             if (-not [string]::IsNullOrWhiteSpace($name)) {
-                [void]$matches.Add([string]$name)
+                [void]$changeMatches.Add([string]$name)
             }
         }
     }
 
-    $matches = @($matches | Sort-Object -Unique)
+    $changeMatches = @($changeMatches | Sort-Object -Unique)
 
-    if ($matches.Count -eq 0) {
+    if ($changeMatches.Count -eq 0) {
         throw "No change found for issue key '$IssueKey'. Expected prefix '$prefix'."
     }
-    if ($matches.Count -gt 1) {
-        throw "Multiple changes found for '$IssueKey': $($matches -join ', '). Use explicit change name."
+    if ($changeMatches.Count -gt 1) {
+        throw "Multiple changes found for '$IssueKey': $($changeMatches -join ', '). Use explicit change name."
     }
 
-    return [string]$matches[0]
+    return [string]$changeMatches[0]
 }
 
 function Invoke-OrchestrateNew {
