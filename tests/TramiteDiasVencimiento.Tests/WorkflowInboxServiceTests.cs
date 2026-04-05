@@ -29,6 +29,159 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
+    public async Task ExportBandejaWorkflowCsvAsync_CuandoClaimWorkflowNoExiste_RetornaValidacion()
+    {
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns((string?)null);
+
+        var service = CreateService(currentUserService: currentUser);
+
+        var result = await service.ExportBandejaWorkflowCsvAsync(CreateExportRequest(), 10, "DA");
+
+        Assert.False(result.success);
+        Assert.Equal("Claim defaulaliaswf requerido para exportar bandeja workflow", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "defaulaliaswf");
+    }
+
+    [Fact]
+    public async Task ExportBandejaWorkflowCsvAsync_CuandoTotalSuperaLimite_RetornaErrorControlado()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var request = CreateExportRequest();
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.GetInboxCountAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<int>
+            {
+                success = true,
+                message = "OK",
+                data = 50001,
+                errors = []
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.ExportBandejaWorkflowCsvAsync(request, 10, "DA");
+
+        Assert.False(result.success);
+        Assert.Contains("50000", result.message);
+        inboxRepository.Verify(repo => repo.ExportInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), It.IsAny<WorkflowInboxResolvedContextDto>(), It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExportBandejaWorkflowCsvAsync_CuandoEsValido_RetornaCsvYMantieneDatasetAllMatching()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var request = CreateExportRequest();
+        request.Page = 9;
+        request.PageSize = 3;
+        var columns = CreateColumns();
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        WorkflowInboxDynamicTableRequestDto? capturedExportRequest = null;
+        inboxRepository
+            .Setup(repo => repo.GetInboxCountAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .ReturnsAsync(new AppResponses<int>
+            {
+                success = true,
+                message = "OK",
+                data = 1,
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.ExportInboxAsync(It.IsAny<WorkflowInboxDynamicTableRequestDto>(), context, columns, "WF"))
+            .Callback<WorkflowInboxDynamicTableRequestDto, WorkflowInboxResolvedContextDto, List<WorkflowDynamicColumnDefinitionDto>, string>((dto, _, _, _) => capturedExportRequest = dto)
+            .ReturnsAsync(new AppResponses<List<Dictionary<string, object?>>>
+            {
+                success = true,
+                message = "OK",
+                data =
+                [
+                    new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["id_tarea"] = 55,
+                        ["fecha_inicio"] = new DateTime(2026, 4, 5, 12, 30, 0, DateTimeKind.Utc),
+                        ["ESTADO"] = "Abierto",
+                        ["asunto"] = "Caso, prioridad alta"
+                    }
+                ],
+                errors = []
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.ExportBandejaWorkflowCsvAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Equal("text/csv", result.data!.ContentType);
+        Assert.Equal(1, result.data.TotalRecords);
+        Assert.NotNull(capturedExportRequest);
+        Assert.Equal(9, capturedExportRequest!.Page);
+        Assert.Equal(3, capturedExportRequest.PageSize);
+        var csv = System.Text.Encoding.UTF8.GetString(result.data.FileBytes);
+        Assert.Contains("id_tarea,fecha_inicio,ESTADO,asunto", csv);
+        Assert.Contains("\"Caso, prioridad alta\"", csv);
+    }
+
+    [Fact]
     public async Task SolicitaBandejaWorkflowAsync_CuandoRepositorioNoRetornaFilas_RetornaTablaConsistente()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
@@ -561,6 +714,22 @@ public sealed class WorkflowInboxServiceTests
         SortDir = "ASC",
         EstadoTramite = "Todos",
         SearchType = 1,
+        StructuredFilters = []
+    };
+
+    private static WorkflowInboxExportRequestDto CreateExportRequest() => new()
+    {
+        ColumnMode = WorkflowColumnListMode.ListaGestionTramite,
+        EstadoTramite = "Todos",
+        SearchType = 2,
+        Search = "radicado",
+        SortField = "fecha_inicio",
+        SortDir = "DESC",
+        Page = 1,
+        PageSize = 25,
+        Format = "csv",
+        ExportMode = "allMatching",
+        ReportTitle = "workflow inbox",
         StructuredFilters = []
     };
 
