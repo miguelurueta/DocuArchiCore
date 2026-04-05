@@ -4,6 +4,8 @@ This folder exposes PowerShell-based integration commands for OpenSpec + Jira.
 
 Guia recomendada de operacion multi-repo:
 - `Docs/Guia_Opsxj_MultiRepo.md`
+- Politica operativa de agentes Codex:
+  - `Docs/Codex-Agent-Strategy.md`
 
 ## Prerequisites
 
@@ -153,6 +155,11 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 
 ## Notes
 
+- `opsxj.ps1` imprime hints operativos de agentes Codex por comando. Son recomendaciones de uso, no seleccion automatica de modelo.
+- La politica operativa de agentes esta documentada en `Docs/Codex-Agent-Strategy.md`.
+- Regla rapida:
+  - subagente mini para exploracion, OpenSpec, analisis focal, logs, pruebas focales y documentacion
+  - agente principal para Jira/Git/GitHub, PRs, archive, validacion final y decisiones multi-repo
 - `opsxj:new` creates/updates `openspec/changes/<change-name>/` artifacts (including `sync.md` impact matrix), runs `openspec.cmd validate`, transitions Jira to `En curso` after successful OpenSpec validation, creates/pushes a branch, opens or reuses a GitHub PR, transitions Jira to `En Revision` when the PR is available, and adds a Jira comment with the PR URL plus the manual-merge reminder when the PR is newly created.
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
 - `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, opens only the coordinator PR, and prepares clean satellite primary checkouts on the ticket branch before deferring PR creation to `opsxj:orchestrate:publish`.

@@ -171,6 +171,58 @@ function Get-ExecutionMode {
     return "legacy"
 }
 
+function Write-CodexAgentHint {
+    param(
+        [string]$CommandName,
+        [string]$IssueOrChange
+    )
+
+    $scope = if ([string]::IsNullOrWhiteSpace($IssueOrChange)) { "<sin-ticket>" } else { $IssueOrChange }
+    $docPath = "Docs/Codex-Agent-Strategy.md"
+
+    $miniHint = "Usa subagente mini para exploracion, resumen Jira/OpenSpec, clasificacion de impacto, analisis focal de repos, logs, pruebas focales y documentacion tecnica."
+    $mainHint = "Usa agente principal para Jira/Git/GitHub, PRs, archive, decisiones multi-repo, validacion final y cierre del flujo."
+
+    Write-Output ("Codex agent hint [{0}] {1}" -f $CommandName, $scope)
+
+    switch ($CommandName) {
+        "new" {
+            Write-Output "  - Recomendado: mini para leer/resumir ticket y preparar proposal/design/spec/tasks."
+            Write-Output "  - Principal: ejecutar opsxj:new, validar resultado y decidir cierre del flujo."
+        }
+        "orchestrate:new" {
+            Write-Output "  - Recomendado: mini para clasificacion de impacto y lectura focal por repo."
+            Write-Output "  - Principal: ejecutar orchestrate:new, control Jira/Git/PR coordinador y decisiones multi-repo."
+        }
+        "orchestrate:publish" {
+            Write-Output "  - Recomendado: mini para revisar diffs, pruebas focales y documentacion satelite."
+            Write-Output "  - Principal: ejecutar publish, abrir PRs, validar repos impactados y consistencia multi-repo."
+        }
+        "archive" {
+            Write-Output "  - Recomendado: mini para revisar tasks/specs pendientes y preparar cierre documental."
+            Write-Output "  - Principal: ejecutar archive, validar merges y transicionar Jira."
+        }
+        "orchestrate:archive" {
+            Write-Output "  - Recomendado: mini para revisar estado de repos y evidencia documental."
+            Write-Output "  - Principal: ejecutar orchestrate:archive, validar merges multi-repo, cleanup y cierre final."
+        }
+        "jira-done" {
+            Write-Output "  - Recomendado: principal. Este comando es operacion de gobierno sobre Jira."
+        }
+        "doctor" {
+            Write-Output "  - Recomendado: mini para revisar reportes, logs y contexto operativo."
+            Write-Output "  - Principal: ejecutar doctor y decidir acciones correctivas del flujo."
+        }
+        default {
+            Write-Output "  - $miniHint"
+            Write-Output "  - $mainHint"
+        }
+    }
+
+    Write-Output ("  - Politica operativa: {0}" -f $docPath)
+    Write-Output "  - Nota: el script no controla el modelo de Codex; solo orienta su uso."
+}
+
 function Get-IssueKeyFromChangeName {
     param([string]$ChangeName)
     if (-not $ChangeName) { return $null }
@@ -4325,6 +4377,7 @@ if ([string]::IsNullOrWhiteSpace($lockIssueKey)) {
 Acquire-IssueLock -RepoRoot $repoRoot -IssueKey $lockIssueKey
 try {
     Invoke-Preflight -RepoRoot $repoRoot -CommandName $Command -IssueOrChange $IssueOrChange -Mode $executionMode
+    Write-CodexAgentHint -CommandName $Command -IssueOrChange $IssueOrChange
 
     if ($Command -eq "new") {
         if ($SkipJira) {
