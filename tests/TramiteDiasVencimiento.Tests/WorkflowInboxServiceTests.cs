@@ -44,6 +44,110 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
+    public async Task AutocompleteBandejaWorkflowAsync_CuandoBusquedaEsCorta_NoConsultaRepositorios()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.AutocompleteBandejaWorkflowAsync(
+            new WorkflowInboxAutocompleteRequestDto { Search = "ab", Limit = 5 },
+            10,
+            "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Empty(result.data!.Items);
+        contextResolver.Verify(repo => repo.ResolveAsync(It.IsAny<int>()), Times.Never);
+        metadataRepository.Verify(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()), Times.Never);
+        inboxRepository.Verify(repo => repo.GetAutocompleteAsync(
+            It.IsAny<WorkflowInboxDynamicTableRequestDto>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<WorkflowInboxResolvedContextDto>(),
+            It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
+            It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AutocompleteBandejaWorkflowAsync_CuandoEsValido_CapaLimiteYFiltraColumnas()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var columns = CreateColumns();
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "oculto",
+            ColumnName = "oculto",
+            SqlColumnName = "DAT.oculto",
+            DataType = "text",
+            IsVisible = false,
+            IsFilterable = true
+        });
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "numero",
+            ColumnName = "numero",
+            SqlColumnName = "DAT.numero",
+            DataType = "number",
+            IsVisible = true,
+            IsFilterable = true
+        });
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto> { success = true, message = "OK", data = context, errors = [] });
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto { IdRutaWorkflow = context.IdRutaWorkflow, Mode = WorkflowColumnListMode.ListaGestionTramite.ToString(), Columns = columns },
+                errors = []
+            });
+
+        List<WorkflowDynamicColumnDefinitionDto>? capturedColumns = null;
+        inboxRepository
+            .Setup(repo => repo.GetAutocompleteAsync(
+                It.IsAny<WorkflowInboxDynamicTableRequestDto>(),
+                "ABC",
+                10,
+                context,
+                It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
+                "WF"))
+            .Callback<WorkflowInboxDynamicTableRequestDto, string, int, WorkflowInboxResolvedContextDto, List<WorkflowDynamicColumnDefinitionDto>, string>(
+                (_, _, _, _, cols, _) => capturedColumns = cols)
+            .ReturnsAsync(new AppResponses<WorkflowInboxAutocompleteResponseDto>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowInboxAutocompleteResponseDto
+                {
+                    Items = [new WorkflowInboxAutocompleteItemDto { Value = "ABC-123", Label = "ABC-123", Field = "asunto" }]
+                },
+                errors = []
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.AutocompleteBandejaWorkflowAsync(
+            new WorkflowInboxAutocompleteRequestDto { Search = " ABC ", Limit = 50 },
+            10,
+            "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Single(result.data!.Items);
+        Assert.NotNull(capturedColumns);
+        Assert.Single(capturedColumns!);
+        Assert.Equal("asunto", capturedColumns![0].Key);
+    }
+
+    [Fact]
     public async Task ExportBandejaWorkflowAsync_CuandoTotalSuperaLimite_RetornaErrorControlado()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();

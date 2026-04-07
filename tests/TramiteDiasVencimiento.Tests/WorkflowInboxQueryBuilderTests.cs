@@ -514,6 +514,76 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal(99, result.Filters["Id_Usuario"]);
     }
 
+    [Fact]
+    public void BuildAutocomplete_CuandoBusquedaEsValida_UsaPrefijoYEscape()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+
+        var result = builder.BuildAutocomplete(
+            "ABC%_[",
+            10,
+            CreateRequest(),
+            CreateContext(),
+            CreateDynamicColumns(),
+            "WF");
+
+        Assert.Equal(2, result.Count);
+        var query = result.First(item => item.RawSelect.Contains("DAT.asunto AS Value", StringComparison.Ordinal));
+        var rawConditions = string.Join(" ", query.RawConditions);
+        Assert.Contains("DAT.asunto LIKE 'ABC\\%\\_\\[%' ESCAPE '\\'", rawConditions);
+        Assert.DoesNotContain("%ABC", rawConditions, StringComparison.Ordinal);
+        Assert.All(result, item => Assert.Equal(10, item.Limit));
+    }
+
+    [Fact]
+    public void BuildAutocomplete_IgnoraColumnasNoVisiblesNoFiltrablesONoTexto()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var columns = CreateDynamicColumns();
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "oculto",
+            ColumnName = "oculto",
+            SqlColumnName = "DAT.oculto",
+            DataType = "text",
+            IsVisible = false,
+            IsFilterable = true
+        });
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "numero",
+            ColumnName = "numero",
+            SqlColumnName = "DAT.numero",
+            DataType = "number",
+            IsVisible = true,
+            IsFilterable = true
+        });
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "no_filter",
+            ColumnName = "no_filter",
+            SqlColumnName = "DAT.no_filter",
+            DataType = "text",
+            IsVisible = true,
+            IsFilterable = false
+        });
+
+        var result = builder.BuildAutocomplete(
+            "ABC",
+            10,
+            CreateRequest(),
+            CreateContext(),
+            columns,
+            "WF");
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, item => item.RawSelect.Contains("'asunto' AS Field", StringComparison.Ordinal));
+        Assert.Contains(result, item => item.RawSelect.Contains("'remitente' AS Field", StringComparison.Ordinal));
+        Assert.DoesNotContain(result, item => item.RawSelect.Contains("oculto", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result, item => item.RawSelect.Contains("numero", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result, item => item.RawSelect.Contains("no_filter", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static WorkflowInboxDynamicTableRequestDto CreateRequest(
         int searchType = 1,
         string search = "",
