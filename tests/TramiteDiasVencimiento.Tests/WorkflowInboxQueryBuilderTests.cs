@@ -67,6 +67,19 @@ public sealed class WorkflowInboxQueryBuilderTests
     }
 
     [Fact]
+    public void Build_CuandoTipoEsDosYSearchTieneCorchetes_LosEscapaComoLiterales()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+
+        var result = builder.Build(CreateRequest(searchType: 2, search: "rad[12]"), CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Single(result.RawConditions);
+        Assert.Equal(
+            "AND (DAT.asunto LIKE '%rad\\[12\\]%' ESCAPE '\\' OR DAT.remitente LIKE '%rad\\[12\\]%' ESCAPE '\\')",
+            result.RawConditions[0]);
+    }
+
+    [Fact]
     public void Build_CuandoTipoEsDosYSearchSuperaMaximo_TruncaTermino()
     {
         var builder = new WorkflowInboxQueryBuilder();
@@ -100,6 +113,31 @@ public sealed class WorkflowInboxQueryBuilderTests
         var result = builder.Build(CreateRequest(searchType: 2, search: "rad"), CreateContext(), columns, "WF");
 
         Assert.Empty(result.RawConditions);
+    }
+
+    [Fact]
+    public void Build_CuandoTipoEsDosIgnoraColumnasNoFiltrables()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var columns = CreateDynamicColumns();
+        columns.Add(new WorkflowDynamicColumnDefinitionDto
+        {
+            Key = "observacion",
+            ColumnName = "observacion",
+            SqlColumnName = "DAT.observacion",
+            DataType = "text",
+            IsVisible = true,
+            IsFilterable = false,
+            IsSortable = true
+        });
+
+        var result = builder.Build(CreateRequest(searchType: 2, search: "rad"), CreateContext(), columns, "WF");
+
+        Assert.Single(result.RawConditions);
+        Assert.DoesNotContain("DAT.observacion", result.RawConditions[0], StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')",
+            result.RawConditions[0]);
     }
 
     [Fact]
@@ -430,6 +468,24 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal(2, result.RawConditions.Count);
         Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')", result.RawConditions[0]);
         Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
+    }
+
+    [Fact]
+    public void BuildBuildCountYBuildExport_UsanMismaCondicionLike()
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+        var request = CreateRequest(searchType: 2, search: " rad%_[x] ");
+
+        var rows = builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF");
+        var count = builder.BuildCount(request, CreateContext(), CreateDynamicColumns(), "WF");
+        var export = builder.BuildExport(request, CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Single(rows.RawConditions);
+        Assert.Equal(rows.RawConditions, count.RawConditions);
+        Assert.Equal(rows.RawConditions, export.RawConditions);
+        Assert.Equal(
+            "AND (DAT.asunto LIKE '%rad\\%\\_\\[x\\]%' ESCAPE '\\' OR DAT.remitente LIKE '%rad\\%\\_\\[x\\]%' ESCAPE '\\')",
+            rows.RawConditions[0]);
     }
 
     [Fact]
