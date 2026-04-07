@@ -124,6 +124,43 @@ public sealed class WorkflowInboxControllerTests
     }
 
     [Fact]
+    public async Task AutocompleteBandejaWorkflow_CuandoClaimsSonValidos_DelegaAlServicio()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        var service = new Mock<IWorkflowInboxService>();
+
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA", Response = null });
+        claimValidation
+            .Setup(svc => svc.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "10", Response = null });
+
+        service
+            .Setup(svc => svc.AutocompleteBandejaWorkflowAsync(It.IsAny<WorkflowInboxAutocompleteRequestDto>(), 10, "DA"))
+            .ReturnsAsync(new AppResponses<WorkflowInboxAutocompleteResponseDto>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowInboxAutocompleteResponseDto
+                {
+                    Items =
+                    [
+                        new WorkflowInboxAutocompleteItemDto { Value = "ABC-123", Label = "ABC-123", Field = "asunto" }
+                    ]
+                },
+                errors = []
+            });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, service.Object);
+
+        var result = await controller.AutocompleteBandejaWorkflow(new WorkflowInboxAutocompleteRequestDto { Search = "ABC", Limit = 5 });
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        service.Verify(svc => svc.AutocompleteBandejaWorkflowAsync(It.IsAny<WorkflowInboxAutocompleteRequestDto>(), 10, "DA"), Times.Once);
+    }
+
+    [Fact]
     public void WorkflowInboxApiRequestDto_NoExponeCamposInternos()
     {
         var propertyNames = typeof(WorkflowInboxApiRequestDto)

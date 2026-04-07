@@ -172,6 +172,55 @@ public sealed class WorkflowInboxRepositoryTests
         Assert.Equal("Error consultando total de bandeja workflow", result.message);
     }
 
+    [Fact]
+    public async Task GetAutocompleteAsync_CuandoContextoEsValido_DeduplicaYRespetaLimite()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        var builder = new Mock<IWorkflowInboxQueryBuilder>();
+        var firstQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var secondQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+        var context = CreateContext();
+        var request = CreateRequest();
+        var columns = CreateColumns();
+
+        builder
+            .Setup(q => q.BuildAutocomplete("ABC", 2, request, context, columns, "WF"))
+            .Returns([firstQuery, secondQuery]);
+
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxAutocompleteItemDto>(firstQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxAutocompleteItemDto>
+            {
+                Success = true,
+                Message = "YES",
+                Data =
+                [
+                    new WorkflowInboxAutocompleteItemDto { Value = "ABC-123", Field = "asunto" },
+                    new WorkflowInboxAutocompleteItemDto { Value = "ABC-123", Field = "asunto" }
+                ]
+            });
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxAutocompleteItemDto>(secondQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxAutocompleteItemDto>
+            {
+                Success = true,
+                Message = "YES",
+                Data = [new WorkflowInboxAutocompleteItemDto { Value = "ABC-456", Label = "ABC-456", Field = "asunto" }]
+            });
+
+        var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
+
+        var result = await repository.GetAutocompleteAsync(request, "ABC", 2, context, columns, "WF");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Equal(2, result.data!.Items.Count);
+        Assert.Equal("ABC-123", result.data.Items[0].Value);
+        Assert.Equal("ABC-123", result.data.Items[0].Label);
+        Assert.Equal("asunto", result.data.Items[0].Field);
+        Assert.Equal("ABC-456", result.data.Items[1].Value);
+    }
+
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
     {
         TableId = "workflowInboxgestion",
