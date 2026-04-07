@@ -17,7 +17,7 @@ Use this template at the start of each Jira ticket (`SCRUM-130`) to decide exact
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | sin diff funcional en este ticket | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | normalizacion SearchType y LIKE global seguro en Workflow Inbox | done | pending | pending | in_progress |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/77 | pending | in_review |
 | MiApp.Repository | no | no_code_change | sin diff funcional en este ticket | n/a | n/a | n/a | n_a |
 | MiApp.Models | no | no_code_change | sin diff funcional en este ticket | n/a | n/a | n/a | n_a |
 
