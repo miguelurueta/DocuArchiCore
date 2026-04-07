@@ -596,6 +596,72 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
+    public async Task SolicitaBandejaWorkflowAsync_CuandoSearchTypeEsInvalido_NormalizaALegacy()
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var context = CreateContext();
+        var columns = CreateColumns();
+        var request = CreateRequest();
+        request.SearchType = 99;
+        WorkflowInboxDynamicTableRequestDto? capturedRequest = null;
+
+        contextResolver
+            .Setup(service => service.ResolveAsync(10))
+            .ReturnsAsync(new AppResponses<WorkflowInboxResolvedContextDto>
+            {
+                success = true,
+                message = "OK",
+                data = context,
+                errors = []
+            });
+
+        metadataRepository
+            .Setup(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()))
+            .ReturnsAsync(new AppResponses<WorkflowRouteColumnConfigResultDto?>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowRouteColumnConfigResultDto
+                {
+                    IdRutaWorkflow = context.IdRutaWorkflow,
+                    Mode = request.ColumnMode.ToString(),
+                    Columns = columns
+                },
+                errors = []
+            });
+
+        inboxRepository
+            .Setup(repo => repo.GetInboxAsync(
+                It.IsAny<WorkflowInboxDynamicTableRequestDto>(),
+                context,
+                columns,
+                "WF"))
+            .Callback<WorkflowInboxDynamicTableRequestDto, WorkflowInboxResolvedContextDto, List<WorkflowDynamicColumnDefinitionDto>, string>(
+                (dto, _, _, _) => capturedRequest = dto)
+            .ReturnsAsync(new AppResponses<WorkflowInboxRowsResultDto>
+            {
+                success = true,
+                message = "OK",
+                data = new WorkflowInboxRowsResultDto
+                {
+                    Rows = [],
+                    TotalRecords = 0
+                },
+                errors = []
+            });
+
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.SolicitaBandejaWorkflowAsync(request, 10, "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(1, capturedRequest!.TipoConsulta);
+    }
+
+    [Fact]
     public async Task SolicitaBandejaWorkflowAsync_CuandoContextResolverFalla_PropagaErrorControlado()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
