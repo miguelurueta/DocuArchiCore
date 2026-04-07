@@ -1,0 +1,277 @@
+# PROMPT ARQUITECTONICO - Ticket 06 BE
+
+# Endurecer busqueda LIKE en WorkflowInboxQueryBuilder
+
+Rol esperado:
+
+Arquitecto de software senior backend (.NET, SQL, seguridad, performance, query builders dinamicos).
+
+## OBJETIVO
+
+Endurecer la implementacion de busqueda `LIKE` en `WorkflowInboxQueryBuilder` para:
+
+- Reducir riesgos de inyeccion SQL.
+- Evitar degradacion de rendimiento.
+- Evitar exposicion de campos no autorizados.
+- Garantizar consistencia entre consulta de filas, conteo y exportacion.
+- Mantener compatibilidad con el contrato dinamico de columnas y con el comportamiento existente.
+
+Este ticket es continuacion del documento base:
+
+`Docs/Architecture/GestionCorrespondencia/01-EB Normalizar-SearchType-like-workflow-inbox.md`
+
+## CONTEXTO EXISTENTE
+
+QueryBuilder:
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxQueryBuilder.cs`
+
+Metodo actual:
+
+`ApplyLikeSearch(search, dynamicColumns)`
+
+DTO de metadata dinamica real:
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowDynamicColumnDefinitionDto.cs`
+
+Tests backend:
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxQueryBuilderTests.cs`
+
+Nota de compatibilidad:
+
+No asumir existencia de `WorkflowInboxResolvedMetadata`, `EsVisible`, `EsBuscable` o `TipoDato`. En este repositorio la metadata de columnas llega al QueryBuilder como `List<WorkflowDynamicColumnDefinitionDto>` y usa:
+
+- `IsVisible`
+- `IsFilterable`
+- `DataType`
+
+## UBICACION ESPERADA
+
+Revisar o ajustar unicamente si aplica:
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxQueryBuilder.cs`
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/*`
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxQueryBuilderTests.cs`
+
+No modificar `DapperCrudEngine` salvo que exista una justificacion tecnica explicita y el alcance se amplie formalmente.
+
+## RESTRICCIONES OBLIGATORIAS
+
+- No usar columnas enviadas por el cliente.
+- No aplicar LIKE sobre todos los campos indiscriminadamente.
+- No aplicar CAST masivo sobre fechas o numeros sin aprobacion explicita.
+- No deshabilitar paginacion.
+- No generar SQL invalido cuando no hay columnas filtrables.
+- No degradar exportacion ni conteo.
+- No introducir SQL dinamico inseguro.
+- No cambiar endpoint publico.
+- No cambiar DTOs publicos salvo necesidad justificada.
+- No alterar `SearchType = 1` ni `SearchType = 3`.
+- No mover logica SQL al controller.
+
+## COLUMNAS ELEGIBLES
+
+Las columnas deben resolverse exclusivamente desde metadata valida:
+
+`List<WorkflowDynamicColumnDefinitionDto> dynamicColumns`
+
+Solo incluir columnas que cumplan:
+
+- `IsVisible = true`
+- `IsFilterable = true`
+- `DataType = "text"` segun `WorkflowInboxQueryPolicy.IsTextDataType(...)`
+- `SqlColumnName` / metadata valida segun `WorkflowInboxQueryPolicy.IsSelectableColumn(...)`
+
+No inventar propiedades nuevas.
+
+No buscar sobre:
+
+- Columnas no visibles.
+- Columnas no filtrables.
+- Columnas no textuales.
+- Columnas no resueltas por la metadata segura del builder.
+- Columnas recibidas desde el cliente.
+
+## REGLAS DE BUSQUEDA LIKE
+
+La condicion LIKE debe construirse como OR entre columnas elegibles:
+
+```sql
+(Col1 LIKE '%x%' OR Col2 LIKE '%x%' OR Col3 LIKE '%x%')
+```
+
+La condicion final debe conservar la forma actual del builder:
+
+- Condicion agrupada independiente dentro de `RawConditions`.
+- Combinacion por `AND` con filtros base, `AdvancedFilters` y `StructuredFilters`.
+- No usar `FilterGroup` en este ticket, porque el builder actual y las pruebas existentes validan `RawConditions`.
+- Solo considerar `FilterGroup` si se decide refactorizar tambien `DapperCrudEngine` en otro alcance.
+
+Estructura logica esperada:
+
+```sql
+(FiltrosBase)
+AND
+(Bloque LIKE)
+AND
+(StructuredFilters si existen)
+```
+
+## SANITIZACION OBLIGATORIA
+
+Antes de construir el LIKE:
+
+- Aplicar `Trim()` a `Search`.
+- Si queda vacio, no aplicar LIKE.
+- Definir `minLength`, por ejemplo `2` o `3`.
+- Si `Search.Trim().Length < minLength`, no aplicar LIKE.
+- Definir longitud maxima, por ejemplo `100` caracteres.
+- Definir comportamiento obligatorio para longitud maxima: truncar de forma controlada o retornar error controlado. No dejar comportamiento ambiguo.
+- Escapar comilla simple.
+- Escapar caracteres especiales de LIKE: `%` y `_`.
+- Evaluar y documentar comportamiento de `[` y `]`; si se soporta SQL Server en el LIKE raw, cubrirlo en pruebas.
+- No permitir que el cliente controle comodines.
+- Construir internamente el patron como contains: `%valorNormalizado%`.
+- No aceptar patrones arbitrarios desde el cliente.
+
+Recomendacion de implementacion:
+
+- Agregar helpers centralizados y testeables en `WorkflowInboxQueryPolicy`.
+- Posibles nombres:
+  - `NormalizeLikeSearchTerm(...)`
+  - `EscapeLikeLiteral(...)`
+  - `BuildContainsLikePattern(...)`
+
+## PARAMETRIZACION
+
+Preferir parametros SQL siempre que el engine lo permita.
+
+Contexto real del repo:
+
+- `ApplyLikeSearch(...)` actualmente devuelve SQL como string dentro de `RawConditions`.
+- `RawConditions` no expone de forma directa parametros adicionales para el LIKE.
+- No modificar `DapperCrudEngine` ni `QueryOptions` en este ticket salvo que se apruebe una ampliacion del alcance.
+
+Por tanto, para este ticket:
+
+- Encapsular el escape en una utilidad centralizada.
+- Cubrir la utilidad con pruebas unitarias.
+- Documentar claramente que el LIKE se conserva en `RawConditions` por compatibilidad con el builder actual.
+
+## SOPORTE DE MOTOR SQL
+
+El builder no recibe directamente el proveedor SQL.
+
+Por tanto:
+
+- Usar una estrategia de escape neutral y documentada.
+- Evitar asumir provider si no esta disponible en el QueryBuilder.
+- Si se requiere escape especifico por MySQL / SQL Server, proponer un cambio separado para transportar el provider o extender `QueryOptions` de forma controlada.
+
+## REGLAS DE EJECUCION
+
+No aplicar LIKE cuando:
+
+- `Search` es null, vacio o whitespace.
+- `Search.Trim().Length` es menor al minimo definido.
+- `SearchType` / `TipoConsulta` normalizado no es `2`.
+- No hay columnas elegibles.
+
+Si no hay columnas elegibles:
+
+- No romper la consulta.
+- No generar SQL invalido.
+- Omitir bloque LIKE.
+- Preservar filtros base, conteo, exportacion y paginacion.
+
+## CONSISTENCIA DE CONSULTAS
+
+La misma condicion LIKE debe aplicarse en:
+
+- Consulta de filas: `Build(...)`.
+- Consulta de conteo: `BuildCount(...)`.
+- Exportacion: `BuildExport(...)`.
+
+No se permite divergencia.
+
+El diseño actual ya reutiliza `BuildBaseShape(...)`; conservar esa propiedad y reforzarla con pruebas.
+
+## REGLAS DE PERFORMANCE
+
+- Evitar LIKE sobre demasiadas columnas.
+- No incluir columnas no elegibles.
+- Limitar tamano del `Search`.
+- No aplicar LIKE para terminos demasiado cortos.
+- Evitar evaluaciones innecesarias.
+- No alterar paginacion ni limites existentes.
+- No aplicar CAST a columnas no textuales.
+
+## RIESGOS A EVITAR
+
+- SQL injection por texto.
+- SQL injection por columnas.
+- LIKE `%%`.
+- OR sobre columnas no controladas.
+- Uso de columnas invisibles.
+- Uso de columnas no filtrables.
+- Uso de columnas no textuales.
+- Divergencia entre rows/count/export.
+- Escape inconsistente entre runtime y pruebas.
+- Degradacion severa del query.
+- Cambios innecesarios en `DapperCrudEngine`.
+
+## PRUEBAS UNITARIAS OBLIGATORIAS
+
+Actualizar o agregar pruebas en:
+
+`WorkflowInboxQueryBuilderTests.cs`
+
+Casos minimos:
+
+- Escape correcto de comilla simple.
+- Escape correcto de `%`.
+- Escape correcto de `_`.
+- Escape/documentacion de `[` y `]` si aplica.
+- `Trim()` aplicado correctamente.
+- `Search` vacio no genera condicion.
+- `Search` whitespace no genera condicion.
+- `Search` corto no genera condicion.
+- `Search` largo respeta politica definida.
+- Columnas invisibles no participan.
+- Columnas no filtrables no participan.
+- Columnas no textuales no participan.
+- No genera SQL invalido sin columnas elegibles.
+- OR grouping correcto.
+- La condicion LIKE queda como bloque agrupado independiente en `RawConditions`.
+- `Build(...)` y `BuildCount(...)` usan la misma condicion LIKE.
+- `BuildExport(...)` usa la misma condicion LIKE.
+- `StructuredFilters` siguen combinandose con LIKE usando AND.
+- `SearchType = 1` no aplica LIKE.
+- `SearchType = 3` conserva comportamiento actual.
+- `SearchType` invalido no aplica LIKE o cae al fallback normalizado definido por el Ticket 05.
+
+## PRUEBAS DE INTEGRACION / CALIDAD
+
+- Busqueda con caracteres especiales no rompe consulta.
+- Busqueda larga respeta politica de limite.
+- Paginacion mantiene filtro LIKE.
+- Total respeta filtro LIKE.
+- Exportacion usa la misma condicion LIKE.
+- Comportamiento consistente con metadata representativa.
+- No se incluyen columnas fuera de whitelist.
+
+## CRITERIOS DE ACEPTACION
+
+- LIKE protegido contra caracteres especiales.
+- Columnas solo desde metadata segura real: `WorkflowDynamicColumnDefinitionDto`.
+- OR grouping correcto.
+- Condicion LIKE conservada como `RawConditions` compatible con el builder actual.
+- Combinacion AND con filtros base correcta.
+- Filas, conteo y exportacion consistentes.
+- No se usan columnas no autorizadas.
+- No se generan condiciones LIKE vacias o demasiado amplias.
+- Pruebas cubren seguridad, borde y consistencia.
+- No se modifica endpoint publico ni logica de claims existente.

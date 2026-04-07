@@ -1,0 +1,296 @@
+# PROMPT ARQUITECTONICO - Ticket 05 BE
+
+# Normalizar contrato SearchType para busqueda LIKE en Workflow Inbox
+
+Rol esperado:
+
+Arquitecto de software senior backend (.NET, C#, APIs enterprise, contratos DTO, seguridad y performance en queries dinamicas).
+
+## OBJETIVO
+
+Normalizar el contrato de busqueda simple de `SolicitaBandejaWorkflow` para que:
+
+- `SearchType = 2` active de forma explicita la busqueda global tipo LIKE.
+- Se mantenga el comportamiento legacy de `SearchType = 1`.
+- No se altere la busqueda avanzada de `SearchType = 3`.
+- Se agreguen validaciones de seguridad y performance para el termino de busqueda.
+
+## CONTEXTO EXISTENTE
+
+Componentes:
+
+Controller:
+
+`DocuArchi.Api/Controllers/WorkflowInboxGestion/WorkflowInboxController.cs`
+
+Service:
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxService.cs`
+
+QueryBuilder:
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxQueryBuilder.cs`
+
+DTO publico:
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowInboxApiRequestDto.cs`
+
+DTO interno:
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowInboxDynamicTableRequestDto.cs`
+
+Metadata dinamica de columnas:
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowDynamicColumnDefinitionDto.cs`
+
+Tests backend:
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxServiceTests.cs`
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxQueryBuilderTests.cs`
+
+Nota de compatibilidad:
+
+No asumir existencia de `WorkflowInboxResolvedMetadata`, `EsVisible`, `EsBuscable` o `TipoDato`. En este repositorio la metadata de columnas llega al QueryBuilder como `List<WorkflowDynamicColumnDefinitionDto>` y usa:
+
+- `IsVisible`
+- `IsFilterable`
+- `DataType`
+
+## UBICACION ESPERADA
+
+Revisar o ajustar unicamente si aplica:
+
+`DocuArchi.Api/Controllers/WorkflowInboxGestion/WorkflowInboxController.cs`
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxService.cs`
+
+`MiApp.Services/Service/Workflow/BandejaCorrespondencia/WorkflowInboxQueryBuilder.cs`
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowInboxApiRequestDto.cs`
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowInboxDynamicTableRequestDto.cs`
+
+`MiApp.DTOs/DTOs/Workflow/BandejaCorrespondencia/WorkflowDynamicColumnDefinitionDto.cs`
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxServiceTests.cs`
+
+`DocuArchiCore/tests/TramiteDiasVencimiento.Tests/WorkflowInboxQueryBuilderTests.cs`
+
+## RESTRICCIONES OBLIGATORIAS
+
+- No cambiar endpoint: `POST /api/workflowInboxgestion/inboxgestion`.
+- No romper clientes con `SearchType = 1`.
+- No alterar semantica de `SearchType = 3`.
+- No mover logica SQL al controller.
+- No omitir validaciones de claims existentes.
+- No introducir SQL dinamico inseguro.
+- No alterar paginacion, ordenamiento ni conteo.
+- No modificar `DapperCrudEngine` salvo que sea estrictamente necesario y este justificado.
+- No cambiar el contrato publico salvo que sea indispensable.
+
+## CONTRATO OBLIGATORIO
+
+`SearchType = 1` -> comportamiento legacy, sin LIKE global.
+
+`SearchType = 2` -> busqueda global LIKE.
+
+`SearchType = 3` -> busqueda avanzada existente.
+
+`SearchType` invalido -> fallback explicito a `SearchType = 1`.
+
+Ejemplo request:
+
+```json
+{
+  "Search": "abc",
+  "SearchType": 2
+}
+```
+
+## REGLAS DE BUSQUEDA LIKE
+
+La busqueda LIKE debe construirse como OR entre columnas elegibles:
+
+```sql
+(FiltrosBase)
+AND
+(Col1 LIKE '%x%' OR Col2 LIKE '%x%' OR Col3 LIKE '%x%')
+```
+
+Implementacion alineada al repo actual:
+
+- Mantener la condicion LIKE como una condicion agrupada independiente en `RawConditions`.
+- Combinarla por `AND` con filtros base, `AdvancedFilters` existentes y `StructuredFilters`.
+- No exigir `FilterGroup` para este ticket, porque el builder actual y sus pruebas usan `RawConditions`.
+- Solo considerar `FilterGroup` si se decide explicitamente refactorizar tambien `DapperCrudEngine`.
+
+## COLUMNAS ELEGIBLES
+
+Las columnas deben provenir de:
+
+`List<WorkflowDynamicColumnDefinitionDto> dynamicColumns`
+
+Solo incluir columnas que cumplan:
+
+- `IsVisible = true`
+- `IsFilterable = true`
+- `DataType = "text"` segun `WorkflowInboxQueryPolicy.IsTextDataType(...)`
+- `SqlColumnName` / metadata valida segun la politica existente de columnas seleccionables
+
+No buscar sobre:
+
+- Columnas no visibles.
+- Columnas no filtrables.
+- Columnas no textuales.
+- Columnas no resueltas por la metadata segura del builder.
+
+## SANITIZACION OBLIGATORIA
+
+Agregar normalizacion explicita del termino LIKE:
+
+- Aplicar `Trim()` a `Search`.
+- Aplicar longitud maxima configurable o constante interna, por ejemplo `100`.
+- Definir longitud minima, por ejemplo `2` o `3`.
+- Si `Search` supera la longitud maxima, truncar o rechazar de forma controlada.
+- Escapar comilla simple.
+- Escapar caracteres especiales de LIKE: `%` y `_`.
+- No permitir que el cliente controle los comodines.
+- Construir internamente el patron como contains: `%valorNormalizado%`.
+- No aceptar patrones arbitrarios desde el cliente.
+
+La implementacion puede usar helper interno en `WorkflowInboxQueryPolicy`, por ejemplo:
+
+`NormalizeLikeSearchTerm(...)`
+
+`EscapeLikeLiteral(...)`
+
+## REGLAS DE EJECUCION
+
+No aplicar LIKE si:
+
+- `Search` es null, vacio o whitespace.
+- `Search.Trim().Length` es menor al minimo definido.
+- No existen columnas elegibles.
+- `SearchType` normalizado no es `2`.
+
+Si no existen columnas elegibles:
+
+- No romper la consulta.
+- Omitir el bloque LIKE.
+- Preservar filtros base, paginacion y conteo.
+
+## INTERACCION CON FILTROS
+
+- `StructuredFilters` se combinan con LIKE usando `AND`.
+- LIKE no reemplaza filtros existentes.
+- LIKE no modifica `BuildFilters`.
+- LIKE no modifica `BuildAdvancedFilters`.
+- `SearchType = 3` debe conservar la sanitizacion/whitelist de expresion avanzada existente.
+- `SearchType = 1` debe ignorar `Search` como comportamiento legacy.
+
+## REGLAS DE IMPLEMENTACION
+
+Mantener la responsabilidad en capas:
+
+- Controller: solo claims, validacion basica existente y llamada al service.
+- Service: construir request interno y normalizar si aplica.
+- QueryBuilder: resolver busqueda y construir condiciones SQL seguras.
+
+Implementar o ajustar metodos:
+
+- `NormalizeSearchType(...)`
+- `ApplyLikeSearch(...)`
+- `NormalizeLikeSearchTerm(...)` o equivalente
+- `EscapeLikeLiteral(...)` o equivalente
+
+`ApplyLikeSearch(...)` debe invocarse solo cuando:
+
+- `SearchType` normalizado sea `2`.
+- El termino normalizado sea valido.
+- Existan columnas elegibles.
+
+## REGLAS DE PERFORMANCE
+
+- Evitar LIKE si el input no cumple longitud minima.
+- Limitar longitud maxima del termino.
+- Evitar columnas innecesarias.
+- Buscar solo sobre columnas textuales visibles y filtrables.
+- No alterar la paginacion ni el conteo.
+- Validar que `BuildCount` use exactamente los mismos filtros que `Build`.
+
+## RIESGOS A EVITAR
+
+- Activar LIKE para `SearchType` incorrecto.
+- Romper busqueda avanzada `SearchType = 3`.
+- Aplicar filtros sobre columnas no autorizadas.
+- Concatenar SQL dinamico inseguro.
+- Permitir comodines arbitrarios desde cliente.
+- Degradar performance por busquedas demasiado amplias.
+- Alterar paginacion, conteo o exportacion.
+- Mover logica SQL al controller.
+- Cambiar nombres DTO que ya existen en el repo.
+
+## PRUEBAS UNITARIAS OBLIGATORIAS
+
+Actualizar o agregar pruebas en:
+
+`WorkflowInboxQueryBuilderTests.cs`
+
+Casos minimos:
+
+- `SearchType = 1` no aplica LIKE aunque `Search` tenga valor.
+- `SearchType = 2` aplica LIKE.
+- LIKE usa `OR` entre columnas elegibles.
+- LIKE se agrega como condicion agrupada independiente en `RawConditions`.
+- LIKE se combina con filtros base usando `AND` en el SQL generado o en la estructura esperada.
+- LIKE usa solo columnas `IsVisible = true`.
+- LIKE usa solo columnas `IsFilterable = true`.
+- LIKE usa solo columnas `DataType = "text"`.
+- Columnas no visibles no participan.
+- Columnas no filtrables no participan.
+- Columnas no textuales no participan.
+- `Search` vacio no aplica LIKE.
+- `Search` whitespace no aplica LIKE.
+- `Search` corto no aplica LIKE.
+- `Search` largo se normaliza segun la regla definida.
+- `Search` con comilla simple se escapa correctamente.
+- `Search` con `%` y `_` se escapa correctamente.
+- `SearchType` invalido hace fallback explicito a `1`.
+- `SearchType = 3` mantiene comportamiento actual.
+- `StructuredFilters` y LIKE conviven sin reemplazarse.
+
+Actualizar o agregar pruebas en:
+
+`WorkflowInboxServiceTests.cs`
+
+Casos minimos:
+
+- El service propaga `SearchType = 2` como `TipoConsulta = 2`.
+- El service aplica fallback explicito cuando `SearchType` es invalido, si la normalizacion queda en service.
+- Claims siguen siendo obligatorios.
+- Respuesta mantiene `AppResponses<DynamicUiTableDto>`.
+
+## PRUEBAS DE INTEGRACION / CALIDAD
+
+- Request con `SearchType = 2` retorna datos filtrados.
+- Total respeta LIKE.
+- Paginacion mantiene filtro.
+- Combinacion con `StructuredFilters` funciona correctamente.
+- Claims siguen siendo obligatorios.
+- Respuesta mantiene formato `AppResponses<DynamicUiTableDto>`.
+- Exportacion/conteo no divergen si reutilizan el mismo builder.
+
+## CRITERIOS DE ACEPTACION
+
+- `SearchType = 2` activa `ApplyLikeSearch(...)` correctamente.
+- `SearchType = 1` no cambia comportamiento.
+- `SearchType = 3` no cambia comportamiento.
+- `SearchType` invalido cae explicitamente a `1`.
+- Busqueda limitada a columnas validas del repo: `IsVisible`, `IsFilterable`, `DataType = "text"`.
+- Termino de busqueda normalizado con minimo, maximo y escape de caracteres LIKE.
+- Filtros combinados correctamente con `AND`.
+- Paginacion y conteo consistentes.
+- Seguridad y performance garantizadas.
+- Tests unitarios actualizados para los nuevos escenarios.
+- No se modifica el endpoint publico ni la logica de claims existente.
