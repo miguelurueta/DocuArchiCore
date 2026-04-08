@@ -14,7 +14,7 @@ Backend update requests MUST follow repository, architecture and testing constra
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Workflow Inbox LIKE escape must be multi-engine safe
 Workflow Inbox MUST generate global LIKE search conditions without using `ESCAPE '\\'`, and MUST use a stable escape character compatible with MySQL, MariaDB, Oracle and SQL Server.
