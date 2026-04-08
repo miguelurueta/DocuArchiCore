@@ -39,7 +39,7 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
-            "AND (DAT.asunto LIKE '%O''Hara%' ESCAPE '\\' OR DAT.remitente LIKE '%O''Hara%' ESCAPE '\\')",
+            "AND (DAT.asunto LIKE '%O''Hara%' ESCAPE '!' OR DAT.remitente LIKE '%O''Hara%' ESCAPE '!')",
             result.RawConditions[0]);
     }
 
@@ -58,16 +58,35 @@ public sealed class WorkflowInboxQueryBuilderTests
     {
         var builder = new WorkflowInboxQueryBuilder();
 
-        var result = builder.Build(CreateRequest(searchType: 2, search: "a%_b"), CreateContext(), CreateDynamicColumns(), "WF");
+        var result = builder.Build(CreateRequest(searchType: 2, search: "a%_!b"), CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
-            "AND (DAT.asunto LIKE '%a\\%\\_b%' ESCAPE '\\' OR DAT.remitente LIKE '%a\\%\\_b%' ESCAPE '\\')",
+            "AND (DAT.asunto LIKE '%a!%!_!!b%' ESCAPE '!' OR DAT.remitente LIKE '%a!%!_!!b%' ESCAPE '!')",
             result.RawConditions[0]);
     }
 
+    [Theory]
+    [InlineData("100%", "100!%")]
+    [InlineData("A_B", "A!_B")]
+    [InlineData("A!B", "A!!B")]
+    public void Build_CuandoTipoEsDosYSearchTieneCaracteresEspeciales_UsaEscapeMultiEngine(
+        string search,
+        string expectedSearch)
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+
+        var result = builder.Build(CreateRequest(searchType: 2, search: search), CreateContext(), CreateDynamicColumns(), "WF");
+
+        Assert.Single(result.RawConditions);
+        Assert.Equal(
+            $"AND (DAT.asunto LIKE '%{expectedSearch}%' ESCAPE '!' OR DAT.remitente LIKE '%{expectedSearch}%' ESCAPE '!')",
+            result.RawConditions[0]);
+        Assert.DoesNotContain("ESCAPE '\\'", result.RawConditions[0], StringComparison.Ordinal);
+    }
+
     [Fact]
-    public void Build_CuandoTipoEsDosYSearchTieneCorchetes_LosEscapaComoLiterales()
+    public void Build_CuandoTipoEsDosYSearchTieneCorchetes_NoAplicaReglaEspecificaDeMotor()
     {
         var builder = new WorkflowInboxQueryBuilder();
 
@@ -75,7 +94,7 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
-            "AND (DAT.asunto LIKE '%rad\\[12\\]%' ESCAPE '\\' OR DAT.remitente LIKE '%rad\\[12\\]%' ESCAPE '\\')",
+            "AND (DAT.asunto LIKE '%rad[12]%' ESCAPE '!' OR DAT.remitente LIKE '%rad[12]%' ESCAPE '!')",
             result.RawConditions[0]);
     }
 
@@ -89,7 +108,7 @@ public sealed class WorkflowInboxQueryBuilderTests
 
         Assert.Single(result.RawConditions);
         Assert.Equal(
-            $"AND (DAT.asunto LIKE '%{expectedSearch}%' ESCAPE '\\' OR DAT.remitente LIKE '%{expectedSearch}%' ESCAPE '\\')",
+            $"AND (DAT.asunto LIKE '%{expectedSearch}%' ESCAPE '!' OR DAT.remitente LIKE '%{expectedSearch}%' ESCAPE '!')",
             result.RawConditions[0]);
     }
 
@@ -136,7 +155,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Single(result.RawConditions);
         Assert.DoesNotContain("DAT.observacion", result.RawConditions[0], StringComparison.OrdinalIgnoreCase);
         Assert.Equal(
-            "AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')",
+            "AND (DAT.asunto LIKE '%rad%' ESCAPE '!' OR DAT.remitente LIKE '%rad%' ESCAPE '!')",
             result.RawConditions[0]);
     }
 
@@ -225,7 +244,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         var result = builder.Build(request, CreateContext(), CreateDynamicColumns(), "WF");
 
         Assert.Equal(2, result.RawConditions.Count);
-        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '!' OR DAT.remitente LIKE '%rad%' ESCAPE '!')", result.RawConditions[0]);
         Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
     }
 
@@ -407,7 +426,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Empty(result.OrderByFields);
         Assert.Equal("Abierto", result.Filters["estado_tramite"]);
         Assert.Equal(2, result.RawConditions.Count);
-        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '!' OR DAT.remitente LIKE '%rad%' ESCAPE '!')", result.RawConditions[0]);
         Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
         Assert.Single(result.Joins);
     }
@@ -437,7 +456,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal("DESC", result.OrderByFields[0].Direction);
         Assert.Equal("Abierto", result.Filters["estado_tramite"]);
         Assert.Equal(2, result.RawConditions.Count);
-        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '!' OR DAT.remitente LIKE '%rad%' ESCAPE '!')", result.RawConditions[0]);
         Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
     }
 
@@ -466,7 +485,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal("DESC", result.OrderByFields[0].Direction);
         Assert.Equal("Abierto", result.Filters["estado_tramite"]);
         Assert.Equal(2, result.RawConditions.Count);
-        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '\\' OR DAT.remitente LIKE '%rad%' ESCAPE '\\')", result.RawConditions[0]);
+        Assert.Equal("AND (DAT.asunto LIKE '%rad%' ESCAPE '!' OR DAT.remitente LIKE '%rad%' ESCAPE '!')", result.RawConditions[0]);
         Assert.Equal("AND (DAT.remitente LIKE 'ana%')", result.RawConditions[1]);
     }
 
@@ -484,8 +503,9 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal(rows.RawConditions, count.RawConditions);
         Assert.Equal(rows.RawConditions, export.RawConditions);
         Assert.Equal(
-            "AND (DAT.asunto LIKE '%rad\\%\\_\\[x\\]%' ESCAPE '\\' OR DAT.remitente LIKE '%rad\\%\\_\\[x\\]%' ESCAPE '\\')",
+            "AND (DAT.asunto LIKE '%rad!%!_[x]%' ESCAPE '!' OR DAT.remitente LIKE '%rad!%!_[x]%' ESCAPE '!')",
             rows.RawConditions[0]);
+        Assert.DoesNotContain("ESCAPE '\\'", rows.RawConditions[0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -520,7 +540,7 @@ public sealed class WorkflowInboxQueryBuilderTests
         var builder = new WorkflowInboxQueryBuilder();
 
         var result = builder.BuildAutocomplete(
-            "ABC%_[",
+            "ABC%_!",
             10,
             CreateRequest(),
             CreateContext(),
@@ -530,7 +550,8 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.Equal(2, result.Count);
         var query = result.First(item => item.RawSelect.Contains("DAT.asunto AS Value", StringComparison.Ordinal));
         var rawConditions = string.Join(" ", query.RawConditions);
-        Assert.Contains("DAT.asunto LIKE 'ABC\\%\\_\\[%' ESCAPE '\\'", rawConditions);
+        Assert.Contains("DAT.asunto LIKE 'ABC!%!_!!%' ESCAPE '!'", rawConditions);
+        Assert.DoesNotContain("ESCAPE '\\'", rawConditions, StringComparison.Ordinal);
         Assert.DoesNotContain("%ABC", rawConditions, StringComparison.Ordinal);
         Assert.All(result, item => Assert.Equal(10, item.Limit));
     }

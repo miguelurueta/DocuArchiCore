@@ -1,23 +1,23 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-134 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar el issue Jira SCRUM-134 y confirmar alcance.
+- [x] 1.2 Confirmar repos impactados y rutas destino.
+- [x] 1.3 Confirmar que no se requiere nuevo controller, DTO, modelo, repository ni estructura de tabla.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-134/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Completar specs/jira-scrum-134/spec.md con requisitos finales.
+- [x] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
+- [x] 2.3 Verificar escenarios testables por requisito.
 
 ## 3. Application
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Ajustar WorkflowInboxQueryPolicy para usar `ESCAPE '!'`.
+- [x] 3.2 Ajustar EscapeLikeLiteral para escapar `!`, `%`, `_` y comillas simples sin regla SQL Server-only de corchetes.
+- [x] 3.3 Verificar que rows, count, export y autocomplete usan la misma politica de escape.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Actualizar Unit tests de WorkflowInboxQueryBuilder.
+- [x] 4.2 Ejecutar build/test focal.
+- [x] 4.3 Validar OpenSpec y documentar evidencia.
