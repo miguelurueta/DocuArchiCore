@@ -44,6 +44,24 @@ public sealed class WorkflowInboxServiceTests
     }
 
     [Fact]
+    public async Task AutocompleteBandejaWorkflowAsync_CuandoClaimWorkflowNoExiste_RetornaValidacion()
+    {
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(service => service.GetClaimValue("defaulaliaswf")).Returns((string?)null);
+
+        var service = CreateService(currentUserService: currentUser);
+
+        var result = await service.AutocompleteBandejaWorkflowAsync(
+            new WorkflowInboxAutocompleteRequestDto { Search = "ABC", Limit = 5 },
+            10,
+            "DA");
+
+        Assert.False(result.success);
+        Assert.Equal("Claim defaulaliaswf requerido para autocomplete workflow", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "defaulaliaswf");
+    }
+
+    [Fact]
     public async Task AutocompleteBandejaWorkflowAsync_CuandoBusquedaEsCorta_NoConsultaRepositorios()
     {
         var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
@@ -53,6 +71,36 @@ public sealed class WorkflowInboxServiceTests
 
         var result = await service.AutocompleteBandejaWorkflowAsync(
             new WorkflowInboxAutocompleteRequestDto { Search = "ab", Limit = 5 },
+            10,
+            "DA");
+
+        Assert.True(result.success);
+        Assert.NotNull(result.data);
+        Assert.Empty(result.data!.Items);
+        contextResolver.Verify(repo => repo.ResolveAsync(It.IsAny<int>()), Times.Never);
+        metadataRepository.Verify(repo => repo.GetColumnsByRouteAsync(It.IsAny<WorkflowRouteColumnConfigRequestDto>()), Times.Never);
+        inboxRepository.Verify(repo => repo.GetAutocompleteAsync(
+            It.IsAny<WorkflowInboxDynamicTableRequestDto>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<WorkflowInboxResolvedContextDto>(),
+            It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
+            It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task AutocompleteBandejaWorkflowAsync_CuandoBusquedaEsNulaOVacia_NoConsultaRepositorios(string? search)
+    {
+        var contextResolver = new Mock<IWorkflowInboxContextResolverService>();
+        var metadataRepository = new Mock<IWorkflowRouteColumnConfigRepository>();
+        var inboxRepository = new Mock<IWorkflowInboxRepository>();
+        var service = CreateService(contextResolver, metadataRepository, inboxRepository);
+
+        var result = await service.AutocompleteBandejaWorkflowAsync(
+            new WorkflowInboxAutocompleteRequestDto { Search = search, Limit = 5 },
             10,
             "DA");
 

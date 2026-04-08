@@ -535,6 +535,26 @@ public sealed class WorkflowInboxQueryBuilderTests
         Assert.All(result, item => Assert.Equal(10, item.Limit));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("ab")]
+    public void BuildAutocomplete_CuandoBusquedaNoCumpleMinimo_NoConstruyeConsultas(string? search)
+    {
+        var builder = new WorkflowInboxQueryBuilder();
+
+        var result = builder.BuildAutocomplete(
+            search!,
+            10,
+            CreateRequest(),
+            CreateContext(),
+            CreateDynamicColumns(),
+            "WF");
+
+        Assert.Empty(result);
+    }
+
     [Fact]
     public void BuildAutocomplete_IgnoraColumnasNoVisiblesNoFiltrablesONoTexto()
     {
