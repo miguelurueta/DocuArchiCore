@@ -161,6 +161,22 @@ public sealed class WorkflowInboxControllerTests
     }
 
     [Fact]
+    public async Task AutocompleteBandejaWorkflow_CuandoClaimUsuarioIdNoEsEntero_LanzaSecurityException()
+    {
+        var claimValidation = new Mock<IClaimValidationService>();
+        claimValidation
+            .Setup(service => service.ValidateClaim<string>("defaulalias"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "DA", Response = null });
+        claimValidation
+            .Setup(service => service.ValidateClaim<string>("usuarioid"))
+            .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "abc", Response = null });
+
+        var controller = new WorkflowInboxController(claimValidation.Object, Mock.Of<IWorkflowInboxService>());
+
+        await Assert.ThrowsAsync<SecurityException>(() => controller.AutocompleteBandejaWorkflow(new WorkflowInboxAutocompleteRequestDto { Search = "ABC" }));
+    }
+
+    [Fact]
     public void WorkflowInboxApiRequestDto_NoExponeCamposInternos()
     {
         var propertyNames = typeof(WorkflowInboxApiRequestDto)
@@ -183,6 +199,22 @@ public sealed class WorkflowInboxControllerTests
             .Select(property => property.Name)
             .ToHashSet(StringComparer.Ordinal);
 
+        Assert.DoesNotContain("IdUsuarioGestion", propertyNames);
+        Assert.DoesNotContain("IdUsuarioWorkflow", propertyNames);
+        Assert.DoesNotContain("NombreRuta", propertyNames);
+        Assert.DoesNotContain("IdActividad", propertyNames);
+        Assert.DoesNotContain("DefaultDbAlias", propertyNames);
+    }
+
+    [Fact]
+    public void WorkflowInboxAutocompleteRequestDto_NoExponeCamposInternos()
+    {
+        var propertyNames = typeof(WorkflowInboxAutocompleteRequestDto)
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(["Limit", "Search"], propertyNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
         Assert.DoesNotContain("IdUsuarioGestion", propertyNames);
         Assert.DoesNotContain("IdUsuarioWorkflow", propertyNames);
         Assert.DoesNotContain("NombreRuta", propertyNames);

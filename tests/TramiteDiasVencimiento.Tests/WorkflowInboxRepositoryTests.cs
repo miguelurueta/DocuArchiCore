@@ -221,6 +221,39 @@ public sealed class WorkflowInboxRepositoryTests
         Assert.Equal("ABC-456", result.data.Items[1].Value);
     }
 
+    [Fact]
+    public async Task GetAutocompleteAsync_CuandoEngineFalla_RetornaErrorControlado()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        var builder = new Mock<IWorkflowInboxQueryBuilder>();
+        var expectedQuery = new QueryOptions { TableName = "tabla", DefaultAlias = "WF" };
+
+        builder
+            .Setup(q => q.BuildAutocomplete(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<WorkflowInboxDynamicTableRequestDto>(),
+                It.IsAny<WorkflowInboxResolvedContextDto>(),
+                It.IsAny<List<WorkflowDynamicColumnDefinitionDto>>(),
+                "WF"))
+            .Returns([expectedQuery]);
+        dapper
+            .Setup(engine => engine.GetAllAsync<WorkflowInboxAutocompleteItemDto>(expectedQuery))
+            .ReturnsAsync(new QueryResult<WorkflowInboxAutocompleteItemDto>
+            {
+                Success = false,
+                Message = "autocomplete boom"
+            });
+
+        var repository = new WorkflowInboxRepository(dapper.Object, builder.Object);
+
+        var result = await repository.GetAutocompleteAsync(CreateRequest(), "ABC", 10, CreateContext(), CreateColumns(), "WF");
+
+        Assert.False(result.success);
+        Assert.Equal("Error consultando autocomplete workflow", result.message);
+        Assert.Contains(result.errors!.OfType<AppError>(), error => error.Field == "GetAutocompleteAsync");
+    }
+
     private static WorkflowInboxDynamicTableRequestDto CreateRequest() => new()
     {
         TableId = "workflowInboxgestion",
