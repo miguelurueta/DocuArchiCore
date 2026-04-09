@@ -20,4 +20,4 @@
 
 - [x] 4.1 Ejecutar `openspec.cmd validate scrum-135-analisis-tecnico-opsxj-orchestrate-new` y documentar el resultado.
 - [x] 4.2 Preparar el cambio para publicacion/revision manteniendo claro que no existen pruebas de aplicacion por tratarse de una auditoria documental.
-- [ ] 4.3 Dejar listo el change para su siguiente paso del flujo OpenSpec (`publish` o `archive`, segun corresponda).
+- [x] 4.3 Dejar listo el change para su siguiente paso del flujo OpenSpec (`publish` o `archive`, segun corresponda).
