@@ -40,6 +40,10 @@ The implementation MUST follow the existing repository + `IDapperCrudEngine` + `
 ### Requirement: Model definition
 The system MUST define `RaRespuestaRadicado` under `MiApp.Models/Models/GestionCorrespondencia/` following the dominant mapping style already used in `MiApp.Models`.
 
+#### Scenario: Model follows existing mapping convention
+- **WHEN** `RaRespuestaRadicado` is implemented
+- **THEN** it uses the same mapping convention already predominant in `MiApp.Models` (attributes vs plain POCO)
+
 ### Requirement: Traceability to Jira issue
 The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-136.
 
