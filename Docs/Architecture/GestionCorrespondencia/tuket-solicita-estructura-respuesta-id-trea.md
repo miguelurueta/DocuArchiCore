@@ -1,0 +1,317 @@
+# PROMPT ARQUITECTÓNICO — Ticket BE (GestionCorrespondencia)
+# Crear consulta de repositorio: SolicitaEstructuraRespuestaIdTarea (ra_respuesta_radicado por ID_TAREA_WF)
+
+Rol esperado:
+Arquitecto de software senior backend (.NET, C#, repositorios, Dapper, contratos DTO/Models, seguridad, performance).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJETIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Crear una consulta de repositorio para obtener registros de `ra_respuesta_radicado` filtrando únicamente por `ID_TAREA_WF`, exponiendo un contrato consistente con el patrón actual del proyecto:
+
+- AppResponses<T>
+- IDapperCrudEngine + QueryOptions
+- validaciones de entrada
+- manejo controlado de errores
+- respuesta consistente para lista
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXTO EXISTENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Patrón de repositorio de referencia:
+MiApp.Repository/Repositorio/Workflow/RutaTrabajo/SolicitaEstructuraRutaWorkflowRepository.cs
+
+Wrapper de respuesta:
+MiApp.DTOs/DTOs/Utilidades/AppResponses.cs
+(o ubicación equivalente ya usada por repositorios existentes)
+
+Motor de acceso:
+MiApp.Repository/DataAccess/IDapperCrudEngine.cs
+MiApp.Repository/DataAccess/QueryOptions.cs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UBICACIÓN ESPERADA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Repositorio:
+MiApp.Repository/Repositorio/GestionCorrespondencia/
+
+Modelo:
+MiApp.Models/Models/GestionCorrespondencia/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTRATO OFICIAL (REPOSITORY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Crear interface:
+
+ISolicitaEstructuraRespuestaIdTareaRepository
+
+Crear método:
+
+Task<AppResponses<List<RaRespuestaRadicado>>> SolicitaEstructuraRespuestaIdTareaAsync(
+    long idTareaWf,
+    string defaultDbAlias
+);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SEMÁNTICA DE RESPUESTA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Si defaultDbAlias es inválido:
+  - success = false
+  - message descriptivo de validación
+  - data = []
+  - error controlado según estándar del proyecto
+
+- Si idTareaWf es inválido:
+  - success = false
+  - message descriptivo de validación
+  - data = []
+  - error controlado según estándar del proyecto
+
+- Si no hay filas:
+  - success = true
+  - data = []
+  - message = "Sin resultados"
+
+- Si hay filas:
+  - success = true
+  - data = lista
+  - message = "YES"
+  - o el mensaje estándar equivalente del proyecto
+
+- Si ocurre excepción:
+  - success = false
+  - data = []
+  - error controlado con AppError o el estándar actual del proyecto
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TABLA OBJETIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tabla origen:
+
+ra_respuesta_radicado
+
+Filtro único:
+
+ID_TAREA_WF
+
+REGLA CRÍTICA:
+- filtrar únicamente por ID_TAREA_WF
+- no agregar filtros adicionales no solicitados
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODELO OFICIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Clase recomendada:
+
+RaRespuestaRadicado
+
+Archivo:
+
+MiApp.Models/Models/GestionCorrespondencia/RaRespuestaRadicado.cs
+
+REGLA DE MODELO
+
+Usar el estilo real ya adoptado por MiApp.Models.
+
+Si el proyecto maneja modelos con atributos de mapeo:
+- usar [Table], [Key], [Column] de forma consistente con el resto del proyecto
+
+Si el proyecto usa modelo plano sin atributos:
+- mantener ese mismo patrón
+
+NO mezclar estilos de mapeo si el proyecto ya tiene una convención dominante.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MAPEO DE CAMPOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tabla:
+ra_respuesta_radicado
+
+Campos relevantes sugeridos según nulabilidad conocida:
+
+- int IdRespuestaRadicado
+- int IdRemitDestInt
+- int IdArea
+- int? SystemPlantillaRadicadoIdPlantilla
+- string? Radicado
+- int? IdRutaWf
+- long? IdTareaWf
+- DateTime FechaRegistro
+- DateTime FechaVence
+- DateTime? FechaRespueta
+- string? HoraRespuesta
+- long? TiempoRespuesta
+- string? RadicadoRespuesta
+- string? MedioEnvio
+- string? EmpresaEnvio
+- string? GuiaEnvio
+- DateTime? FechaEnvio
+- string? HoraEnvio
+- int? IdUsuarioRadicado
+- long? IdImagen
+- string? Gabinete
+- string? NotaRespuesta
+- DateTime? FechaReciboFisico
+- string? HoraReciboFisico
+- string? Destinatario
+- string? DireccionDestinatario
+- string? TramiteDocumento
+- int? EstadoEnvio
+- int? EstadoRespuesta
+- int? IdUsuarioGestionPropietario
+- int? CodigoDestExterno
+- string? Asunto
+- string? AreaResponsable
+- string? CargoResponsable
+- string? UsuarioResponsable
+- long? IdImagenRespuesta
+- string? GabineteRespuesta
+- int? IdUsuarioGestionEnvia
+- int? IdUsuarioGestionArchiva
+- int? NumeroGuiaInterna
+- int EstadoEnvioCorreo
+- int TipoRespuestaElabUsuario
+- int? EstadoAprobacion
+- long? TiempoRespuestaAprobacion
+- string? NotaSolicitud
+- string? DescripcionEstadoAprobacion
+- DateTime? FechaRegistroSolicitud
+- DateTime? FechaRegistroAprobacion
+- int? IdSolicitudesAprobacionResp
+- int IdTipoDocRespuesta
+- DateTime? FechaRegistroEvioCorreo
+- string? CorreoNotificacion
+- DateTime? FechaConfirmacionCorreoRecibido
+- string? IpConfirmacionCorreoRecibido
+- string? HuellaCorreoRecibido
+- string TipoRespuesta
+- string TipoRadicado
+- int IdTipoRadicado
+
+IMPORTANTE:
+- ajustar tipos finales según esquema real de la tabla
+- no inventar columnas no existentes
+- respetar nulabilidad real
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESTRICCIONES (OBLIGATORIAS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- filtrar únicamente por ID_TAREA_WF
+- no usar SQL concatenado manualmente
+- toda consulta debe ser parametrizada
+- no introducir cambios fuera de:
+  - modelo nuevo
+  - repositorio nuevo + interface
+  - registro en DI solo si es obligatorio para compilar/ejecutar
+- no cambiar contrato público de otros módulos
+- no introducir lógica de negocio en el repositorio
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGLAS DE IMPLEMENTACIÓN (OBLIGATORIAS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Validar defaultDbAlias:
+   - no null
+   - no empty
+   - no whitespace
+   - usar Trim()
+   - validar contra aliases permitidos si el proyecto ya tiene esa validación
+
+2. Validar idTareaWf:
+   - obligatorio
+   - debe ser > 0
+   - si no cumple, retornar error controlado
+
+3. Construir QueryOptions:
+
+- TableName = "ra_respuesta_radicado"
+- Filters["ID_TAREA_WF"] = idTareaWf
+- DefaultAlias = defaultDbAlias.Trim()
+
+4. Ejecutar la consulta vía:
+   _dapperCrudEngine.GetAllAsync<RaRespuestaRadicado>(queryOptions)
+   o el método equivalente real de lectura usado en el proyecto
+
+5. Manejar sin resultados con:
+   - success = true
+   - data = []
+   - message = "Sin resultados"
+
+6. Envolver todo en try/catch
+
+7. Retornar errores controlados con AppError o el estándar actual del repositorio
+
+8. Construir Meta con AppMetaBuilder si ese patrón ya aplica en este tipo de repositorios del proyecto
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PATRÓN ARQUITECTÓNICO A RESPETAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Repository
+↓
+IDapperCrudEngine
+↓
+QueryOptions
+↓
+Base de Datos
+
+Reglas:
+
+- el repositorio solo consulta
+- no colocar lógica funcional de negocio aquí
+- no acoplar a controller
+- no acoplar a service específico
+- mantener consistencia con repositorios “SolicitaEstructura...” existentes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRUEBAS OBLIGATORIAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pruebas unitarias mínimas:
+
+- defaultDbAlias null → error controlado
+- defaultDbAlias vacío → error controlado
+- idTareaWf <= 0 → error controlado
+- consulta con filas → success = true, data con elementos
+- consulta sin filas → success = true, data = []
+- excepción del engine → success = false, error controlado
+
+Pruebas de integración / calidad si aplican en el proyecto:
+
+- consulta real filtrando solo por ID_TAREA_WF
+- correspondencia correcta del modelo contra tabla
+- no se aplican filtros adicionales
+- contrato AppResponses consistente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENTREGABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- MiApp.Models/Models/GestionCorrespondencia/RaRespuestaRadicado.cs
+- MiApp.Repository/Repositorio/GestionCorrespondencia/SolicitaEstructuraRespuestaIdTareaRepository.cs
+- interface ISolicitaEstructuraRespuestaIdTareaRepository
+- registro en DI si es obligatorio
+- pruebas unitarias relacionadas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITERIOS DE ACEPTACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- existe repositorio nuevo para consultar ra_respuesta_radicado por ID_TAREA_WF
+- el método se llama SolicitaEstructuraRespuestaIdTareaAsync
+- usa AppResponses<List<RaRespuestaRadicado>>
+- usa IDapperCrudEngine + QueryOptions
+- filtra únicamente por ID_TAREA_WF
+- no usa SQL concatenado
+- retorna data = [] cuando no hay resultados
+- valida defaultDbAlias e idTareaWf
+- pruebas backend actualizadas y pasando
