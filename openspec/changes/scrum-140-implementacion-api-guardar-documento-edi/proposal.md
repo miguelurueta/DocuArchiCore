@@ -20,4 +20,5 @@ Se requiere acelerar la creacion de cambios OpenSpec basados en Jira para reduci
 
 - Jira issue: https://contasoftcompany.atlassian.net/browse/SCRUM-140
 - OpenSpec change path: openspec/changes/scrum-140-implementacion-api-guardar-documento-edi/
+- Multi-repo context: openspec/context/multi-repo-context.md
 - Backend rules reference: openspec/context/OPSXJ_BACKEND_RULES.md
