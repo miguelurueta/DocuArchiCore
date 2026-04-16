@@ -1,4 +1,4 @@
-using DocuArchi.Api.Controllers.GestorDocumental;
+using DocuArchi.Api.Controllers.GestionCorrespondencia;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestionCorrespondencia;
 using MiApp.Services.Service.GestorDocumental;
@@ -115,4 +115,3 @@ public sealed class SolicitaEstructuraRespuestaIdTareaControllerTests
         Assert.IsType<OkObjectResult>(action.Result);
     }
 }
-
