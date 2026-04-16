@@ -36,3 +36,8 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 - `MiApp.DTOs`: usually yes
 - `MiApp.Models`: optional (only if model changes)
 - `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+
+## Evidence
+
+- Unit tests added: `DocuArchiCore/tests/TramiteDiasVencimiento.Tests/SolicitaEstructuraConfiguracionUploadNameProcesoRepositoryTests.cs`
+- Test run (filtered): `dotnet test ... --filter FullyQualifiedName~SolicitaEstructuraConfiguracionUploadNameProcesoRepositoryTests` (passed)
