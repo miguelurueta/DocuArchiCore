@@ -33,8 +33,10 @@ public sealed class GuardaEditorImageControllerTests
         var service = new Mock<IServiceGuardaEditorImage>();
         var controller = new GuardaEditorImageController(claimValidation.Object, service.Object);
 
-        var file = new Mock<IFormFile>().Object;
-        var action = await controller.GuardarImagen(file);
+        var action = await controller.GuardarImagen(new GuardaEditorImageController.GuardaEditorImageForm
+        {
+            File = new Mock<IFormFile>().Object
+        });
 
         Assert.IsType<BadRequestObjectResult>(action.Result);
         service.VerifyNoOtherCalls();
@@ -58,7 +60,10 @@ public sealed class GuardaEditorImageControllerTests
         var file = new Mock<IFormFile>();
         file.SetupGet(f => f.Length).Returns(0);
 
-        var action = await controller.GuardarImagen(file.Object);
+        var action = await controller.GuardarImagen(new GuardaEditorImageController.GuardaEditorImageForm
+        {
+            File = file.Object
+        });
 
         Assert.IsType<BadRequestObjectResult>(action.Result);
         service.VerifyNoOtherCalls();
@@ -94,9 +99,11 @@ public sealed class GuardaEditorImageControllerTests
             ContentType = "image/png"
         };
 
-        var action = await controller.GuardarImagen(file);
+        var action = await controller.GuardarImagen(new GuardaEditorImageController.GuardaEditorImageForm
+        {
+            File = file
+        });
 
         Assert.IsType<OkObjectResult>(action.Result);
     }
 }
-
