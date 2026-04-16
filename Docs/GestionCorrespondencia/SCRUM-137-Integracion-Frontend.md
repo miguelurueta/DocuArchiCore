@@ -7,7 +7,7 @@ Consultar la estructura de respuestas asociadas a una tarea de workflow, filtran
 ## Endpoint
 
 - Método: `GET`
-- Ruta: `/api/gestor-documental/solicita-estructura-respuesta-id-tarea`
+- Ruta: `/api/GestionCorrespondencia/solicita-estructura-respuesta-id-tarea`
 
 ### Querystring
 
@@ -16,6 +16,7 @@ Consultar la estructura de respuestas asociadas a una tarea de workflow, filtran
 Ejemplo:
 
 `GET /api/gestor-documental/solicita-estructura-respuesta-id-tarea?idTareaWf=12345`
+`GET /api/GestionCorrespondencia/solicita-estructura-respuesta-id-tarea?idTareaWf=12345`
 
 ## Seguridad / Claims
 
@@ -86,4 +87,3 @@ Tipo:
 - Tratar `data` como **lista** (puede ser vacía).
 - Manejar explícitamente el estado vacío (`data = []`) sin asumir que siempre hay registros.
 - No usar `message` para lógica; usar `success` + `data.length`.
-

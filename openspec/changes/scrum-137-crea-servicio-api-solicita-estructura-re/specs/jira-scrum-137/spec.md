@@ -5,7 +5,7 @@ The system MUST expose a GET endpoint to query `ra_respuesta_radicado` by `ID_TA
 
 #### Scenario: Missing `defaulalias` claim
 - **GIVEN** the authenticated request does not include claim `defaulalias`
-- **WHEN** `GET /api/gestor-documental/solicita-estructura-respuesta-id-tarea?idTareaWf=123` is called
+- **WHEN** `GET /api/GestionCorrespondencia/solicita-estructura-respuesta-id-tarea?idTareaWf=123` is called
 - **THEN** it returns `400 BadRequest` with `validation.Response`
 
 #### Scenario: Invalid `idTareaWf`
