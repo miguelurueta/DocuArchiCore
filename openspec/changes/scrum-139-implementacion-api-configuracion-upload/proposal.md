@@ -1,0 +1,24 @@
+## Why
+
+Se requiere acelerar la creacion de cambios OpenSpec basados en Jira para reducir trabajo manual y mantener consistencia.
+
+## What Changes
+
+- Crear artefactos base del cambio a partir del issue SCRUM-139.
+- Usar summary y description de Jira como contexto inicial de propuesta.
+- Dejar el cambio listo para refinamiento en design.md, tasks.md y specs/.
+
+## Capabilities
+
+### New Capabilities
+- jira-scrum-139: Inicio de cambio OpenSpec originado en Jira issue SCRUM-139.
+
+### Modified Capabilities
+- None.
+
+## Impact
+
+- Jira issue: https://contasoftcompany.atlassian.net/browse/SCRUM-139
+- OpenSpec change path: openspec/changes/scrum-139-implementacion-api-configuracion-upload/
+- Multi-repo context: openspec/context/multi-repo-context.md
+- Backend rules reference: openspec/context/OPSXJ_BACKEND_RULES.md
