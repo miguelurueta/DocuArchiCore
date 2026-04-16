@@ -6,8 +6,8 @@
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-138/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
+- [x] 2.1 Completar specs/jira-scrum-138/spec.md con requisitos finales.
+- [x] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
 - [ ] 2.3 Verificar escenarios testables por requisito.
 
 ## 3. Application
