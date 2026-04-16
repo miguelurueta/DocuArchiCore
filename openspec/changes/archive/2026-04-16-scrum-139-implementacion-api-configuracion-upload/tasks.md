@@ -20,4 +20,4 @@
 
 - [x] 4.1 Implementar Unit tests (controller) y documentar evidencia.
 - [x] 4.2 Ejecutar dotnet test (filtrado) y confirmar passing.
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.3 Validar y archivar con OpenSpec.
