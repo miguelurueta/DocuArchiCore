@@ -12,13 +12,13 @@ Use esta plantilla al inicio de cada ticket de Jira (`SCRUM-143`) para decidir e
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | Nuevo Controller y registro DI | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/189 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | Nuevo Request DTO | pending | n/a | pending | tracked |
-| MiApp.Services | yes | implementation_required | Nuevo Service e Interfaz | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | implementation_required | Soporte para transacciones | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.Services | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
 | MiApp.Models | no | no_code_change | se reutilizan modelos existentes | n/a | n/a | n/a | n_a |
 
 ## Regla Operativa
