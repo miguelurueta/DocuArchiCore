@@ -1,23 +1,30 @@
-## 1. Discovery
+## 1. Preparation
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-143 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [ ] 1.1 Validar que `IGuardaEditorDocumentRepository` y `ISincronizaEditorDocumentImagesRepository` existen y están accesibles.
+- [ ] 1.2 Confirmar si `IDapperCrudEngine` soporta transacciones explícitas o si se requiere inyectar `IDbConnection`.
 
-## 2. Specs
+## 2. Implementation - MiApp.DTOs
 
-- [ ] 2.1 Completar specs/jira-scrum-143/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [ ] 2.1 Crear `FullSaveEditorDocumentRequestDto.cs` en `MiApp.DTOs/DTOs/GestorDocumental/Editor/`.
 
-## 3. Application
+## 3. Implementation - MiApp.Repository (Updates)
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [ ] 3.1 Actualizar `IGuardaEditorDocumentRepository` para aceptar `IDbTransaction? transaction = null`.
+- [ ] 3.2 Actualizar `ISincronizaEditorDocumentImagesRepository` para aceptar `IDbTransaction? transaction = null`.
 
-## 4. Test
+## 4. Implementation - MiApp.Services
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [ ] 4.1 Crear `IServiceFullSaveEditorDocument.cs` e implementación `ServiceFullSaveEditorDocument.cs`.
+- [ ] 4.2 Implementar lógica de orquestación con `using var transaction = ...` y bloques try/catch.
+
+## 5. Implementation - DocuArchi.Api
+
+- [ ] 5.1 Crear `FullSaveEditorDocumentController.cs` en `Controllers/GestorDocumental/Editor/`.
+- [ ] 5.2 Registrar el nuevo servicio en `Program.cs`.
+
+## 6. Verification & Tests
+
+- [ ] 6.1 Crear Unit Tests para el Servicio validando Rollback en caso de fallo parcial.
+- [ ] 6.2 Crear Integration Test validando persistencia atómica en base de datos real.
+- [ ] 6.3 Ejecutar `dotnet test`.
+- [ ] 6.4 Validar contrato final con `openspec.cmd validate`.
