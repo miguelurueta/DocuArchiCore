@@ -1,3 +1,4 @@
+﻿using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.DTOs.DTOs.GestorDocumental.Editor;
 using MiApp.Models.Models.GestorDocumental.Editor;
 using MiApp.Repository.DataAccess;
@@ -13,7 +14,7 @@ public sealed class GuardaEditorDocumentRepositoryTests
     public async Task CuandoAliasInvalido_NoInvocaEngine()
     {
         var engine = new Mock<IDapperCrudEngine>(MockBehavior.Strict);
-        var repo = new GuardaEditorDocumentRepository(engine.Object);
+        var repo = new GuardaEditorDocumentRepository(engine.Object, new Mock<IDbConnectionFactory>().Object);
 
         var res = await repo.GuardaEditorDocumentAsync(new GuardaEditorDocumentRequestDto { DocumentHtml = "<p>x</p>" }, "   ");
 
@@ -25,7 +26,7 @@ public sealed class GuardaEditorDocumentRepositoryTests
     public async Task CuandoHtmlInvalido_NoInvocaEngine()
     {
         var engine = new Mock<IDapperCrudEngine>(MockBehavior.Strict);
-        var repo = new GuardaEditorDocumentRepository(engine.Object);
+        var repo = new GuardaEditorDocumentRepository(engine.Object, new Mock<IDbConnectionFactory>().Object);
 
         var res = await repo.GuardaEditorDocumentAsync(new GuardaEditorDocumentRequestDto { DocumentHtml = "   " }, "db1");
 
@@ -55,7 +56,7 @@ public sealed class GuardaEditorDocumentRepositoryTests
                 }
             });
 
-        var repo = new GuardaEditorDocumentRepository(engine.Object);
+        var repo = new GuardaEditorDocumentRepository(engine.Object, new Mock<IDbConnectionFactory>().Object);
 
         var res = await repo.GuardaEditorDocumentAsync(new GuardaEditorDocumentRequestDto { DocumentHtml = "<p>x</p>" }, "db1");
 
@@ -76,7 +77,7 @@ public sealed class GuardaEditorDocumentRepositoryTests
                 Data = Array.Empty<RaEditorDocument>()
             });
 
-        var repo = new GuardaEditorDocumentRepository(engine.Object);
+        var repo = new GuardaEditorDocumentRepository(engine.Object, new Mock<IDbConnectionFactory>().Object);
 
         var res = await repo.GuardaEditorDocumentAsync(new GuardaEditorDocumentRequestDto { DocumentId = 99, DocumentHtml = "<p>x</p>" }, "db1");
 
@@ -84,4 +85,5 @@ public sealed class GuardaEditorDocumentRepositoryTests
         Assert.Null(res.data);
     }
 }
+
 

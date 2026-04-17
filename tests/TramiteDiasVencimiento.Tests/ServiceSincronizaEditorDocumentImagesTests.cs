@@ -1,9 +1,11 @@
-using AutoMapper;
+﻿using AutoMapper;
 using MiApp.DTOs.DTOs.GestorDocumental.Editor;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Repository.Repositorio.GestorDocumental.Editor;
 using MiApp.Services.Service.GestorDocumental.Editor;
 using Moq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace TramiteDiasVencimiento.Tests;
@@ -12,11 +14,9 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
 {
     private static IMapper BuildMapper()
     {
-        var cfg = new MapperConfiguration(c =>
-        {
-            c.CreateMap<SincronizaEditorDocumentImagesRequestDto, SincronizaEditorDocumentImagesCommand>();
-        });
-        return cfg.CreateMapper();
+        var mock = new Mock<IMapper>();
+        // No configuramos mapeos específicos si no se requieren para los tests actuales
+        return mock.Object;
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
         var result = await svc.SincronizaAsync(new SincronizaEditorDocumentImagesRequestDto
         {
             DocumentId = 0,
-            ImageUids = ["a"]
+            ImageUids = new List<string> { "a" }
         }, "db1");
 
         Assert.False(result.success);
@@ -39,7 +39,7 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
     public async Task SincronizaAsync_CuandoRepoFalla_PropagaError()
     {
         var repo = new Mock<ISincronizaEditorDocumentImagesRepository>();
-        repo.Setup(r => r.SincronizaAsync(1, It.IsAny<IReadOnlyCollection<string>>(), "db1"))
+        repo.Setup(r => r.SincronizaAsync(1, It.IsAny<IReadOnlyCollection<string>>(), "db1", null, null))
             .ReturnsAsync(new AppResponses<bool>
             {
                 success = false,
@@ -53,7 +53,7 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
         var result = await svc.SincronizaAsync(new SincronizaEditorDocumentImagesRequestDto
         {
             DocumentId = 1,
-            ImageUids = ["a"]
+            ImageUids = new List<string> { "a" }
         }, "db1");
 
         Assert.False(result.success);
@@ -63,7 +63,7 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
     public async Task SincronizaAsync_CuandoRepoOk_RetornaOk()
     {
         var repo = new Mock<ISincronizaEditorDocumentImagesRepository>();
-        repo.Setup(r => r.SincronizaAsync(1, It.IsAny<IReadOnlyCollection<string>>(), "db1"))
+        repo.Setup(r => r.SincronizaAsync(1, It.IsAny<IReadOnlyCollection<string>>(), "db1", null, null))
             .ReturnsAsync(new AppResponses<bool>
             {
                 success = true,
@@ -77,11 +77,10 @@ public sealed class ServiceSincronizaEditorDocumentImagesTests
         var result = await svc.SincronizaAsync(new SincronizaEditorDocumentImagesRequestDto
         {
             DocumentId = 1,
-            ImageUids = ["a", "b"]
+            ImageUids = new List<string> { "a", "b" }
         }, "db1");
 
         Assert.True(result.success);
         Assert.True(result.data);
     }
 }
-
