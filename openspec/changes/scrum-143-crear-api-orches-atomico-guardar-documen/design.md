@@ -1,34 +1,34 @@
-# Design - SCRUM-143 CREAR-API-ORCHES-ATOMICO-GUARDAR-DOCUMENTO
+# Diseño - SCRUM-143 CREAR-API-ORCHES-ATOMICO-GUARDAR-DOCUMENTO
 
-## Context Reference
+## Referencia de Contexto
 - `openspec/context/multi-repo-context.md`
 - `openspec/context/OPSXJ_BACKEND_RULES.md`
 
-## Problem Statement
-The current implementation for saving documents and synchronizing images in the Tiptap editor is split into separate APIs. This lack of atomicity leads to data inconsistency if the document is saved but the image synchronization fails. We need a single orchestrated endpoint that guarantees consistency through a database transaction.
+## Declaración del Problema
+La implementación actual para guardar documentos y sincronizar imágenes en el editor Tiptap está dividida en APIs separadas. Esta falta de atomicidad genera inconsistencia de datos si el documento se guarda pero la sincronización de imágenes falla. Necesitamos un único endpoint orquestado que garantice la consistencia mediante una transacción de base de datos.
 
-## Proposed Solution
-Implement a new orchestrated API `full-save` that:
-1. Receives the document HTML and the list of associated image UIDs.
-2. Starts a database transaction.
-3. Calls the existing document saving logic.
-4. Calls the existing image synchronization logic using the same transaction.
-5. Commits if both succeed, otherwise rolls back.
+## Solución Propuesta
+Implementar una nueva API orquestada `full-save` que:
+1. Reciba el HTML del documento y la lista de UIDs de imágenes asociadas.
+2. Inicie una transacción de base de datos.
+3. Llame a la lógica existente de guardado de documentos.
+4. Llame a la lógica existente de sincronización de imágenes usando la misma transacción.
+5. Haga commit si ambos tienen éxito, de lo contrario, realice un rollback.
 
-## Architectural Pattern
-`Controller -> Service (Orchestrator) -> Repositories (Existing)`
+## Patrón Arquitectónico
+`Controller -> Service (Orquestador) -> Repositorios (Existentes)`
 
-### Affected Repositories
-- `DocuArchi.Api`: New Controller
-- `MiApp.Services`: New Service and Interface
-- `MiApp.DTOs`: New DTOs
-- `MiApp.Repository`: Update existing repositories to support transactions (if needed)
-- `MiApp.Models`: Reference existing models
+### Repositorios Afectados
+- `DocuArchi.Api`: Nuevo Controller.
+- `MiApp.Services`: Nuevo Service e Interfaz.
+- `MiApp.DTOs`: Nuevos DTOs.
+- `MiApp.Repository`: Actualizar repositorios existentes para soportar transacciones.
+- `MiApp.Models`: Referencia a modelos existentes.
 
-## Implementation Details
+## Detalles de Implementación
 
 ### 1. DTOs (MiApp.DTOs)
-**File:** `MiApp.DTOs/DTOs/GestorDocumental/Editor/FullSaveEditorDocumentRequestDto.cs`
+**Archivo:** `MiApp.DTOs/DTOs/GestorDocumental/Editor/FullSaveEditorDocumentRequestDto.cs`
 ```csharp
 public class FullSaveEditorDocumentRequestDto
 {
@@ -43,44 +43,44 @@ public class FullSaveEditorDocumentRequestDto
 ```
 
 ### 2. Service (MiApp.Services)
-**File:** `MiApp.Services/Service/GestorDocumental/Editor/ServiceFullSaveEditorDocument.cs`
-**Interface:**
+**Archivo:** `MiApp.Services/Service/GestorDocumental/Editor/ServiceFullSaveEditorDocument.cs`
+**Interfaz:**
 ```csharp
 public interface IServiceFullSaveEditorDocument
 {
     Task<AppResponses<RaEditorDocument>> FullSaveAsync(FullSaveEditorDocumentRequestDto request, string defaultDbAlias);
 }
 ```
-**Logic:**
-- Validate `defaultDbAlias` and `request.DocumentHtml`.
-- Initialize `IDapperCrudEngine` transaction.
-- Call `IGuardaEditorDocumentRepository.GuardaEditorDocumentAsync` (passing transaction).
-- Call `ISincronizaEditorDocumentImagesRepository.SincronizaEditorDocumentImagesAsync` (passing transaction).
-- Commit/Rollback.
+**Lógica:**
+- Validar `defaultDbAlias` y `request.DocumentHtml`.
+- Inicializar transacción en `IDapperCrudEngine`.
+- Llamar a `IGuardaEditorDocumentRepository.GuardaEditorDocumentAsync` (pasando la transacción).
+- Llamar a `ISincronizaEditorDocumentImagesRepository.SincronizaEditorDocumentImagesAsync` (pasando la transacción).
+- Commit/Rollback según el resultado.
 
 ### 3. Controller (DocuArchi.Api)
-**File:** `DocuArchi.Api/Controllers/GestorDocumental/Editor/FullSaveEditorDocumentController.cs`
-**Route:** `POST /api/gestor-documental/editor/document/full-save`
-- Validate claim `defaulalias`.
-- Call Service.
-- Return `AppResponses`.
+**Archivo:** `DocuArchi.Api/Controllers/GestorDocumental/Editor/FullSaveEditorDocumentController.cs`
+**Ruta:** `POST /api/gestor-documental/editor/document/full-save`
+- Validar claim `defaulalias`.
+- Llamar al Service.
+- Retornar `AppResponses`.
 
-### 4. Repository Updates (MiApp.Repository)
-Existing repositories `GuardaEditorDocumentRepository` and `SincronizaEditorDocumentImagesRepository` must be updated to accept an optional `IDbTransaction` in their methods.
+### 4. Actualizaciones de Repositorio (MiApp.Repository)
+Los repositorios existentes `GuardaEditorDocumentRepository` y `SincronizaEditorDocumentImagesRepository` deben ser actualizados para aceptar un `IDbTransaction` opcional en sus métodos.
 
-## Testing Strategy
-### Unit Tests (Service)
-- Success creation/update.
-- Failure in save -> Rollback.
-- Failure in sync -> Rollback.
-- Claim validation failure (Controller).
+## Estrategia de Pruebas
+### Pruebas Unitarias (Service)
+- Éxito en creación/actualización.
+- Fallo en guardado -> Rollback.
+- Fallo en sincronización -> Rollback.
+- Fallo en validación de claims (Controller).
 
-### Integration Tests
-- Real transaction test with MySQL.
-- Verify that if sync fails, the document is NOT saved.
+### Pruebas de Integración
+- Prueba de transacción real con MySQL.
+- Verificar que si la sincronización falla, el documento NO se guarda.
 
-## Constraints (OPSXJ_BACKEND_RULES)
-- Register in `Program.cs`.
-- Use `AppResponses`.
-- Wrap in `try/catch`.
-- Mock interfaces, not Dapper.
+## Restricciones (OPSXJ_BACKEND_RULES)
+- Registrar en `Program.cs`.
+- Usar `AppResponses`.
+- Envolver en `try/catch`.
+- Mockear interfaces, no Dapper.

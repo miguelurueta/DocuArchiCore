@@ -1,38 +1,38 @@
-# Repo Impact Plan Template
+# Plantilla de Plan de Impacto de Repositorio
 
-Use this template at the start of each Jira ticket (`SCRUM-143`) to decide exactly where to run `opsxj:new` and `opsxj:archive`.
+Use esta plantilla al inicio de cada ticket de Jira (`SCRUM-143`) para decidir exactamente dónde ejecutar `opsxj:new` y `opsxj:archive`.
 
 ## Ticket
 
-- Jira key: `SCRUM-143`
-- Summary: `CREAR-API-ORCHES-ATOMICO-GUARDAR-DOCUMENTO-EDITOR`
-- Coordinator change: `openspec/changes/scrum-143-crear-api-orches-atomico-guardar-documen/`
+- Clave Jira: `SCRUM-143`
+- Resumen: `CREAR-API-ORCHES-ATOMICO-GUARDAR-DOCUMENTO-EDITOR`
+- Cambio coordinador: `openspec/changes/scrum-143-crear-api-orches-atomico-guardar-documen/`
 
-## Impact Matrix
+## Matriz de Impacto
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | New Controller and DI registration | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | implementation_required | Nuevo Controller y registro DI | pending | n/a | pending | tracked |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/189 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | New Request DTO | pending | n/a | pending | tracked |
-| MiApp.Services | yes | implementation_required | New Service and Interface | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | implementation_required | Transaction support updates | pending | n/a | pending | tracked |
-| MiApp.Models | no | no_code_change | reuse existing models | n/a | n/a | n/a | n_a |
+| MiApp.DTOs | yes | implementation_required | Nuevo Request DTO | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | Nuevo Service e Interfaz | pending | n/a | pending | tracked |
+| MiApp.Repository | yes | implementation_required | Soporte para transacciones | pending | n/a | pending | tracked |
+| MiApp.Models | no | no_code_change | se reutilizan modelos existentes | n/a | n/a | n/a | n_a |
 
-## Operating Rule
+## Regla Operativa
 
-Run `opsxj:new SCRUM-143` only in rows with `Impacta? = yes`.
-Only repos marked `implementation_required` should open branch/commit/PR.
-Repos marked `traceability_only` stay in `sync.md` without opening empty PRs.
-Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
+Ejecute `opsxj:new SCRUM-143` solo en filas con `Impacta? = yes`.
+Solo los repositorios marcados como `implementation_required` deben abrir rama/commit/PR.
+Los repositorios marcados como `traceability_only` permanecen en `sync.md` sin abrir PRs vacíos.
+Las filas con `Impacta? = no` deben permanecer como `n/a` para explicitar el alcance.
 
-## Typical API Change Pattern
+## Patrón Típico de Cambio de API
 
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
-- `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+- `DocuArchi.Api`: generalmente sí
+- `MiApp.Services`: generalmente sí
+- `MiApp.Repository`: generalmente sí
+- `MiApp.DTOs`: generalmente sí
+- `MiApp.Models`: opcional (solo si cambian modelos)
+- `DocuArchiCore` / `DocuArchiCore.Web`: solo si el coordinador o la UI están en alcance
