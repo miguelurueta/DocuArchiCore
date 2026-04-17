@@ -22,6 +22,9 @@ obj/
 *.log
 openspec/logs/*.jsonl
 
+# Local build diagnostics
+.tmp_build_*.txt
+
 # Publish
 publish/
 
