@@ -5,6 +5,7 @@ Esta carpeta consolida únicamente los prompts/tickets del Editor Tiptap que fue
 ## Lista
 
 - `DIAGRAMA-Flujo-Editor-Tiptap.md`
+- `MANUAL-Configuracion-Plantilla-Editor.md`
 - `SCRUM-145-LimpiezaEditorImages.md`
 - `TICKET-GuardaEditorDocumentRepository-Base.md`
 - `TICKET-GuardaEditorDocumentContext-Catalog.md`

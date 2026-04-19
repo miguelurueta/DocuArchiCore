@@ -40,7 +40,7 @@ public sealed class InitialContentEditorControllerTests
             .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "db1", Response = null });
 
         var service = new Mock<IServiceInitialContentEditor>();
-        service.Setup(s => s.GetInitialContentAsync(1, "RAD", 1, "db1"))
+        service.Setup(s => s.GetInitialContentAsync(1, "RAD", 1, "db1", null, null))
             .ReturnsAsync(new AppResponses<EditorInitialContentResponseDto?>
             {
                 success = true,
@@ -56,4 +56,3 @@ public sealed class InitialContentEditorControllerTests
         Assert.IsType<OkObjectResult>(action.Result);
     }
 }
-
