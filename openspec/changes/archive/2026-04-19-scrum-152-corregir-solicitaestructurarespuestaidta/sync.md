@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-152`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/198 | pending | in_review |
+| DocuArchi.Api | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/198 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
-| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/46 | pending | in_review |
-| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| MiApp.Services | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/46 | done | archived |
+| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
 
 ## Operating Rule
 
