@@ -1,23 +1,23 @@
 ## 1. Discovery
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-152 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [ ] 1.1 Confirmar contrato y semántica (`AppResponses`).
+- [ ] 1.2 Revisar SQL actual y mapeo `RaRespuestaRadicado`.
+- [ ] 1.3 Identificar campos usados por tokens/plantillas.
 
 ## 2. Specs
 
-- [ ] 2.1 Completar specs/jira-scrum-152/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [ ] 2.1 Especificar alias obligatorios (`AS IdTareaWf`, etc.).
+- [ ] 2.2 Definir comportamiento “Sin resultados” sin cambios.
+- [ ] 2.3 Definir prueba anti-regresión de mapeo.
 
 ## 3. Application
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [ ] 3.1 Reemplazar mapeo automático por SQL con alias explícitos.
+- [ ] 3.2 Mantener service/controller sin cambios funcionales.
+- [ ] 3.3 Documentar SQL y decisión técnica.
 
 ## 4. Test
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [ ] 4.1 Agregar test anti-regresión (mapeo `IdTareaWf`).
+- [ ] 4.2 Ejecutar pruebas del repo (o skip justificado).
+- [ ] 4.3 Validar change con OpenSpec.
