@@ -1,11 +1,11 @@
-﻿using MiApp.DTOs.DTOs.GestorDocumental.Editor;
+using MiApp.DTOs.DTOs.GestorDocumental.Editor;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestorDocumental.Editor;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.Editor;
 using MiApp.Services.Service.GestorDocumental.Editor;
 using Moq;
-using System.Collections.Generic;
+using System;
 using System.Data;
 using System.Threading.Tasks;
 using Xunit;
@@ -14,85 +14,93 @@ namespace TramiteDiasVencimiento.Tests;
 
 public sealed class ServiceFullSaveEditorDocumentTests
 {
-    private readonly Mock<IGuardaEditorDocumentRepository> _guardaRepoMock;
-    private readonly Mock<ISincronizaEditorDocumentImagesRepository> _sincronizaRepoMock;
-    private readonly Mock<IDbConnectionFactory> _dbFactoryMock;
-    private readonly Mock<IDbConnection> _dbConnMock;
-    private readonly Mock<IDbTransaction> _dbTransMock;
-    private readonly ServiceFullSaveEditorDocument _service;
-
-    public ServiceFullSaveEditorDocumentTests()
+    [Fact]
+    public async Task CuandoAliasInvalido_NoAbreConexion()
     {
-        _guardaRepoMock = new Mock<IGuardaEditorDocumentRepository>();
-        _sincronizaRepoMock = new Mock<ISincronizaEditorDocumentImagesRepository>();
-        _dbFactoryMock = new Mock<IDbConnectionFactory>();
-        _dbConnMock = new Mock<IDbConnection>();
-        _dbTransMock = new Mock<IDbTransaction>();
+        var guarda = new Mock<IGuardaEditorDocumentRepository>(MockBehavior.Strict);
+        var catalog = new Mock<ISolicitaEditorContextDefinitionRepository>(MockBehavior.Strict);
+        var context = new Mock<IGuardaEditorDocumentContextRepository>(MockBehavior.Strict);
+        var sync = new Mock<ISincronizaEditorDocumentImagesRepository>(MockBehavior.Strict);
+        var factory = new Mock<IDbConnectionFactory>(MockBehavior.Strict);
 
-        _dbFactoryMock.Setup(f => f.GetOpenConnectionAsync(It.IsAny<string>())).ReturnsAsync(_dbConnMock.Object);
-        _dbConnMock.Setup(c => c.BeginTransaction()).Returns(_dbTransMock.Object);
+        var service = new ServiceFullSaveEditorDocument(guarda.Object, catalog.Object, context.Object, sync.Object, factory.Object);
 
-        _service = new ServiceFullSaveEditorDocument(
-            _guardaRepoMock.Object,
-            _sincronizaRepoMock.Object,
-            _dbFactoryMock.Object
-        );
+        var res = await service.FullSaveAsync(new FullSaveEditorDocumentRequestDto
+        {
+            DocumentHtml = "<p>x</p>",
+            ContextCode = "RAD",
+            EntityId = 1,
+            ImageUids = []
+        }, "   ");
+
+        Assert.False(res.success);
+        factory.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task CuandoTodoEsCorrecto_HaceCommitYRetornaOk()
+    public async Task CuandoCatalogoInvalido_RollbackYNoContinua()
     {
-        // Arrange
-        var request = new FullSaveEditorDocumentRequestDto { DocumentHtml = "<p>HTML</p>", ImageUids = new List<string> { "uuid1" } };
-        _guardaRepoMock.Setup(r => r.GuardaEditorDocumentAsync(It.IsAny<GuardaEditorDocumentRequestDto>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-            .ReturnsAsync(new AppResponses<RaEditorDocument?> { success = true, data = new RaEditorDocument { DocumentId = 100 } });
-        
-        _sincronizaRepoMock.Setup(r => r.SincronizaAsync(It.IsAny<long>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-            .ReturnsAsync(new AppResponses<bool> { success = true, data = true });
+        var guarda = new Mock<IGuardaEditorDocumentRepository>();
+        guarda.Setup(r => r.GuardaEditorDocumentAsync(It.IsAny<GuardaEditorDocumentRequestDto>(), "db1", It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+            .ReturnsAsync(new AppResponses<RaEditorDocument?> { success = true, message = "YES", data = new RaEditorDocument { DocumentId = 10 }, errors = [] });
 
-        // Act
-        var result = await _service.FullSaveAsync(request, "dbAlias");
+        var catalog = new Mock<ISolicitaEditorContextDefinitionRepository>();
+        catalog.Setup(r => r.SolicitaPorContextCodeAsync("RAD", "db1", It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+            .ReturnsAsync(new AppResponses<RaEditorContextDefinition?> { success = false, message = "ContextCode no existe", data = null, errors = [] });
 
-        // Assert
-        Assert.True(result.success);
-        _dbTransMock.Verify(t => t.Commit(), Times.Once);
+        var context = new Mock<IGuardaEditorDocumentContextRepository>(MockBehavior.Strict);
+        var sync = new Mock<ISincronizaEditorDocumentImagesRepository>(MockBehavior.Strict);
+
+        var fakeConn = new FakeDbConnection();
+        var factory = new Mock<IDbConnectionFactory>();
+        factory.Setup(f => f.GetOpenConnectionAsync("db1")).ReturnsAsync(fakeConn);
+
+        var service = new ServiceFullSaveEditorDocument(guarda.Object, catalog.Object, context.Object, sync.Object, factory.Object);
+
+        var res = await service.FullSaveAsync(new FullSaveEditorDocumentRequestDto
+        {
+            DocumentHtml = "<p>x</p>",
+            ContextCode = "rad",
+            EntityId = 911,
+            ImageUids = []
+        }, "db1");
+
+        Assert.False(res.success);
+        Assert.True(fakeConn.LastTransaction?.RolledBack);
+        sync.VerifyNoOtherCalls();
+        context.VerifyNoOtherCalls();
     }
 
-    [Fact]
-    public async Task CuandoGuardarDocumentoFalla_HaceRollbackYRetornaError()
+    private sealed class FakeDbConnection : IDbConnection
     {
-        // Arrange
-        var request = new FullSaveEditorDocumentRequestDto { DocumentHtml = "<p>HTML</p>" };
-        _guardaRepoMock.Setup(r => r.GuardaEditorDocumentAsync(It.IsAny<GuardaEditorDocumentRequestDto>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-            .ReturnsAsync(new AppResponses<RaEditorDocument?> { success = false, message = "Error en Repo Guardar" });
+        public FakeDbTransaction? LastTransaction { get; private set; }
 
-        // Act
-        var result = await _service.FullSaveAsync(request, "dbAlias");
-
-        // Assert
-        Assert.False(result.success);
-        Assert.Contains("Error en Repo Guardar", result.message);
-        _dbTransMock.Verify(t => t.Rollback(), Times.Once);
-        _sincronizaRepoMock.Verify(r => r.SincronizaAsync(It.IsAny<long>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()), Times.Never);
+        public string ConnectionString { get; set; } = string.Empty;
+        public int ConnectionTimeout => 0;
+        public string Database => "db";
+        public ConnectionState State => ConnectionState.Open;
+        public IDbTransaction BeginTransaction() => LastTransaction = new FakeDbTransaction(this);
+        public IDbTransaction BeginTransaction(IsolationLevel il) => BeginTransaction();
+        public void ChangeDatabase(string databaseName) { }
+        public void Close() { }
+        public IDbCommand CreateCommand() => throw new NotSupportedException();
+        public void Open() { }
+        public void Dispose() { }
     }
 
-    [Fact]
-    public async Task CuandoSincronizarImagenesFalla_HaceRollbackYRetornaError()
+    private sealed class FakeDbTransaction : IDbTransaction
     {
-        // Arrange
-        var request = new FullSaveEditorDocumentRequestDto { DocumentHtml = "<p>HTML</p>", ImageUids = new List<string> { "uuid1" } };
-        _guardaRepoMock.Setup(r => r.GuardaEditorDocumentAsync(It.IsAny<GuardaEditorDocumentRequestDto>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-            .ReturnsAsync(new AppResponses<RaEditorDocument?> { success = true, data = new RaEditorDocument { DocumentId = 100 } });
-        
-        _sincronizaRepoMock.Setup(r => r.SincronizaAsync(It.IsAny<long>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-            .ReturnsAsync(new AppResponses<bool> { success = false, message = "Error en Sync" });
+        private readonly IDbConnection _conn;
+        public bool Committed { get; private set; }
+        public bool RolledBack { get; private set; }
 
-        // Act
-        var result = await _service.FullSaveAsync(request, "dbAlias");
+        public FakeDbTransaction(IDbConnection conn) => _conn = conn;
 
-        // Assert
-        Assert.False(result.success);
-        Assert.Contains("Fallo en la sincronización de imágenes", result.message);
-        _dbTransMock.Verify(t => t.Rollback(), Times.Once);
+        public IDbConnection Connection => _conn;
+        public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
+        public void Commit() => Committed = true;
+        public void Rollback() => RolledBack = true;
+        public void Dispose() { }
     }
 }
+
