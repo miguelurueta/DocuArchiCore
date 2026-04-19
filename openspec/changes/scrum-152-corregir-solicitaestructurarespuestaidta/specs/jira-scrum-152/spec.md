@@ -36,3 +36,8 @@ The public contract and `AppResponses` semantics of `SolicitaEstructuraRespuesta
 
 ### Requirement: Prevent regressions with tests
 The change MUST include a regression test (contract/integration when possible) that fails if aliases are removed or `IdTareaWf` is not populated.
+
+#### Scenario: Regression test fails on mapping break
+- **GIVEN** a test fixture for `SolicitaEstructuraRespuestaIdTareaAsync`
+- **WHEN** the repository is executed against a row with `ID_TAREA_WF = X`
+- **THEN** the test asserts `IdTareaWf == X` (and fails if the mapping returns `null/0`)
