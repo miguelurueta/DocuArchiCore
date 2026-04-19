@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-148`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/59 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/194 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/59 | done | archived |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/194 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/44 | pending | in_review |
-| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/90 | pending | in_review |
-| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/44 | done | archived |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/90 | done | archived |
+| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
 
 ## Operating Rule
 
