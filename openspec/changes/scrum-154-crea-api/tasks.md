@@ -14,7 +14,7 @@
 
 - [x] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
 - [x] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
 
 ## 4. Test
 
