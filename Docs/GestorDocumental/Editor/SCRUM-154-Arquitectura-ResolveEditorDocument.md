@@ -90,4 +90,3 @@ sequenceDiagram
 
 - Cuando hay múltiples documentos (409), falta un flujo oficial para que el frontend liste/seleccione un documento.
 - Actualmente la detección de “documento activo” depende de la implementación del repositorio `CountActiveByContextAsync`.
-

@@ -80,4 +80,3 @@ Campos relevantes de `data`:
 
 - `400 BadRequest`: mostrar error de validación (parámetros/claim/contexto).
 - `409 Conflict`: mostrar mensaje de conflicto (ej: múltiples documentos). Recomendación UX: ofrecer acción al usuario (seleccionar documento) si la UI lo soporta.
-

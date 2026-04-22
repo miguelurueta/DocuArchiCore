@@ -38,4 +38,3 @@ Recomendado ejecutar (manual o automatizado):
 ## Fecha de referencia
 
 - Documentación generada: 20/04/2026.
-

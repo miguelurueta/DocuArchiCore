@@ -68,4 +68,3 @@ Se implementó un endpoint único `GET /api/gestor-documental/editor/document/re
 ## Notas de compatibilidad
 
 - `idTareaWf` es opcional en el endpoint, pero funcionalmente obligatorio si la resolución termina en `Mode=initial`.
-
