@@ -11,9 +11,31 @@
 
 Ejemplo:
 
-`GET /api/gestor-documental/configuracion-upload?nameProceso=WF_RADICACION`
+`GET /api/gestor-documental/configuracion-upload?nameProceso=EDITOR`
 
-## Response (AppResponses<List<RaConfiguracionUploadModel>>)
+## Contrato de respuesta
+
+Tipo: `AppResponses<List<RaConfiguracionUploadModel>>`
+
+### Wrapper: `AppResponses<T>`
+
+Definición (DTO real): `..\MiApp.DTOs\DTOs\Utilidades\AppResponses.cs`
+
+- `success` (bool): indica si la operación fue exitosa.
+- `message` (string): mensaje de estado (`YES`, `Sin resultados`, mensaje de validación/error).
+- `data` (T): para este endpoint, lista de `RaConfiguracionUploadModel`.
+- `meta` (AppMeta|null): no se usa en este endpoint (puede venir `null`).
+- `errors` (object[]|null): lista de errores. En validación/errores controlados suele contener `AppError`.
+
+### DTO: `RaConfiguracionUploadModel`
+
+Definición (modelo real): `..\MiApp.Models\Models\GestorDocumental\ConfiguracionUpload\RaConfiguracionUploadModel.cs`
+
+- `idConfigUploadGestion` (int?)
+- `extensionUpload` (string?) 
+- `lengUpload` (long?)
+- `nameProceso` (string?)
+- `estadoProceso` (int?)
 
 Campos:
 
@@ -22,18 +44,64 @@ Campos:
 - `data`: lista de `RaConfiguracionUploadModel`
 - `errors`: lista de errores (si aplica)
 
-### Con resultados
+## Ejemplos de respuesta
+
+### 1) Con resultados (`message = "YES"`)
+
+```json
+{
+  "success": true,
+  "message": "YES",
+  "data": [
+    {
+      "idConfigUploadGestion": 1,
+      "extensionUpload": "PDF",
+      "lengUpload": 10485760,
+      "nameProceso": "WF_RADICACION",
+      "estadoProceso": 1
+    }
+  ],
+  "meta": null,
+  "errors": []
+}
+```
 
 - `success = true`
 - `data` contiene elementos
 
-### Sin resultados
+### 2) Sin resultados (`message = "Sin resultados"`)
+
+```json
+{
+  "success": true,
+  "message": "Sin resultados",
+  "data": [],
+  "meta": null,
+  "errors": []
+}
+```
 
 - `success = true`
 - `data = []`
 - `message = "Sin resultados"`
 
-### Error / validación
+### 3) Error / validación (ej: `nameProceso` vacío)
+
+```json
+{
+  "success": false,
+  "message": "NameProceso requerido",
+  "data": [],
+  "meta": null,
+  "errors": [
+    {
+      "type": "Validation",
+      "field": "nameProceso",
+      "message": "NameProceso requerido"
+    }
+  ]
+}
+```
 
 - `success = false`
 - `data = []`
