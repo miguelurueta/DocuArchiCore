@@ -14,10 +14,10 @@
 
 - [x] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
 - [x] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local. (Bloqueado: `dotnet build` falla con MSB4276 / WorkloadManifestTargetsLocator en SDK local)
 
 ## 4. Test
 
 - [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
+- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible). (Bloqueado por falla de `dotnet build` en SDK local)
 - [ ] 4.3 Validar y archivar con OpenSpec.
