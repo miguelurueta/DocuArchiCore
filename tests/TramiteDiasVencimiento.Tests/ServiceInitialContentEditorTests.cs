@@ -37,7 +37,7 @@ public sealed class ServiceInitialContentEditorTests
     {
         var estructura = new Mock<IServiceSolicitaEstructuraRespuesta>();
         estructura.Setup(s => s.SolicitaEstructuraRespuestaIdTareaAsync(1, "db1"))
-            .ReturnsAsync(new AppResponses<List<RaRespuestaRadicado>> { success = true, message = "YES", data = [new RaRespuestaRadicado()], errors = [] });
+            .ReturnsAsync(new AppResponses<List<RaRespuestaRadicado>> { success = true, message = "YES", data = [new RaRespuestaRadicado { TipoRespuesta = "R", TipoRadicado = "T", IdTipoRadicado = 1 }], errors = [] });
 
         var ctx = new Mock<ISolicitaEditorContextDefinitionRepository>();
         ctx.Setup(r => r.SolicitaPorContextCodeAsync("RAD", "db1", null, null))
@@ -47,7 +47,7 @@ public sealed class ServiceInitialContentEditorTests
         templates.Setup(r => r.GetDefinitionByIdAsync(1, "db1", null, null))
             .ReturnsAsync(new AppResponses<TemplateDefinitionDto?> { success = true, message = "OK", data = new TemplateDefinitionDto { TemplateDefinitionId = 1, TemplateCode = "RAD", TemplateName = "N", IsActive = true }, errors = [] });
         templates.Setup(r => r.GetVersionsByDefinitionIdAsync(1, "db1", null, null))
-            .ReturnsAsync(new AppResponses<IReadOnlyCollection<TemplateVersionDto>> { success = true, message = "OK", data = [new TemplateVersionDto { TemplateVersionId = 1, TemplateDefinitionId = 1, VersionNumber = 1, TemplateHtml = \"<p>{{TOKEN_NO_EXISTE}}</p>\", IsActive = true, IsPublished = true }], errors = [] });
+            .ReturnsAsync(new AppResponses<IReadOnlyCollection<TemplateVersionDto>> { success = true, message = "OK", data = [new TemplateVersionDto { TemplateVersionId = 1, TemplateDefinitionId = 1, VersionNumber = 1, TemplateHtml = "<p>{{TOKEN_NO_EXISTE}}</p>", IsActive = true, IsPublished = true }], errors = [] });
         var tokens = new Mock<ITemplateTokensRepository>();
         tokens.Setup(r => r.GetTokensByDefinitionIdAsync(1, "db1", null, null))
             .ReturnsAsync(new AppResponses<IReadOnlyCollection<TemplateTokenDto>>
