@@ -2,6 +2,7 @@ using DocuArchi.Api.Controllers.GestionCorrespondencia.PlantillaValidacion;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Services.Service.GestionCorrespondencia.PlantillaValidacion.SolicitaCorreoElectronicoRemitente;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -31,6 +32,7 @@ public sealed class SolicitaCorreoElectronicoRemitenteControllerTests
         var service = new Mock<IServiceSolicitaCorreoElectronicoRemitente>();
         var logger = new Mock<Microsoft.Extensions.Logging.ILogger<SolicitaCorreoElectronicoRemitenteController>>();
         var controller = new SolicitaCorreoElectronicoRemitenteController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.Get(10, 450);
 
@@ -48,6 +50,7 @@ public sealed class SolicitaCorreoElectronicoRemitenteControllerTests
         var service = new Mock<IServiceSolicitaCorreoElectronicoRemitente>();
         var logger = new Mock<Microsoft.Extensions.Logging.ILogger<SolicitaCorreoElectronicoRemitenteController>>();
         var controller = new SolicitaCorreoElectronicoRemitenteController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.Get(0, 450);
 
@@ -68,6 +71,7 @@ public sealed class SolicitaCorreoElectronicoRemitenteControllerTests
 
         var logger = new Mock<Microsoft.Extensions.Logging.ILogger<SolicitaCorreoElectronicoRemitenteController>>();
         var controller = new SolicitaCorreoElectronicoRemitenteController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.Get(10, 450);
 
@@ -87,10 +91,10 @@ public sealed class SolicitaCorreoElectronicoRemitenteControllerTests
 
         var logger = new Mock<Microsoft.Extensions.Logging.ILogger<SolicitaCorreoElectronicoRemitenteController>>();
         var controller = new SolicitaCorreoElectronicoRemitenteController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.Get(10, 450);
 
         Assert.IsType<OkObjectResult>(action.Result);
     }
 }
-

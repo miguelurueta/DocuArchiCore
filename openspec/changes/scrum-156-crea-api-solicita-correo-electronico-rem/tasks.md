@@ -25,5 +25,6 @@
 ### Evidencia (avance parcial)
 
 - Unit tests agregados: `tests/TramiteDiasVencimiento.Tests/ServiceSolicitaCorreoElectronicoRemitenteTests.cs` y `tests/TramiteDiasVencimiento.Tests/SolicitaCorreoElectronicoRemitenteControllerTests.cs`.
-- `dotnet test` actualmente falla por errores de sintaxis preexistentes en `tests/TramiteDiasVencimiento.Tests/ServiceInitialContentEditorTests.cs` (no relacionado a SCRUM-156).
+- Tests focales OK: `dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj -c Release --filter FullyQualifiedName~SolicitaCorreoElectronicoRemitente` (7/7).
+- `dotnet test` completo del proyecto de pruebas presenta fallas en otros tests no relacionados a SCRUM-156 (preexistentes / mantenimiento pendiente).
 - Compilación API OK: `dotnet build ..\DocuArchi.Api\DocuArchi.Api.csproj -c Release`.

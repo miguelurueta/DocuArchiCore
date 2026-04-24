@@ -3,7 +3,9 @@ using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestionCorrespondencia;
 using MiApp.Services.Service.GestorDocumental;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -30,7 +32,9 @@ public sealed class SolicitaEstructuraRespuestaIdTareaControllerTests
             });
 
         var service = new Mock<IServiceSolicitaEstructuraRespuesta>();
-        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object);
+        var logger = new Mock<ILogger<SolicitaEstructuraRespuestaIdTareaController>>();
+        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.SolicitaEstructuraRespuestaIdTarea(10);
 
@@ -51,7 +55,9 @@ public sealed class SolicitaEstructuraRespuestaIdTareaControllerTests
             });
 
         var service = new Mock<IServiceSolicitaEstructuraRespuesta>();
-        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object);
+        var logger = new Mock<ILogger<SolicitaEstructuraRespuestaIdTareaController>>();
+        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var action = await controller.SolicitaEstructuraRespuestaIdTarea(0);
 
@@ -81,7 +87,9 @@ public sealed class SolicitaEstructuraRespuestaIdTareaControllerTests
                 errors = []
             });
 
-        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object);
+        var logger = new Mock<ILogger<SolicitaEstructuraRespuestaIdTareaController>>();
+        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         var action = await controller.SolicitaEstructuraRespuestaIdTarea(10);
 
         Assert.IsType<BadRequestObjectResult>(action.Result);
@@ -109,7 +117,9 @@ public sealed class SolicitaEstructuraRespuestaIdTareaControllerTests
                 errors = []
             });
 
-        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object);
+        var logger = new Mock<ILogger<SolicitaEstructuraRespuestaIdTareaController>>();
+        var controller = new SolicitaEstructuraRespuestaIdTareaController(claimValidation.Object, service.Object, logger.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         var action = await controller.SolicitaEstructuraRespuestaIdTarea(10);
 
         Assert.IsType<OkObjectResult>(action.Result);
