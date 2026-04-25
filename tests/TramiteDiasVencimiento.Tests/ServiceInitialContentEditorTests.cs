@@ -3,7 +3,7 @@ using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestorDocumental.Editor;
 using MiApp.Models.Models.GestionCorrespondencia;
 using MiApp.Repository.Repositorio.GestorDocumental.Editor;
-using MiApp.Services.Service.GestorDocumental;
+using MiApp.Services.Service.GestionCorrespondencia.GestionRespuesta;
 using MiApp.Services.Service.GestorDocumental.Editor;
 using Moq;
 using System.Collections.Generic;

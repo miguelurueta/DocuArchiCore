@@ -1,6 +1,6 @@
 using MiApp.Models.Models.GestionCorrespondencia;
-using MiApp.Repository.Repositorio.GestionCorrespondencia;
-using MiApp.Services.Service.GestorDocumental;
+using MiApp.Repository.Repositorio.GestionCorrespondencia.GestionRespuesta;
+using MiApp.Services.Service.GestionCorrespondencia.GestionRespuesta;
 using Moq;
 using Xunit;
 
