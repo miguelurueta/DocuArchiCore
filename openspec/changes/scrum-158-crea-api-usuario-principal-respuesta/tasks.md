@@ -1,14 +1,14 @@
 ## 1. Discovery
 
-- [x] 1.1 Revisar el issue Jira SCRUM-158 y confirmar alcance.
-- [x] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [x] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [ ] 1.1 Revisar el issue Jira SCRUM-158 y confirmar alcance.
+- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
+- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
 
 ## 2. Specs
 
-- [x] 2.1 Completar specs/jira-scrum-158/spec.md con requisitos finales.
-- [x] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [x] 2.3 Verificar escenarios testables por requisito.
+- [ ] 2.1 Completar specs/jira-scrum-158/spec.md con requisitos finales.
+- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
+- [ ] 2.3 Verificar escenarios testables por requisito.
 
 ## 3. Application
 
