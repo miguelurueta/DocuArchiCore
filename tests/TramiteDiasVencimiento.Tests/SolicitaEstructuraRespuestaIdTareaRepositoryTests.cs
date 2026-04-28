@@ -1,4 +1,4 @@
-using MiApp.Repository.Repositorio.GestionCorrespondencia;
+using MiApp.Repository.Repositorio.GestionCorrespondencia.GestionRespuesta;
 using MiApp.Repository.Repositorio.DataAccess;
 using Microsoft.Extensions.Logging;
 using Moq;

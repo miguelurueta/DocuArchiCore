@@ -1,7 +1,7 @@
-using DocuArchi.Api.Controllers.GestionCorrespondencia;
+using DocuArchi.Api.Controllers.GestionCorrespondencia.GestionRespuesta;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Models.Models.GestionCorrespondencia;
-using MiApp.Services.Service.GestorDocumental;
+using MiApp.Services.Service.GestionCorrespondencia.GestionRespuesta;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
