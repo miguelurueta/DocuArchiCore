@@ -13,3 +13,14 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: API orquestada de firmas documento respuesta
+The system MUST expose `GET /api/gestion-correspondencia/firmas/documento-respuesta-orquestado` that returns `AppResponses<List<ResponseDropdownDto>>`.
+
+#### Scenario: Consolidación exitosa
+- **WHEN** claims son válidos y `idUsuarioGestion` es válido
+- **THEN** combina usuario principal y firmas autorizadas en una sola respuesta deduplicada
+
+#### Scenario: Sin resultados
+- **WHEN** no hay usuario principal activo ni firmas autorizadas
+- **THEN** responde `success=true`, `meta.status=empty`, `data=[]`
