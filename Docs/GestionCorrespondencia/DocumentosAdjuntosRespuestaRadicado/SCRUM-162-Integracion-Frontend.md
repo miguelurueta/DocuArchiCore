@@ -10,10 +10,10 @@ GET
 `/api/GestionCorrespondencia/solicita-documentos-adjuntos-respuesta-radicado`
 
 ## query params
-- `idTareaWf` (long, requerido, > 0)
+- `idRespuestaRadicado` (long, requerido, > 0)
 
 ## origen esperado de idSolicitudAprobacion
-No aplica en este endpoint. El identificador requerido es `idTareaWf` (tomado del contexto de tarea en bandeja/gestión respuesta).
+No aplica en este endpoint. El identificador requerido es `idRespuestaRadicado` (tomado del registro de respuesta radicado).
 
 ## claims requeridos
 - `defaulalias`
@@ -29,7 +29,7 @@ Para este endpoint el contrato real es `AppResponses<List<DocumentoAdjuntoRespue
 - errors: detalle técnico/validación.
 
 ## ejemplo request válido
-`GET /api/GestionCorrespondencia/solicita-documentos-adjuntos-respuesta-radicado?idTareaWf=1250`
+`GET /api/GestionCorrespondencia/solicita-documentos-adjuntos-respuesta-radicado?idRespuestaRadicado=1250`
 
 ## ejemplo response success
 ```json

@@ -53,6 +53,7 @@ public sealed class ServiceSolicitaDocumentosAdjuntosRespuestaRadicadoTests
         {
             source.Add(new DocumentoAdjuntoRespuestaRadicadoDto
             {
+                IdAnexoRespuesta = i,
                 IdRespuestaRadicado = i,
                 TipoAdjunto = "DocumentoPrincipal",
                 IdImagen = i,
@@ -61,6 +62,7 @@ public sealed class ServiceSolicitaDocumentosAdjuntosRespuestaRadicadoTests
 
             source.Add(new DocumentoAdjuntoRespuestaRadicadoDto
             {
+                IdAnexoRespuesta = i,
                 IdRespuestaRadicado = i,
                 TipoAdjunto = "DocumentoPrincipal",
                 IdImagen = i,

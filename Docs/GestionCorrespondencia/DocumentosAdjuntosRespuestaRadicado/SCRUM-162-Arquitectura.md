@@ -5,7 +5,7 @@
 - usuario que creó el ticket: N/D (fuente Jira no visible localmente)
 - fecha de creación: 2026-04-29
 - módulo afectado: GestionCorrespondencia/GestionRespuesta
-- objetivo resumido: exponer API para listar adjuntos asociados a respuesta radicado por `idTareaWf`
+- objetivo resumido: exponer API para listar adjuntos asociados a respuesta radicado por `idRespuestaRadicado`
 - relación con tickets previos: continuidad técnica de SCRUM-159/160/161 (patrón Controller-Service-Repository)
 - autor de implementación: Codex + equipo backend
 - autor de documentación: Codex
@@ -15,7 +15,7 @@
 Crear endpoint seguro, desacoplado y testeable para obtener documentos adjuntos (principal y respuesta) con contrato estándar `AppResponses`.
 
 ## contexto funcional
-Frontend requiere poblar lista de documentos de una respuesta radicado usando `idTareaWf`.
+Frontend requiere poblar lista de documentos de una respuesta radicado usando `idRespuestaRadicado`.
 
 ## alcance y no alcance
 - alcance: API GET, service, repository SQL, DI, tests unitarios, documentación técnica.
@@ -30,7 +30,7 @@ Frontend requiere poblar lista de documentos de una respuesta radicado usando `i
 - QueryOptions: no aplica (consulta SQL directa por llave)
 
 ## diagrama de clases
-Controller -> Service -> Repository -> DB (`ra_respuesta_radicado`)
+Controller -> Service -> Repository -> DB (`ra_anexos_respuesta`)
 
 ## diagrama de secuencia
 Cliente -> Controller (valida claim + query) -> Service (reglas) -> Repository (SQL) -> Service (dedup/límite) -> Controller (`Ok/BadRequest`).
@@ -48,7 +48,7 @@ Cliente -> Controller (valida claim + query) -> Service (reglas) -> Repository (
 - error: `BadRequest` con `errors[type=Exception]`
 
 ## flujo end-to-end
-JWT/Session -> claim `defaulalias` -> GET con `idTareaWf` -> query union adjuntos -> deduplicación -> límite 100 -> respuesta normalizada.
+JWT/Session -> claim `defaulalias` -> GET con `idRespuestaRadicado` -> query en `ra_anexos_respuesta` sin joins -> deduplicación -> límite 100 -> respuesta normalizada.
 
 ## reglas de seguridad
 - endpoint con `[Authorize]`
@@ -56,7 +56,7 @@ JWT/Session -> claim `defaulalias` -> GET con `idTareaWf` -> query union adjunto
 
 ## reglas de autorización
 - claim obligatorio `defaulalias`
-- parámetro `idTareaWf > 0`
+- parámetro `idRespuestaRadicado > 0`
 
 ## regla de deduplicación
 Clave `(IdRespuestaRadicado, TipoAdjunto, IdImagen)`.
@@ -79,4 +79,4 @@ Máximo 100 registros en salida.
 ## decisiones arquitectónicas
 - mantener `AppResponses<List<T>>`
 - aplicar deduplicación en service (regla de negocio)
-- usar `UNION ALL` y normalización con `COALESCE` en repository
+- consultar `ra_anexos_respuesta` como fuente oficial de adjuntos sin joins

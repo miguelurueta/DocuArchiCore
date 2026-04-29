@@ -1,7 +1,7 @@
 # SCRUM-162 Implementacion Detallada
 
 ## resumen de implementación
-Se implementó API GET para listar adjuntos de respuesta radicado por `idTareaWf` con autorización por claim y salida `AppResponses`.
+Se implementó API GET para listar adjuntos de respuesta radicado por `idRespuestaRadicado` con autorización por claim y salida `AppResponses`.
 
 ## archivos creados
 - `DocuArchi.Api/Controllers/GestionCorrespondencia/GestionRespuesta/SolicitaDocumentosAdjuntosRespuestaRadicadoController.cs`
@@ -17,32 +17,32 @@ Se implementó API GET para listar adjuntos de respuesta radicado por `idTareaWf
 - controller: `DocuArchi.Api/.../SolicitaDocumentosAdjuntosRespuestaRadicadoController.cs`
 - service: `MiApp.Services/.../ServiceSolicitaDocumentosAdjuntosRespuestaRadicado.cs`
 - repository: `MiApp.Repository/.../SolicitaDocumentosAdjuntosRespuestaRadicadoRepository.cs`
-- DTO: definido en `ServiceSolicitaDocumentosAdjuntosRespuestaRadicado.cs`
+- DTO: `MiApp.DTOs/DTOs/GestionCorrespondencia/GestionRespuesta/DocumentoAdjuntoRespuestaRadicadoDto.cs`
 - DI: `DocuArchi.Api/Program.cs`
 
 ## método del controller
-`Get([FromQuery] long idTareaWf)`.
+`Get([FromQuery] long idRespuestaRadicado)`.
 
 ## método del service
-`SolicitaDocumentosAdjuntosRespuestaRadicadoAsync(long idTareaWf, string defaultDbAlias)`.
+`SolicitaDocumentosAdjuntosRespuestaRadicadoAsync(long idRespuestaRadicado, string defaultDbAlias)`.
 
 ## método del repository
-`SolicitaDocumentosAdjuntosRespuestaRadicadoAsync(long idTareaWf, string defaultDbAlias)`.
+`SolicitaDocumentosAdjuntosRespuestaRadicadoAsync(long idRespuestaRadicado, string defaultDbAlias)`.
 
 ## QueryOptions utilizado
 No aplica.
 
 ## joins aplicados
-No aplica; consulta directa sobre `ra_respuesta_radicado`.
+No aplica; consulta directa sobre `ra_anexos_respuesta`.
 
 ## filtros aplicados
-`ID_TAREA_WF = @idTareaWf` + `IdImagen IS NOT NULL` / `IdImagenRespuesta IS NOT NULL`.
+`ra_respuesta_radicado_ID_RESPUESTA_RADICADO = @idRespuestaRadicado`.
 
 ## columnas seleccionadas
-`ID_RESPUESTA_RADICADO`, `RADICADO`, `ASUNTO`, `IdImagen`, `Gabinete`, `IdImagenRespuesta`, `GabineteRespuesta`.
+`id_anexo_respuesta`, `ra_respuesta_radicado_ID_RESPUESTA_RADICADO`, `id_imagen_gabinete`, `nombre_gabinete`, `nombre_archivo`.
 
 ## deduplicación aplicada
-Sí, en service por `(IdRespuestaRadicado, TipoAdjunto, IdImagen)`.
+Sí, en service por `(IdAnexoRespuesta, IdRespuestaRadicado, TipoAdjunto, IdImagen)`.
 
 ## tratamiento de nulls
 `COALESCE` en SQL para strings; validaciones de alias/id en controller/service/repository.
@@ -60,7 +60,7 @@ Aplicada en service con `Take(100)`.
 `try/catch` en service/repository y respuesta con `errors` tipado.
 
 ## logging implementado
-Logs informativos en controller y repository (idTareaWf, alias, filas, ms).
+Logs informativos en controller y repository (idRespuestaRadicado, alias, filas, ms).
 
 ## decisiones de naming
 Se usa prefijo `Solicita...` alineado con convenciones existentes del módulo.
@@ -70,7 +70,7 @@ Se usa prefijo `Solicita...` alineado con convenciones existentes del módulo.
 - `IServiceSolicitaDocumentosAdjuntosRespuestaRadicado -> ServiceSolicitaDocumentosAdjuntosRespuestaRadicado`
 
 ## consideraciones de performance
-Consulta acotada por `idTareaWf`, deduplicación en memoria y truncamiento a 100 para respuesta estable.
+Consulta acotada por `idRespuestaRadicado`, deduplicación en memoria y truncamiento a 100 para respuesta estable.
 
 ## observaciones técnicas finales
-Pendiente validar índice en `ID_TAREA_WF` en entornos con alto volumen.
+Pendiente validar índice en `ra_respuesta_radicado_ID_RESPUESTA_RADICADO` en entornos con alto volumen.
