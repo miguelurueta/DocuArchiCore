@@ -13,9 +13,10 @@ public sealed class ServiceSolicitaFirmasDocumentoRespuestaOrquestadoTests
     {
         var principal = new Mock<IServiceSolicitaUsuarioPrincipalRespuesta>();
         var autorizadas = new Mock<IServiceSolicitaListaFirmasAutorizadasDocumento>();
-        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object);
+        var permitidas = new Mock<IServiceSolicitaListaFirmasPermitidasSolicitudAprobacion>();
+        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object, permitidas.Object);
 
-        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 10, " ");
+        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 20, 10, " ");
 
         Assert.False(result.success);
         Assert.Equal("DefaultDbAlias requerido", result.message);
@@ -33,8 +34,12 @@ public sealed class ServiceSolicitaFirmasDocumentoRespuestaOrquestadoTests
         autorizadas.Setup(x => x.SolicitaListaFirmasAutorizadasDocumentoAsync(10, 10, "WF"))
             .ReturnsAsync(new AppResponses<List<ResponseDropdownDto>> { success = true, message = "Sin resultados", data = [], errors = [] });
 
-        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object);
-        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 10, "WF");
+        var permitidas = new Mock<IServiceSolicitaListaFirmasPermitidasSolicitudAprobacion>();
+        permitidas.Setup(x => x.SolicitaListaFirmasPermitidasPorSolicitudAsync(20, 10, "WF"))
+            .ReturnsAsync(new AppResponses<List<ResponseDropdownDto>> { success = true, message = "Sin resultados", data = [], errors = [] });
+
+        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object, permitidas.Object);
+        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 20, 10, "WF");
 
         Assert.True(result.success);
         Assert.Empty(result.data);
@@ -68,13 +73,28 @@ public sealed class ServiceSolicitaFirmasDocumentoRespuestaOrquestadoTests
                 errors = []
             });
 
-        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object);
-        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 10, "WF");
+        var permitidas = new Mock<IServiceSolicitaListaFirmasPermitidasSolicitudAprobacion>();
+        permitidas.Setup(x => x.SolicitaListaFirmasPermitidasPorSolicitudAsync(20, 10, "WF"))
+            .ReturnsAsync(new AppResponses<List<ResponseDropdownDto>>
+            {
+                success = true,
+                message = "YES",
+                data =
+                [
+                    new ResponseDropdownDto { Id = 8, Descripcion = "Luis - Analista" },
+                    new ResponseDropdownDto { Id = 9, Descripcion = "Carla - Abogada" }
+                ],
+                errors = []
+            });
+
+        var service = new ServiceSolicitaFirmasDocumentoRespuestaOrquestado(principal.Object, autorizadas.Object, permitidas.Object);
+        var result = await service.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(10, 20, 10, "WF");
 
         Assert.True(result.success);
-        Assert.Equal(2, result.data.Count);
+        Assert.Equal(3, result.data.Count);
         Assert.Equal(7, result.data[0].Id);
         Assert.Equal(8, result.data[1].Id);
+        Assert.Equal(9, result.data[2].Id);
         Assert.Equal("success", result.meta?.Status);
     }
 }

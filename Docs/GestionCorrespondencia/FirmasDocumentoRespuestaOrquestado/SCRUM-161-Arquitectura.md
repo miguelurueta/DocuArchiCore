@@ -4,7 +4,7 @@
 Crear API orquestada para retornar firmas disponibles de documento respuesta en una sola llamada.
 
 ## contexto funcional
-Frontend requiere lista consolidada de firmantes para respuesta: usuario principal + firmas autorizadas.
+Frontend requiere lista consolidada de firmantes para respuesta: usuario principal + firmas autorizadas + firmas permitidas por solicitud.
 
 ## alcance y no alcance
 - Alcance: controller, service orquestador, DI, tests unitarios, docs.
@@ -19,7 +19,7 @@ Frontend requiere lista consolidada de firmantes para respuesta: usuario princip
 - QueryOptions (indirecto por servicio de firmas autorizadas)
 
 ## diagrama de clases
-Controller -> ServiceOrquestado -> (ServiceUsuarioPrincipal + ServiceFirmasAutorizadas)
+Controller -> ServiceOrquestado -> (ServiceUsuarioPrincipal + ServiceFirmasAutorizadas + ServiceFirmasPermitidasSolicitud)
 
 ## diagrama de secuencia
 Cliente -> Controller -> ServiceOrquestado -> Servicios dependientes -> respuesta consolidada.

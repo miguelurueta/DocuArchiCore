@@ -10,10 +10,10 @@ GET
 `/api/gestion-correspondencia/firmas/documento-respuesta-orquestado`
 
 ## query params
-`idUsuarioGestion` (int, obligatorio > 0)
+`idUsuarioGestion` (int, obligatorio > 0), `idSolicitudAprobacion` (long, obligatorio > 0)
 
 ## origen esperado de idSolicitudAprobacion
-No aplica en SCRUM-161.
+Se consume directamente en SCRUM-161 para orquestar firmas permitidas por solicitud.
 
 ## claims requeridos
 `defaulalias`, `usuarioid`
