@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-162`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | nuevo controller + DI | done | pending | pending | in_progress |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/73 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec + pruebas + documentación | done | https://github.com/miguelurueta/DocuArchiCore/pull/209 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | implementation_required | nuevo service + DTO + reglas de deduplicación | done | pending | pending | in_progress |
-| MiApp.Repository | yes | implementation_required | nuevo repository SQL + logging | done | pending | pending | in_progress |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/53 | pending | in_review |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/103 | pending | in_review |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/55 | pending | in_review |
+| MiApp.Models | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
 
 ## Operating Rule
 
