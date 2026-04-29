@@ -12,13 +12,13 @@ Use this template at the start of each Jira ticket (`SCRUM-160`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/207 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | nuevo controller y DI | done | por publicar | pending | in_progress |
+| DocuArchiCore | yes | implementation_required | tests + docs + openspec coordinador | done | https://github.com/miguelurueta/DocuArchiCore/pull/207 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | service de negocio firmas autorizadas | done | por publicar | pending | in_progress |
+| MiApp.Repository | yes | implementation_required | repository QueryOptions firmas autorizadas | done | por publicar | pending | in_progress |
 | MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
 
 ## Operating Rule
