@@ -1,7 +1,7 @@
 # SCRUM-161 Pruebas
 
 ## estrategia de pruebas
-Unit tests de controller y service orquestado, validando contratos, deduplicación y estados.
+Unit tests de controller y service orquestado, validando contratos, deduplicación, estados y mezcla de tres servicios.
 
 ## matriz unitaria
 - Controller: claim inválido, query inválido, success.

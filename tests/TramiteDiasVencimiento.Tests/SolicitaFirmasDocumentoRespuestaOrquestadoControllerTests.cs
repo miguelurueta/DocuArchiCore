@@ -25,10 +25,10 @@ public sealed class SolicitaFirmasDocumentoRespuestaOrquestadoControllerTests
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
 
-        var result = await controller.Get(10);
+        var result = await controller.Get(10, 20);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
-        service.Verify(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        service.Verify(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(It.IsAny<int>(), It.IsAny<long>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -46,10 +46,10 @@ public sealed class SolicitaFirmasDocumentoRespuestaOrquestadoControllerTests
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
 
-        var result = await controller.Get(0);
+        var result = await controller.Get(0, 20);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
-        service.Verify(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        service.Verify(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(It.IsAny<int>(), It.IsAny<long>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class SolicitaFirmasDocumentoRespuestaOrquestadoControllerTests
             .Returns(new ClaimValidationResult<string> { Success = true, ClaimValue = "12", Response = null });
 
         var service = new Mock<IServiceSolicitaFirmasDocumentoRespuestaOrquestado>();
-        service.Setup(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(12, 12, "WF"))
+        service.Setup(s => s.SolicitaFirmasDocumentoRespuestaOrquestadoAsync(12, 20, 12, "WF"))
             .ReturnsAsync(new AppResponses<List<ResponseDropdownDto>>
             {
                 success = true,
@@ -76,7 +76,7 @@ public sealed class SolicitaFirmasDocumentoRespuestaOrquestadoControllerTests
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
 
-        var result = await controller.Get(12);
+        var result = await controller.Get(12, 20);
 
         Assert.IsType<OkObjectResult>(result.Result);
     }

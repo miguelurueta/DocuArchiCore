@@ -1,7 +1,7 @@
 # SCRUM-161 Implementacion Detallada
 
 ## resumen de implementación
-Se creó endpoint orquestado que consolida `usuario-principal-respuesta` y `autorizadas-documento`.
+Se creó endpoint orquestado que consolida `usuario-principal-respuesta`, `autorizadas-documento` y `permitidas-solicitud-aprobacion``.
 
 ## archivos creados
 - DocuArchi.Api/.../SolicitaFirmasDocumentoRespuestaOrquestadoController.cs
@@ -25,7 +25,7 @@ Se creó endpoint orquestado que consolida `usuario-principal-respuesta` y `auto
 `SolicitaFirmasDocumentoRespuestaOrquestadoAsync(...)`
 
 ## método del repository
-No nuevo; se consume existente vía `ServiceSolicitaListaFirmasAutorizadasDocumento`.
+No nuevo; se consumen servicios existentes incluyendo `ServiceSolicitaListaFirmasPermitidasSolicitudAprobacion`.
 
 ## QueryOptions utilizado
 Indirecto (service de firmas autorizadas).

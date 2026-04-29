@@ -10,7 +10,7 @@ No nuevos dedicados; se aprovecha instrumentación existente en servicios depend
 Information/Warning/Error vía servicios existentes.
 
 ## estructura de logs
-Campos de contexto ya presentes en APIs/servicios subyacentes.
+Campos de contexto ya presentes en APIs/servicios subyacentes (incluyendo firmas permitidas por solicitud).
 
 ## campos capturados
 alias, usuarioId, idUsuarioGestion (en logs de cadena existente).
