@@ -17,7 +17,8 @@
 - `GET /api/radicacion/tramite/tipo-doc-entrante/{idTipoDocEntrante}`
 
 ## Contrato
-- `AppResponses<TipoDocEntranteParametroDto>`
+- `AppResponses<TipoDocEntrante>`
 
 ## Reutilizacion de datos
 - Se reutiliza `ITipoDocEntranteR.SolicitaEstructuraTipoDoEntrante(...)` para acceso a `tipo_doc_entrante`.
+- El service expone la entidad completa `TipoDocEntrante` sin recorte de campos.

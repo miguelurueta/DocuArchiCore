@@ -11,7 +11,7 @@
 - Parametro de ruta: `idTipoDocEntrante` (int).
 
 ## Response
-- Tipo: `AppResponses<TipoDocEntranteParametroDto>`
+- Tipo: `AppResponses<TipoDocEntrante>`
 
 ## Ejemplo success
 ```json
@@ -19,11 +19,11 @@
   "success": true,
   "message": "YES",
   "data": {
-    "IdTipoDocEntrante": 302,
-    "DescripcionDoc": "TRAMITE",
-    "UtilEnvioCorreoCertificado": 1,
-    "UtilFirmaDigitalProtocoloRespuesta": 0,
-    "UtilAgregaDigitalProtocoloRespuesta": 1
+    "id_Tipo_Doc_Entrante": 302,
+    "Descripcion_Doc": "TRAMITE",
+    "util_envio_correo_certificado": 1,
+    "util_firma_digital_protocolo_respuesta": 0,
+    "util_agrega_digital_protocolo_respuesta": 1
   }
 }
 ```
