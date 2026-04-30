@@ -63,6 +63,9 @@ public class SolicitaParametrosRadicadosServiceTests
         Assert.NotNull(result.data);
         Assert.Equal(5, result.data!.NombreAreaRemitdest.IdArea);
         Assert.Equal(302, result.data.TipoDocEntrante.IdTipoDocEntrante);
+        Assert.Equal(1, result.data.TipoDocEntrante.UtilEnvioCorreoCertificado);
+        Assert.Equal(1, result.data.TipoDocEntrante.UtilFirmaDigitalProtocoloRespuesta);
+        Assert.Equal(0, result.data.TipoDocEntrante.UtilAgregaDigitalProtocoloRespuesta);
         Assert.Equal(4, result.data.IdSedeNombre.IdSede);
     }
 
@@ -152,6 +155,9 @@ public class SolicitaParametrosRadicadosServiceTests
             activo_modulo_respuesta = 1,
             util_tipo_modulo_envio = 0,
             util_producion_documental = 0,
+            util_envio_correo_certificado = 1,
+            util_firma_digital_protocolo_respuesta = 1,
+            util_agrega_digital_protocolo_respuesta = 0,
             tipo_tramite_entrante_saliente = 1,
             wf_copia_doc_expediente_actualiza_exped_gabinete = 0,
             wf_auto_vincula_doc_expediente_actualiza_exped_gabinete = 0,

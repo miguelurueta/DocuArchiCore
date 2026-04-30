@@ -12,7 +12,8 @@ param(
     [switch]$SkipSpecs,
     [switch]$NoValidate,
     [switch]$Reopen,
-    [switch]$NonInteractive
+    [switch]$NonInteractive,
+    [switch]$ForceIncompleteTasks
 )
 
 $ErrorActionPreference = "Stop"
@@ -3740,6 +3741,138 @@ function Write-ChangeArtifacts {
     [System.IO.File]::WriteAllText($syncPath, $sync, $utf8NoBom)
 }
 
+function Get-ChangeTasksPath {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+    return (Join-Path $RepoRoot ("openspec\changes\{0}\tasks.md" -f $ChangeName))
+}
+
+function Get-OpenSpecPendingTasks {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+
+    $tasksPath = Get-ChangeTasksPath -RepoRoot $RepoRoot -ChangeName $ChangeName
+    if (-not (Test-Path -LiteralPath $tasksPath)) {
+        throw "tasks.md not found for change '$ChangeName' at '$tasksPath'."
+    }
+
+    $pending = New-Object System.Collections.Generic.List[string]
+    $lines = Get-Content -LiteralPath $tasksPath
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = [string]$lines[$i]
+        if ($line -match '^\s*-\s\[\s\]\s+') {
+            [void]$pending.Add(("{0}: {1}" -f ($i + 1), $line.Trim()))
+        }
+    }
+
+    return @($pending)
+}
+
+function Test-BoolText {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    switch ($Value.Trim().ToLowerInvariant()) {
+        "1" { return $true }
+        "true" { return $true }
+        "yes" { return $true }
+        "on" { return $true }
+        default { return $false }
+    }
+}
+
+function Assert-TasksCompletedForFlow {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName,
+        [string]$IssueKey,
+        [string]$Mode,
+        [string]$FlowName,
+        [switch]$ForceIncompleteTasks
+    )
+
+    $pendingItems = @(Get-OpenSpecPendingTasks -RepoRoot $RepoRoot -ChangeName $ChangeName)
+    $pendingCount = $pendingItems.Count
+    if ($pendingCount -eq 0) {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "tasks_validation" -Status "ok" -Message "tasks.md validation passed." -Data @{ change = $ChangeName; pendingCount = 0; pendingItems = @(); forceOverride = [bool]$ForceIncompleteTasks; flow = $FlowName } -Mode $Mode
+        return
+    }
+
+    if ($ForceIncompleteTasks) {
+        Write-Output ("Warning: tasks.md has {0} pending task(s). Continuing due to -ForceIncompleteTasks." -f $pendingCount)
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "tasks_validation" -Status "warning" -Message "tasks.md has pending tasks but override was used." -Data @{ change = $ChangeName; pendingCount = $pendingCount; pendingItems = @($pendingItems); forceOverride = $true; flow = $FlowName } -Mode $Mode
+        return
+    }
+
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "tasks_validation" -Status "error" -Message "tasks.md has pending tasks." -Data @{ change = $ChangeName; pendingCount = $pendingCount; pendingItems = @($pendingItems); forceOverride = $false; flow = $FlowName } -Mode $Mode
+    throw "Policy enforced: incomplete tasks in tasks.md. Complete tasks before $FlowName."
+}
+
+function Assert-OpenSpecReviewGate {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName,
+        [string]$IssueKey,
+        [string]$Mode,
+        [string]$FlowName,
+        [switch]$ForceIncompleteTasks
+    )
+
+    $changeRoot = Join-Path $RepoRoot ("openspec\changes\{0}" -f $ChangeName)
+    $proposalPath = Join-Path $changeRoot "proposal.md"
+    $designPath = Join-Path $changeRoot "design.md"
+    $tasksPath = Join-Path $changeRoot "tasks.md"
+    $syncPath = Join-Path $changeRoot "sync.md"
+    $specPath = Join-Path $changeRoot ("specs\jira-{0}\spec.md" -f (To-KebabCase $IssueKey))
+
+    $missing = @()
+    foreach ($path in @($proposalPath, $designPath, $tasksPath, $syncPath, $specPath)) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            $missing += $path
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "openspec_review_gate" -Status "error" -Message "OpenSpec review gate failed: missing artifacts." -Data @{ change = $ChangeName; flow = $FlowName; missingArtifacts = @($missing) } -Mode $Mode
+        throw "Policy enforced: OpenSpec artifacts must be reviewed before publish/archive. Missing artifacts detected."
+    }
+
+    $confirmed = Test-BoolText -Value ([string]$env:OPSXJ_OPENSPEC_REVIEW_CONFIRMED)
+    $reviewedBy = [string]$env:OPSXJ_OPENSPEC_REVIEWED_BY
+    if ([string]::IsNullOrWhiteSpace($reviewedBy)) {
+        $reviewedBy = [string]$env:USERNAME
+    }
+    $reviewedAt = (Get-Date).ToUniversalTime().ToString("o")
+
+    if (-not $confirmed) {
+        $checklist = @(
+            "- proposal.md revisado",
+            "- design.md revisado",
+            "- specs/*/spec.md revisado",
+            "- tasks.md actualizado y completo",
+            "- sync.md consistente con repos impactados"
+        ) -join "`n"
+
+        if ($ForceIncompleteTasks) {
+            Write-Output "Warning: OpenSpec review confirmation not provided. Continuing due to -ForceIncompleteTasks."
+            Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "openspec_review_gate" -Status "warning" -Message "OpenSpec review gate bypassed by override." -Data @{ change = $ChangeName; flow = $FlowName; reviewedBy = $reviewedBy; reviewedAt = $reviewedAt; confirmed = $false; forceOverride = $true } -Mode $Mode
+            return
+        }
+
+        Write-Output "OpenSpec review checklist:"
+        Write-Output $checklist
+        Write-Output "Set OPSXJ_OPENSPEC_REVIEW_CONFIRMED=1 (and optional OPSXJ_OPENSPEC_REVIEWED_BY) to confirm review."
+        Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "openspec_review_gate" -Status "error" -Message "OpenSpec review confirmation missing." -Data @{ change = $ChangeName; flow = $FlowName; reviewedBy = $reviewedBy; reviewedAt = $reviewedAt; confirmed = $false; forceOverride = $false } -Mode $Mode
+        throw "Policy enforced: OpenSpec artifacts must be reviewed before publish/archive."
+    }
+
+    Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $IssueKey -Step "openspec_review_gate" -Status "ok" -Message "OpenSpec review gate confirmed." -Data @{ change = $ChangeName; flow = $FlowName; reviewedBy = $reviewedBy; reviewedAt = $reviewedAt; confirmed = $true; forceOverride = [bool]$ForceIncompleteTasks } -Mode $Mode
+}
+
 function Resolve-ChangeNameFromIssueKey {
     param(
         [string]$RepoRoot,
@@ -3900,6 +4033,7 @@ function Invoke-OrchestratePublish {
         [string]$RepoRoot,
         [string]$IssueKey,
         [switch]$SelectRepos,
+        [switch]$ForceIncompleteTasks,
         [string]$Mode = "legacy"
     )
 
@@ -3913,6 +4047,8 @@ function Invoke-OrchestratePublish {
     if ([string]::IsNullOrWhiteSpace($changeName)) {
         throw "Active change could not be resolved for '$IssueKey'. Run opsxj:orchestrate:new first."
     }
+    Assert-TasksCompletedForFlow -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issue.key -Mode $Mode -FlowName "opsxj:orchestrate:publish" -ForceIncompleteTasks:$ForceIncompleteTasks
+    Assert-OpenSpecReviewGate -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issue.key -Mode $Mode -FlowName "opsxj:orchestrate:publish" -ForceIncompleteTasks:$ForceIncompleteTasks
 
     $entries = @(Get-SyncImpactEntries -RepoRoot $RepoRoot -ChangeName $changeName)
     if ($entries.Count -eq 0) {
@@ -4142,6 +4278,7 @@ function Invoke-Archive {
         [switch]$SkipSpecs,
         [switch]$NoValidate,
         [switch]$SkipJira,
+        [switch]$ForceIncompleteTasks,
         [string]$Mode = "legacy"
     )
 
@@ -4153,8 +4290,9 @@ function Invoke-Archive {
     if (-not $issueKey) {
         $issueKey = Get-IssueKeyFromChangeName -ChangeName $changeName
     }
-
     Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
+    Assert-TasksCompletedForFlow -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode -FlowName "opsxj:archive" -ForceIncompleteTasks:$ForceIncompleteTasks
+    Assert-OpenSpecReviewGate -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode -FlowName "opsxj:archive" -ForceIncompleteTasks:$ForceIncompleteTasks
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "archive_start" -Status "ok" -Message "Archive flow started." -Data @{ change = $changeName; noValidate = [bool]$NoValidate; skipJira = [bool]$SkipJira } -Mode $Mode
 
     if ($NoValidate) {
@@ -4243,6 +4381,7 @@ function Invoke-OrchestrateArchive {
         [switch]$SkipSpecs,
         [switch]$NoValidate,
         [switch]$SkipJira,
+        [switch]$ForceIncompleteTasks,
         [string]$Mode = "legacy"
     )
 
@@ -4265,8 +4404,9 @@ function Invoke-OrchestrateArchive {
     if (-not $issueKey) {
         $issueKey = Get-IssueKeyFromChangeName -ChangeName $changeName
     }
-
     Ensure-ArchiveWorkingBranch -RepoRoot $RepoRoot -ChangeName $changeName
+    Assert-TasksCompletedForFlow -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode -FlowName "opsxj:orchestrate:archive" -ForceIncompleteTasks:$ForceIncompleteTasks
+    Assert-OpenSpecReviewGate -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode -FlowName "opsxj:orchestrate:archive" -ForceIncompleteTasks:$ForceIncompleteTasks
     Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_archive_start" -Status "ok" -Message "Orchestrated archive flow started." -Data @{ change = $changeName } -Mode $Mode
 
     $preCleanup = Remove-OrchestratedIssueArtifacts -RepoRoot $RepoRoot -IssueKey $issueKey -ChangeName $changeName
@@ -4302,7 +4442,7 @@ function Invoke-OrchestrateArchive {
             Write-OpsxjLog -RepoRoot $RepoRoot -IssueKey $issueKey -Step "orchestrate_sync_update" -Status "ok" -Message "sync.md updated before archive." -Data @{ change = $changeName } -Mode $Mode
         }
 
-        Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $Mode
+        Invoke-Archive -RepoRoot $RepoRoot -IssueOrChange $changeName -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -ForceIncompleteTasks:$ForceIncompleteTasks -Mode $Mode
 
         if (Test-IsArchiveCloseoutPrEnabled) {
             $finalizeResult = Finalize-OrchestratorArchiveToMain -RepoRoot $RepoRoot -ChangeName $changeName -IssueKey $issueKey -Mode $Mode
@@ -4450,13 +4590,13 @@ try {
         if ($SkipJira) {
             throw "Policy enforced: -SkipJira is not allowed in opsxj:orchestrate:publish."
         }
-        Invoke-OrchestratePublish -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -Mode $executionMode
+        Invoke-OrchestratePublish -RepoRoot $repoRoot -IssueKey $IssueOrChange -SelectRepos:$SelectRepos -ForceIncompleteTasks:$ForceIncompleteTasks -Mode $executionMode
     }
     elseif ($Command -eq "archive") {
-        Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
+        Invoke-Archive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -ForceIncompleteTasks:$ForceIncompleteTasks -Mode $executionMode
     }
     elseif ($Command -eq "orchestrate:archive") {
-        Invoke-OrchestrateArchive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -Mode $executionMode
+        Invoke-OrchestrateArchive -RepoRoot $repoRoot -IssueOrChange $IssueOrChange -Yes:$Yes -SkipSpecs:$SkipSpecs -NoValidate:$NoValidate -SkipJira:$SkipJira -ForceIncompleteTasks:$ForceIncompleteTasks -Mode $executionMode
     }
     elseif ($Command -eq "jira-done") {
         Invoke-JiraDone -IssueKey $IssueOrChange
