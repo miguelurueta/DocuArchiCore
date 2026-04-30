@@ -2,7 +2,7 @@
 
 ## Unitarias implementadas
 - `SolicitaEstructuraTipoDocEntranteServiceTests`
-  - Retorna `YES` con mapeo correcto de flags nuevos.
+  - Retorna `YES` con `TipoDocEntrante` completo y flags nuevos.
   - Retorna error por `idTipoDocEntrante` inválido.
 
 ## Cobertura funcional esperada

@@ -27,10 +27,10 @@ public class SolicitaEstructuraTipoDocEntranteServiceTests
 
         Assert.True(result.success);
         Assert.NotNull(result.data);
-        Assert.Equal(302, result.data!.IdTipoDocEntrante);
-        Assert.Equal(1, result.data.UtilEnvioCorreoCertificado);
-        Assert.Equal(0, result.data.UtilFirmaDigitalProtocoloRespuesta);
-        Assert.Equal(1, result.data.UtilAgregaDigitalProtocoloRespuesta);
+        Assert.Equal(302, result.data!.id_Tipo_Doc_Entrante);
+        Assert.Equal(1, result.data.util_envio_correo_certificado);
+        Assert.Equal(0, result.data.util_firma_digital_protocolo_respuesta);
+        Assert.Equal(1, result.data.util_agrega_digital_protocolo_respuesta);
     }
 
     [Fact]

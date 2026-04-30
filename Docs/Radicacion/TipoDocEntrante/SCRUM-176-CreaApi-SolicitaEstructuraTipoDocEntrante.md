@@ -22,11 +22,9 @@ Exponer endpoint GET para consultar la estructura de `tipo_doc_entrante` por id,
 
 ## Contrato
 
-- Respuesta: `AppResponses<TipoDocEntranteParametroDto>`
-- Incluye flags:
-  - `UtilEnvioCorreoCertificado`
-  - `UtilFirmaDigitalProtocoloRespuesta`
-  - `UtilAgregaDigitalProtocoloRespuesta`
+- Respuesta: `AppResponses<TipoDocEntrante>`
+- Retorna la estructura completa del modelo:
+  - `MiApp.Models/Models/Radicacion/TipoTramite/TipoDocEntrante.cs`
 
 ## Notas
 
