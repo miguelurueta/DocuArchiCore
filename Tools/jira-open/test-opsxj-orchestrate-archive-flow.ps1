@@ -46,6 +46,7 @@ try {
 
     New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/specs/jira-opsxj-4000") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $orchestratorRoot "openspec/logs") -Force | Out-Null
     New-Item -ItemType Directory -Path $satelliteRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $fakeBin -Force | Out-Null
@@ -55,6 +56,14 @@ try {
 
     Set-Content -Path (Join-Path $orchestratorRoot "README.md") -Value "orchestrator repo" -NoNewline
     Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/.openspec.yaml") -Value "schema: spec-driven`ncreated: 2026-03-24" -NoNewline
+    Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/proposal.md") -Value "proposal" -NoNewline
+    Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/design.md") -Value "design" -NoNewline
+    Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/specs/jira-opsxj-4000/spec.md") -Value "## ADDED Requirements" -NoNewline
+    Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/tasks.md") -Value @'
+## 1. Discovery
+
+- [x] 1.1 done
+'@ -NoNewline
     Set-Content -Path (Join-Path $orchestratorRoot "openspec/changes/$changeName/sync.md") -Value @'
 ## Repo Impact Plan
 
@@ -121,6 +130,8 @@ try {
     $env:GITHUB_TOKEN = "test-token"
     $env:OPSXJ_TEST_SKIP_REMOTE_FETCH = "1"
     $env:OPSXJ_TEST_SKIP_GIT_PUSH = "1"
+    $env:OPSXJ_OPENSPEC_REVIEW_CONFIRMED = "1"
+    $env:OPSXJ_OPENSPEC_REVIEWED_BY = "opsxj-test"
 
     function global:Invoke-RestMethod {
         param(
@@ -204,6 +215,8 @@ try {
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_SKIP_REMOTE_FETCH -ErrorAction SilentlyContinue
         Remove-Item Env:OPSXJ_TEST_SKIP_GIT_PUSH -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_OPENSPEC_REVIEW_CONFIRMED -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_OPENSPEC_REVIEWED_BY -ErrorAction SilentlyContinue
     }
 
     Write-Output "PASS: opsxj:orchestrate:archive trusts merged PRs and cleans issue artifacts."

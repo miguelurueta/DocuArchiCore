@@ -59,6 +59,21 @@ Notas:
    - repo unico: `npm.cmd --prefix Tools/jira-open run opsxj:archive -- ABC-123 -NonInteractive`
    - multi-repo orquestado: `npm.cmd --prefix Tools/jira-open run opsxj:orchestrate:archive -- ABC-123 -NonInteractive`
 
+Gate obligatorio antes de publish/archive:
+- `tasks.md` sin items pendientes (`- [ ]`).
+- Confirmacion de revision OpenSpec:
+  - `set OPSXJ_OPENSPEC_REVIEW_CONFIRMED=1`
+  - opcional: `set OPSXJ_OPENSPEC_REVIEWED_BY=<nombre>`
+- Checklist minimo de revision:
+  - `proposal.md`
+  - `design.md`
+  - `specs/*/spec.md`
+  - `tasks.md`
+  - `sync.md`
+
+Override excepcional:
+- `-ForceIncompleteTasks` permite continuar con warning auditado en logs (`tasks_validation` y `openspec_review_gate`).
+
 ## Clasificacion de impacto
 
 La matriz `sync.md` ahora distingue:

@@ -31,6 +31,18 @@ function Run-Git {
     }
 }
 
+function Complete-TasksForChange {
+    param(
+        [string]$RepoRoot,
+        [string]$ChangeName
+    )
+    $tasksPath = Join-Path $RepoRoot ("openspec/changes/{0}/tasks.md" -f $ChangeName)
+    if (-not (Test-Path -LiteralPath $tasksPath)) { return }
+    $tasksText = Get-Content -Path $tasksPath -Raw
+    $tasksText = $tasksText -replace "- \[ \]", "- [x]"
+    Set-Content -Path $tasksPath -Value $tasksText -NoNewline
+}
+
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("opsxj-orchestrate-worktree-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
@@ -78,6 +90,8 @@ try {
     $env:JIRA_EMAIL = "bot@example.com"
     $env:JIRA_API_TOKEN = "token"
     $env:GITHUB_TOKEN = "test-token"
+    $env:OPSXJ_OPENSPEC_REVIEW_CONFIRMED = "1"
+    $env:OPSXJ_OPENSPEC_REVIEWED_BY = "opsxj-test"
 
     $global:IssueStates = @{}
     $global:CreatedPullRequests = @{}
@@ -205,6 +219,9 @@ try {
             Assert-Contains -Value $firstRun -Expected "Satellite repo deferred [MiApp.Services]"
 
             $changeName = "opsxj-2000-implementacion-worktree-orchestration"
+            Complete-TasksForChange -RepoRoot $orchestratorRoot -ChangeName $changeName
+            Run-Git -RepoRoot $orchestratorRoot -CliArgs @("add", (Join-Path "openspec/changes/$changeName" "tasks.md"))
+            Run-Git -RepoRoot $orchestratorRoot -CliArgs @("commit", "-m", "OPSXJ-2000 complete tasks before publish")
             $publishWithoutDiff = (& $scriptPath orchestrate:publish OPSXJ-2000 -NonInteractive 2>&1 | Out-String)
             Assert-Contains -Value $publishWithoutDiff -Expected "Satellite repo tracked without PR [MiApp.Services]: no diff detected"
 
@@ -256,6 +273,8 @@ try {
         Remove-Item Env:JIRA_EMAIL -ErrorAction SilentlyContinue
         Remove-Item Env:JIRA_API_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_OPENSPEC_REVIEW_CONFIRMED -ErrorAction SilentlyContinue
+        Remove-Item Env:OPSXJ_OPENSPEC_REVIEWED_BY -ErrorAction SilentlyContinue
     }
 
     Write-Output "PASS: orchestrated publish isolates busy repos, reuses managed worktrees, and only opens PRs after real diffs."

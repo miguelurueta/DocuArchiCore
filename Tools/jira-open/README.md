@@ -164,12 +164,14 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - `opsxj:new -NonInteractive` keeps the same flow but requires preauthorized Jira/GitHub credentials and blocks interactive GitHub auth fallback.
 - `opsxj:orchestrate:new -NonInteractive` must run from `DocuArchiCore`, keeps OpenSpec centralized there, opens only the coordinator PR, and prepares clean satellite primary checkouts on the ticket branch before deferring PR creation to `opsxj:orchestrate:publish`.
 - `opsxj:orchestrate:publish -NonInteractive` promotes only satellite repos with real diffs to `implementation_required`, publishes from the prepared primary checkout when available, creates/reuses managed worktrees only as fallback, and opens PRs only for those repos.
+- `opsxj:orchestrate:publish` now enforces OpenSpec gates before publishing: `tasks.md` must have no pending `- [ ]` items and review confirmation must be provided.
 - Managed satellite worktrees persist across reruns for the same issue/repo only when fallback isolation is required, and their metadata is tracked under `.opsxj/orchestrator/worktrees/<ISSUE>/`.
 - `sync.md` now records both `Impacta?` and `Tipo impacto` with `implementation_required`, `traceability_only`, and `no_code_change`.
 - `opsxj:orchestrate:new` now leaves impacted satellites deferred/tracked until `opsxj:orchestrate:publish` detects a real implementation diff.
 - `opsxj:orchestrate:publish` updates `sync.md` from `traceability_only` to `implementation_required` when a satellite repo actually gets published.
 - `OPSXJ_TRACEABILITY_REPOS` remains available as an explicit label for repos that should stay traceability-only in `sync.md`.
 - `opsxj:orchestrate:archive -NonInteractive` must run from `DocuArchiCore` and archives only after validating merge real del branch del cambio y del PR asociado en cada repo impactado.
+- `opsxj:archive` / `opsxj:orchestrate:archive` now enforce OpenSpec gates before archive: completed `tasks.md` and explicit review confirmation.
 - `opsxj:orchestrate:archive` now uses merged satellite PRs as the primary signal and tolerates deleted remote branches after merge.
 - `opsxj:orchestrate:archive` cleans managed worktrees, worktree metadata, and issue logs created by the current orchestrated issue.
 - `opsxj:new` requires a valid Jira issue. If Jira lookup fails, the command stops and does not create artifacts.
@@ -190,6 +192,13 @@ npm.cmd --prefix Tools/jira-open run opsxj:jira-pending -- [PROJECT-KEY|ISSUE-KE
 - If a PR already exists for the change branch, `opsxj:new` reports that PR instead of creating a duplicate.
 - Pull requests created by `opsxj` are never merged automatically; merge remains a manual reviewer action.
 - `opsxj:archive` enforces merge validations and Jira transition; policy blocks `-NoValidate` and `-SkipJira`.
+- OpenSpec review gate for publish/archive:
+  - Set `OPSXJ_OPENSPEC_REVIEW_CONFIRMED=1` after reviewing `proposal.md`, `design.md`, `specs/*/spec.md`, `tasks.md`, and `sync.md`.
+  - Optional reviewer tag: `OPSXJ_OPENSPEC_REVIEWED_BY=<name>`.
+  - Without confirmation, publish/archive is blocked by policy.
+- Emergency override for incomplete tasks/review gate:
+  - Use `-ForceIncompleteTasks` only when strictly necessary.
+  - The script records warning logs (`tasks_validation`, `openspec_review_gate`) with override metadata.
 - `opsxj:archive` can only finish after all PRs associated in `sync.md` are effectively merged.
 - `opsxj:archive` transitions Jira to done before local archive to avoid local/Jira drift.
 - `opsxj:jira-done` is available for explicit Jira-only transition.
