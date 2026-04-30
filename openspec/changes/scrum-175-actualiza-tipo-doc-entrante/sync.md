@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-175`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | sin diff real publicado | n/a | n/a | done | tracked |
-| DocuArchiCore | yes | implementation_required | PR coordinador OpenSpec y pruebas/documentacion | done | https://github.com/miguelurueta/DocuArchiCore/pull/212 | done | merged |
+| DocuArchi.Api | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| DocuArchiCore | yes | implementation_required | PR coordinador OpenSpec y pruebas/documentacion | done | https://github.com/miguelurueta/DocuArchiCore/pull/212 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/54 | done | merged |
-| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/105 | done | merged |
-| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | done | tracked |
-| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/21 | done | merged |
+| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/54 | done | archived |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/105 | done | archived |
+| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | done | archived |
+| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/21 | done | archived |
 
 ## Operating Rule
 
