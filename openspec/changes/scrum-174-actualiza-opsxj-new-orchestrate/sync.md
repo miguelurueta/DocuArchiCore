@@ -13,7 +13,7 @@ Use this template at the start of each Jira ticket (`SCRUM-174`) to decide exact
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
 | DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | <definir alcance> | pending | pending | pending | todo |
+| DocuArchiCore | yes | implementation_required | hardening de flujo opsxj para gates de tareas y revision OpenSpec | done | https://github.com/miguelurueta/DocuArchiCore/pull/211 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
