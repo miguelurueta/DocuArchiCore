@@ -12,13 +12,13 @@ Use this template at the start of each Jira ticket (`SCRUM-176`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | <definir alcance> | pending | pending | pending | todo |
+| DocuArchi.Api | yes | implementation_required | endpoint y DI para solicitar estructura tipo doc entrante | done | pending | pending | in_review |
+| DocuArchiCore | yes | implementation_required | coordinacion openspec, prueba y documentacion tecnica | done | https://github.com/miguelurueta/DocuArchiCore/pull/214 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | reutiliza DTO existente TipoDocEntranteParametroDto sin cambios | done | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | nuevo service de consulta de estructura tipo doc entrante | done | pending | pending | in_review |
+| MiApp.Repository | yes | traceability_only | reutiliza ITipoDocEntranteR existente sin cambios | done | n/a | pending | tracked |
 | MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | n/a | n/a | pending | tracked |
 
 ## Operating Rule
