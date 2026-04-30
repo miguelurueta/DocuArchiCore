@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-173`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | implementation_required | requiere endpoint GET `/api/gestion-correspondencia/tipos-respuesta` y validacion claim `defaulalias` | pending | pending | pending | planned |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/210 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | validar/reusar `ResponseDrowp` para contrato del catalogo sin romper compatibilidad | pending | pending | pending | planned |
+| MiApp.Services | yes | implementation_required | implementar orquestacion de AppResponses, cache y manejo de errores controlados | pending | pending | pending | planned |
+| MiApp.Repository | yes | implementation_required | implementar consulta con DapperCrudEngine + QueryOptions sobre `ra_tipo_respuesta` | pending | pending | pending | planned |
+| MiApp.Models | no | no_code_change | no se requieren cambios de modelo; tabla ya existe y se consume como catalogo | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
