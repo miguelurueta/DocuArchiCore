@@ -13,3 +13,14 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Storage use case and orchestrator baseline
+The system MUST expose a base use case and orchestrator for Storage Engine using SCRUM-163 contracts without infrastructure side effects.
+
+#### Scenario: Base orchestration execution
+- **WHEN** `IAlmacenarDocumentoUseCase.ExecuteAsync` receives a valid request
+- **THEN** it builds storage context, calls `IDocumentStorageOrchestrator`, maps `AlmacenarDocumentoResult` to `AlmacenarDocumentoResponse`, and returns `AppResponses` success
+
+#### Scenario: Validation and typed error handling
+- **WHEN** request fields are invalid or typed storage exceptions occur
+- **THEN** the use case returns controlled `AppResponses` errors and avoids DB/FS/XML operations
