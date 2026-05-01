@@ -916,6 +916,9 @@ public sealed class RegistrarRadicacionEntranteServiceTests
         estado_ruta_open_close = 1,
         activo_modulo_respuesta = 1,
         util_tipo_modulo_envio = utilTipoModuloEnvio,
+        util_envio_correo_certificado = 0,
+        util_firma_digital_protocolo_respuesta = 0,
+        util_agrega_digital_protocolo_respuesta = 0,
         tipo_tramite_entrante_saliente = 1,
         id_gabinete = 1,
         util_radicacion_simple = 1
