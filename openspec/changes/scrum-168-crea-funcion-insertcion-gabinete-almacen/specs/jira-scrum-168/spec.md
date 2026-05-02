@@ -13,3 +13,25 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Orchestrated impact matrix consistency
+The orchestrated change MUST keep `sync.md` aligned with impacted repositories and impact type classification.
+
+#### Scenario: Traceability-only repository is listed
+- **WHEN** a repository is classified as `traceability_only`
+- **THEN** `sync.md` keeps the repository with `Impacta? = yes`, `Tipo impacto = traceability_only`, and no satellite PR URL
+
+#### Scenario: Coordinator repository requires implementation
+- **WHEN** the coordinator repo (`DocuArchiCore`) manages OpenSpec artifacts for SCRUM-168
+- **THEN** `sync.md` records `implementation_required` and links the coordinator PR
+
+### Requirement: Publish gate enforcement
+The workflow MUST block `opsxj:orchestrate:publish` until OpenSpec tasks are complete and review readiness is explicit.
+
+#### Scenario: Pending tasks exist
+- **WHEN** `tasks.md` still has at least one unchecked item
+- **THEN** `opsxj:orchestrate:publish` fails with an incomplete tasks policy error
+
+#### Scenario: Tasks and review gate are complete
+- **WHEN** `tasks.md` has no unchecked items and review confirmation is present
+- **THEN** `opsxj:orchestrate:publish` can continue evaluating satellite repository diffs
