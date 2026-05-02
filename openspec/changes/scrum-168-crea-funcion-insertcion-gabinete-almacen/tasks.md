@@ -12,12 +12,15 @@
 
 ## 3. Application
 
-- [x] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch. (Scope coordinador: lineamientos y trazabilidad definidos en design/spec; implementacion funcional queda en repos satelite al promoverse a `implementation_required`.)
-- [x] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R). (No aplica en coordinador sin diff funcional satelite en esta fase.)
-- [x] 3.3 Integrar cambios de aplicacion y verificar compilacion local. (No aplica en coordinador para fase de trazabilidad OpenSpec.)
+- [ ] 3.1 Implementar `GabineteInsertModel` y `InventarioInsertModel` en `MiApp.Models`.
+- [ ] 3.2 Implementar `IGabineteStorageRepository`/`GabineteStorageRepository` y `IInventarioDocumentalRepository`/`InventarioDocumentalRepository` en `MiApp.Repository` con DapperCrudEngine + QueryOptions.
+- [ ] 3.3 Integrar ambos repositorios en `StorageTransactionCoordinator` para commit/rollback unico y retorno de `IdRegistroProduccionDocumental`.
+- [ ] 3.4 Registrar DI de repositorios/servicios en `DocuArchi.Api/Program.cs` y validar compilacion en repos impactados.
 
 ## 4. Test
 
-- [x] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia. (Se ejecuta por repo cuando exista diff funcional publicado.)
-- [x] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible). (Pendiente por repo satelite con implementacion; fuera del alcance de esta fase coordinador.)
-- [x] 4.3 Validar y archivar con OpenSpec. (Validacion de cambio en curso; archive al finalizar merges multi-repo.)
+- [ ] 4.1 Implementar unit tests para validaciones de gabinete/inventario y flujo transaccional coordinator (success + rollback).
+- [ ] 4.2 Implementar integration/concurrency tests para insercion en gabinete + inventario dentro de misma transaccion.
+- [ ] 4.3 Ejecutar suites `dotnet test` y registrar evidencia (o skip explicito por Docker no disponible).
+- [ ] 4.4 Actualizar `sync.md` y publicar PR de `MiApp.Repository` cuando exista diff funcional real.
+- [ ] 4.5 Ejecutar `opsxj:orchestrate:archive` al completar merges y validaciones finales.

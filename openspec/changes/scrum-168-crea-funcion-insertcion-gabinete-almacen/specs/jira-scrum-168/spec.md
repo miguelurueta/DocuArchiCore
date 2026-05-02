@@ -1,5 +1,48 @@
 ## ADDED Requirements
 
+### Requirement: Gabinete dynamic insert
+The system MUST insert storage records into the dynamic gabinete table within the active storage transaction.
+
+#### Scenario: Valid gabinete payload
+- **WHEN** `StorageTransactionCoordinator` has a valid identity reservation and gabinete insert model
+- **THEN** `IGabineteStorageRepository.InsertAsync` inserts exactly one row into the validated gabinete table
+- **AND** table/column identifiers are validated before execution
+
+#### Scenario: Invalid dynamic identifier
+- **WHEN** the gabinete table name or a dynamic column name fails identifier validation
+- **THEN** the repository rejects the operation with a transaction validation error
+- **AND** no insert is performed
+
+### Requirement: Inventario documental insert
+The system MUST insert the documental inventory record into `registro_producion_documental` inside the same transaction.
+
+#### Scenario: Valid inventario payload
+- **WHEN** gabinete insert succeeded and inventario model is valid
+- **THEN** `IInventarioDocumentalRepository.InsertAsync` inserts inventory data and returns generated inventory id
+
+#### Scenario: Inventory insert fails
+- **WHEN** inventory insert throws or returns invalid generated id
+- **THEN** coordinator triggers rollback for the full transaction
+
+### Requirement: Coordinator transactional integration
+The transaction coordinator MUST execute identity reservation, gabinete insert, and inventory insert in a single commit/rollback boundary.
+
+#### Scenario: End-to-end success
+- **WHEN** reserve + gabinete insert + inventario insert succeed
+- **THEN** coordinator commits once and returns `IdRegistroProduccionDocumental`
+
+#### Scenario: Gabinete or inventario failure
+- **WHEN** any persistence phase fails after transaction start
+- **THEN** coordinator rolls back all persisted changes
+
+### Requirement: DapperCrudEngine repository rule
+Repository-level persistence MUST use DapperCrudEngine abstractions and not direct Dapper execute/query calls.
+
+#### Scenario: Repository persistence implementation
+- **WHEN** reviewers inspect repository implementation for SCRUM-168
+- **THEN** they find DapperCrudEngine/QueryOptions usage for inserts and transactional context propagation
+- **AND** no direct `ExecuteAsync`/`QueryAsync`/`ExecuteScalarAsync` calls in target repositories
+
 ### Requirement: Traceability to Jira issue
 The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-168.
 
