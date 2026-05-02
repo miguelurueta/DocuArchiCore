@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
@@ -20,6 +20,8 @@ namespace TramiteDiasVencimiento.Tests
                 RutaTemporalId = "tmp-1",
                 NombreDocumento = "doc.pdf",
                 RequestId = "req-1",
+                TipoAlmacenamiento = 1,
+                EvaluarCamposObligatorios = true,
                 Documentos = new List<DocumentoEntradaDto>
                 {
                     new DocumentoEntradaDto
@@ -37,11 +39,15 @@ namespace TramiteDiasVencimiento.Tests
                 RutaTemporalId = request.RutaTemporalId,
                 NombreDocumento = request.NombreDocumento,
                 RequestId = request.RequestId,
-                Documentos = request.Documentos
+                Documentos = request.Documentos,
+                TipoAlmacenamiento = (TipoAlmacenamientoEnum)request.TipoAlmacenamiento,
+                EvaluarCamposObligatorios = request.EvaluarCamposObligatorios
             };
 
             Assert.Equal("file-1", request.Documentos[0].ArchivoTemporalId);
             Assert.Equal("req-1", command.RequestId);
+            Assert.Equal(TipoAlmacenamientoEnum.BatchPreindex, command.TipoAlmacenamiento);
+            Assert.True(command.EvaluarCamposObligatorios);
         }
 
         [Fact]
@@ -103,6 +109,35 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(StorageDocumentState.Pending, idem.Estado);
             Assert.Equal(StorageDocumentState.PhysicalFailed, physical.Estado);
             Assert.Equal(StorageDocumentState.PhysicalFailed, StorageDocumentState.PhysicalFailed);
+        }
+
+        [Fact]
+        public void Prompt4Models_ShouldCompileAndHoldShape()
+        {
+            var preindex = new StoragePreindexResult
+            {
+                Found = true,
+                SourceFile = "tmp/file.txt",
+                Values = new[] { "v1", "v2" }
+            };
+
+            var field = new GabineteFieldMetadata
+            {
+                FieldName = "CampoA",
+                IsRequired = true,
+                Orden = 1
+            };
+
+            var options = new StorageOptionsModel
+            {
+                AplicaInventarioDocumental = true,
+                AplicaTrd = true,
+                AplicaUnidadConservacion = true
+            };
+
+            Assert.True(preindex.Found);
+            Assert.Equal("CampoA", field.FieldName);
+            Assert.True(options.AplicaInventarioDocumental);
         }
 
         [Fact]

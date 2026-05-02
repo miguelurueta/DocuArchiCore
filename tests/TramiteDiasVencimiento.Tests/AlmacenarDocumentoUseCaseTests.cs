@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
 using Xunit;
 
@@ -50,6 +52,8 @@ namespace TramiteDiasVencimiento.Tests
                 NombreGabinete = "g1",
                 RutaTemporalId = "tmp-1",
                 NombreDocumento = "doc.pdf",
+                TipoAlmacenamiento = 1,
+                EvaluarCamposObligatorios = true,
                 Documentos = new List<DocumentoEntradaDto>
                 {
                     new DocumentoEntradaDto { IdDocumento = "1", ArchivoTemporalId = "f-1", NumeroPaginas = 1 }
@@ -63,13 +67,24 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(99, result.data!.IdAlmacen);
             Assert.Equal("final.pdf", result.data.NombreArchivoFinal);
             Assert.Equal("req-164", result.data.RequestId);
+
+            orchestrator.Verify(x => x.ExecuteAsync(It.Is<StorageContext>(ctx =>
+                ctx.Command != null
+                && ctx.Command.TipoAlmacenamiento == TipoAlmacenamientoEnum.BatchPreindex
+                && ctx.Command.EvaluarCamposObligatorios
+                && ctx.Command.Documentos.Count == 1)), Times.Once);
         }
 
         [Fact]
-        public async Task Orchestrator_ShouldReturnPendingResult()
+        public async Task Orchestrator_ShouldReturnPendingResult_WhenValidationIsValid()
         {
+            var pipeline = new Mock<IStorageValidationPipeline>();
+            pipeline
+                .Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
+                .ReturnsAsync(new StorageValidationResult { IsValid = true });
+
             var logger = new Mock<ILogger<DocumentStorageOrchestrator>>();
-            var orchestrator = new DocumentStorageOrchestrator(logger.Object);
+            var orchestrator = new DocumentStorageOrchestrator(pipeline.Object, logger.Object);
 
             var result = await orchestrator.ExecuteAsync(new StorageContext
             {
@@ -80,7 +95,18 @@ namespace TramiteDiasVencimiento.Tests
                 NombreGabinete = "g1",
                 RutaTemporalId = "tmp-1",
                 NombreDocumento = "doc.pdf",
-                ArchivosTemporales = new List<string> { "f-1" }
+                ArchivosTemporales = new List<string> { "f-1" },
+                Command = new AlmacenarDocumentoCommand
+                {
+                    NombreGabinete = "g1",
+                    RutaTemporalId = "tmp-1",
+                    NombreDocumento = "doc.pdf",
+                    RequestId = "req-abc",
+                    Documentos = new List<DocumentoEntradaDto>
+                    {
+                        new DocumentoEntradaDto { IdDocumento = "1", ArchivoTemporalId = "f-1", NumeroPaginas = 1 }
+                    }
+                }
             });
 
             Assert.Equal(StorageDocumentState.Pending, result.Estado);
