@@ -10,6 +10,7 @@ using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Options;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Preindex;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
 using Xunit;
@@ -229,6 +230,7 @@ namespace TramiteDiasVencimiento.Tests
 
             var orchestrator = new DocumentStorageOrchestrator(
                 pipeline.Object,
+                Mock.Of<IStorageTransactionCoordinator>(),
                 new Mock<ILogger<DocumentStorageOrchestrator>>().Object);
 
             await Assert.ThrowsAsync<StorageValidationException>(() => orchestrator.ExecuteAsync(BuildContext()));
