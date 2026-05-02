@@ -32,12 +32,19 @@
 
 ## Evidencia de la corrida SCRUM-168 (coordinador)
 - En `DocuArchiCore` se completo y valido OpenSpec del cambio.
-- `opsxj:orchestrate:publish` genero PRs satelite para Api/DTOs/Services/Models.
-- `MiApp.Repository` no genero diff (`traceability_only`), por lo que las pruebas de insercion repository quedan condicionadas al PR de repository.
+- Se implementaron pruebas unitarias en `tests/TramiteDiasVencimiento.Tests` para:
+  - `StorageTransactionCoordinator`
+  - `GabineteStorageRepository`
+  - `InventarioDocumentalRepository`
+- Se implementaron pruebas de integracion/concurrencia en:
+  - `StorageTransactionCoordinatorIntegrationTests`
+- `MiApp.Repository` ya cuenta con PR funcional publicado: https://github.com/miguelurueta/MiApp.Repository/pull/58.
 
 ## Cobertura actual vs pendiente
 - Cubierto en esta fase:
+  - pruebas unitarias de validacion de modelos y de flujo transaccional coordinator.
+  - pruebas unitarias de reglas de insercion/guardas en repositorios.
   - trazabilidad de arquitectura, alcance y gating de flujo orquestado.
-  - publicacion de PRs satelite con cambios funcionales.
 - Pendiente:
-  - evidencia de pruebas repository especificas de insercion dinamica gabinete/inventario cuando exista diff real en `MiApp.Repository`.
+  - validacion E2E en infraestructura completa (DB real + pipeline completa).
+  - cierre del bloqueo de build de referencias MSBuild para recuperar corrida integral de toda la suite en este entorno.

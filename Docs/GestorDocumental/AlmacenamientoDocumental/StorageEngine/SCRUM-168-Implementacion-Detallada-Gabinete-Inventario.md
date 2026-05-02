@@ -9,7 +9,7 @@ Documento tecnico de consolidacion para la fase de insercion en gabinete e inven
 - MiApp.DTOs: PR 60.
 - MiApp.Services: PR 112.
 - MiApp.Models: PR 27.
-- MiApp.Repository: sin diff publicado en esta corrida (`traceability_only`).
+- MiApp.Repository: implementacion funcional en PR 58 (https://github.com/miguelurueta/MiApp.Repository/pull/58).
 
 ## Archivos impactados por repositorio (resumen)
 ### DocuArchi.Api
@@ -34,26 +34,48 @@ Documento tecnico de consolidacion para la fase de insercion en gabinete e inven
 - `Models/GestorDocumental/AlmacenamientoDocumental/StorageContext.cs`
 - `Models/GestorDocumental/AlmacenamientoDocumental/StorageIdentityReservationResult.cs`
 - `Models/GestorDocumental/AlmacenamientoDocumental/StorageTransactionResult.cs`
+- `Models/GestorDocumental/AlmacenamientoDocumental/GabineteInsertModel.cs`
+- `Models/GestorDocumental/AlmacenamientoDocumental/InventarioInsertModel.cs`
 - excepciones y enums de estado/fase.
+
+### MiApp.Repository
+- `Repositorio/GestorDocumental/AlmacenamientoDocumental/Gabinete/IGabineteStorageRepository.cs`
+- `Repositorio/GestorDocumental/AlmacenamientoDocumental/Inventario/IInventarioDocumentalRepository.cs`
+- ambos repositories usan `IDapperCrudEngine` con `InsertBeginTrandAsync`.
 
 ## Integracion transaccional esperada
 - El `StorageTransactionCoordinator` mantiene una sola transaccion para:
   - reserva de identidad,
   - insercion en gabinete,
   - insercion en inventario,
+  - actualizacion de estructura fisica/workflow,
   - commit unico.
 - Ante error en cualquiera de las fases, el flujo debe ejecutar rollback total.
 
+## Implementacion realizada en coordinator
+- Se inyectan `IGabineteStorageRepository` e `IInventarioDocumentalRepository`.
+- Se construyen los modelos con:
+  - `BuildGabineteInsertModel(...)`
+  - `BuildInventarioInsertModel(...)`
+- Se ejecuta secuencia:
+  1. `ReserveAsync(...)`
+  2. `GabineteStorageRepository.InsertAsync(...)`
+  3. `InventarioDocumentalRepository.InsertAsync(...)`
+  4. commit final.
+- `StorageTransactionResult.IdRegistroProduccionDocumental` retorna el id generado en inventario.
+
 ## DapperCrudEngine y QueryOptions
 - Regla obligatoria del cambio: operaciones de DB via `DapperCrudEngine + QueryOptions`.
-- Estado de evidencia en esta corrida:
-  - `MiApp.Repository` quedo `traceability_only` (sin diff funcional publicado).
-  - La evidencia detallada de metodos `InsertValues/ReturnGeneratedIdentity` debe quedar en el PR del repo repository cuando se promueva a `implementation_required`.
+- Estado de evidencia:
+  - repositorio implementado con `InsertBeginTrandAsync` para mantener inserciones dentro de la misma transaccion.
+  - validacion estricta de identificadores dinamicos para tabla y columnas.
+  - parametros de negocio enviados como parametros (sin interpolar valores de usuario en SQL).
 
 ## DI y contratos
 - `Program.cs` en API fue actualizado en PR satelite para registrar dependencias de la cadena storage.
 - Interfaces y contratos de coordinacion/transaccion ya estaban consolidados en SCRUM-166/167 y extendidos en los PRs de SCRUM-168.
 
 ## Limitaciones actuales documentadas
-- No hay PR de repository para este ticket en la corrida actual.
-- Validacion/implementacion concreta de insercion dinamica en tabla gabinete queda pendiente de confirmacion en repo de acceso a datos.
+- Pruebas de integracion/concurrencia agregadas en coordinator; validacion E2E con infraestructura completa sigue pendiente de cierre.
+- `dotnet test` integral del proyecto de pruebas actualmente bloqueado por resolucion de referencias MSBuild (`_GetProjectReferenceTargetFrameworkProperties`) fuera del alcance funcional puntual de SCRUM-168.
+- Sin archive final mientras no se complete merge de PRs satelite.

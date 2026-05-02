@@ -41,5 +41,5 @@
   - validar nombres contra patron y deduplicacion case-insensitive.
 - `Fallo insert inventario`:
   - confirmar rollback de la transaccion y estado de locks.
-- `MiApp.Repository sin diff publicado`:
-  - esperado cuando `sync.md` mantiene repo en `traceability_only`.
+- `IdRegistroProduccionDocumental null en respuesta`:
+  - verificar que el retorno de `InventarioDocumentalRepository.InsertAsync` se asigne en `StorageTransactionResult`.

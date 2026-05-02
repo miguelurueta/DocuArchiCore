@@ -32,9 +32,10 @@
 
 ## DapperCrudEngine
 - Regla del ticket: repositories deben resolver operaciones mediante `DapperCrudEngine + QueryOptions`.
-- Estado en esta corrida:
-  - sin diff funcional de `MiApp.Repository` en SCRUM-168.
-  - evidencia tecnica del uso exacto de `QueryOptions` queda pendiente de consolidacion en el PR de repository cuando se publique.
+- Estado actual:
+  - `MiApp.Repository` implemento insercion de gabinete e inventario usando `IDapperCrudEngine`.
+  - La construccion SQL dinamica se limita a identificadores validados.
+  - Los valores de negocio viajan como parametros para prevenir injection por payload.
 
 ## Deuda tecnica
 - Definir whitelist por metadata real de gabinete (`IStorageGabineteMetadataProvider`) para restringir columnas dinamicas permitidas.

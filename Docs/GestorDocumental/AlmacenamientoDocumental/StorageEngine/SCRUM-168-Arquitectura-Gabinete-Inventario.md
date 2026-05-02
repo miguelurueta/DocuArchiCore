@@ -83,10 +83,11 @@ La implementacion funcional fue publicada en PRs satelite:
 - MiApp.DTOs PR 60
 - MiApp.Services PR 112
 - MiApp.Models PR 27
+- MiApp.Repository: PR 58 (https://github.com/miguelurueta/MiApp.Repository/pull/58) con implementacion de insercion en gabinete e inventario
 
 En este repositorio coordinador se conserva la trazabilidad OpenSpec y gobernanza del flujo orquestado.
 
 ## Riesgos tecnicos y deuda
 - Confirmar metadata/whitelist de columnas dinamicas por gabinete en capa repository.
 - Confirmar limite final de `FULTEXT_DOCUMENTO`.
-- Validar cobertura de concurrencia real en integracion MySQL para rollback entre gabinete/inventario.
+- Validar cobertura de concurrencia real en integracion MySQL para rollback entre gabinete/inventario (ejecucion end-to-end de entorno completo pendiente en cierre final).
