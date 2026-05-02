@@ -106,8 +106,30 @@ namespace TramiteDiasVencimiento.Tests
                 FechaActualizacion = DateTime.UtcNow
             };
 
+            var transaction = new StorageTransactionResult
+            {
+                IdentityReservation = new StorageIdentityReservationResult
+                {
+                    Identity = new StorageIdentityModel
+                    {
+                        IdAlmacen = 22,
+                        Disco = 1,
+                        Carpeta = 1,
+                        NumeroPaginasCarpeta = 1
+                    }
+                },
+                Success = true,
+                Estado = StorageDocumentState.Reserved,
+                RequestId = "req-3",
+                FechaEjecucion = DateTime.UtcNow,
+                DuracionMs = 12,
+                DiskUsageUpdated = true,
+                WorkflowLogInserted = false
+            };
+
             Assert.Equal(StorageDocumentState.Pending, idem.Estado);
             Assert.Equal(StorageDocumentState.PhysicalFailed, physical.Estado);
+            Assert.True(transaction.Success);
             Assert.Equal(StorageDocumentState.PhysicalFailed, StorageDocumentState.PhysicalFailed);
         }
 
