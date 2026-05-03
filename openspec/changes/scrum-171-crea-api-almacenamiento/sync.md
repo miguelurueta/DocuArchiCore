@@ -12,7 +12,7 @@ Use this template at the start of each Jira ticket (`SCRUM-171`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | creación de `AlmacenamientoDocumentalController`, feature flag `StorageEngineV2` y registro DI | done | pending | pending | in_progress |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/86 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | pruebas unitarias del controller + alineación OpenSpec + documentación técnica SCRUM-171 | done | https://github.com/miguelurueta/DocuArchiCore/pull/229 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
