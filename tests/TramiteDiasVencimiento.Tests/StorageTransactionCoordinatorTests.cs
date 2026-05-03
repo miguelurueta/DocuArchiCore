@@ -6,8 +6,12 @@ using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Disk;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Gabinete;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.IndiceElectronico;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.UnidadConservacion;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using Moq;
@@ -24,6 +28,11 @@ namespace TramiteDiasVencimiento.Tests
             var identityAllocator = new Mock<IStorageIdentityAllocator>();
             var gabineteRepo = new Mock<IGabineteStorageRepository>();
             var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var expedienteRepo = new Mock<IExpedienteRepository>();
+            var unidadRepo = new Mock<IUnidadConservacionRepository>();
+            var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+            var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+            var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
@@ -59,6 +68,11 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 gabineteRepo.Object,
                 inventarioRepo.Object,
+                expedienteRepo.Object,
+                unidadRepo.Object,
+                indiceRepo.Object,
+                indiceCalculator.Object,
+                indiceBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -94,6 +108,11 @@ namespace TramiteDiasVencimiento.Tests
             var identityAllocator = new Mock<IStorageIdentityAllocator>();
             var gabineteRepo = new Mock<IGabineteStorageRepository>();
             var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var expedienteRepo = new Mock<IExpedienteRepository>();
+            var unidadRepo = new Mock<IUnidadConservacionRepository>();
+            var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+            var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+            var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
@@ -119,6 +138,11 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 gabineteRepo.Object,
                 inventarioRepo.Object,
+                expedienteRepo.Object,
+                unidadRepo.Object,
+                indiceRepo.Object,
+                indiceCalculator.Object,
+                indiceBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -135,6 +159,11 @@ namespace TramiteDiasVencimiento.Tests
             var identityAllocator = new Mock<IStorageIdentityAllocator>();
             var gabineteRepo = new Mock<IGabineteStorageRepository>();
             var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var expedienteRepo = new Mock<IExpedienteRepository>();
+            var unidadRepo = new Mock<IUnidadConservacionRepository>();
+            var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+            var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+            var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
             var connection = new Mock<IDbConnection>();
@@ -163,6 +192,11 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 gabineteRepo.Object,
                 inventarioRepo.Object,
+                expedienteRepo.Object,
+                unidadRepo.Object,
+                indiceRepo.Object,
+                indiceCalculator.Object,
+                indiceBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>(),
                 workflowRepo.Object);
@@ -173,7 +207,106 @@ namespace TramiteDiasVencimiento.Tests
             workflowRepo.Verify(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object), Times.Once);
         }
 
-        private static StorageContext BuildContext(int numeroPaginasDeclaradas, long? workflowTaskId)
+        [Fact]
+        public async Task ExecuteAsync_ShouldExecuteExpedienteIndicePhase_WhenExpedienteIsProvided()
+        {
+            var dbFactory = new Mock<IDbConnectionFactory>();
+            var identityAllocator = new Mock<IStorageIdentityAllocator>();
+            var gabineteRepo = new Mock<IGabineteStorageRepository>();
+            var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var expedienteRepo = new Mock<IExpedienteRepository>();
+            var unidadRepo = new Mock<IUnidadConservacionRepository>();
+            var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+            var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+            var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var connection = new Mock<IDbConnection>();
+            var transaction = new Mock<IDbTransaction>();
+
+            var context = BuildContext(numeroPaginasDeclaradas: 2, workflowTaskId: null, idExpediente: 99, idUnidadConservacion: 77);
+            var reservation = BuildReservation();
+            var expediente = new ExpedienteInfoModel
+            {
+                IdExpediente = 99,
+                IdUnidadConservacion = 77,
+                EstadoExpediente = 1,
+                EstadoExpedienteElectronico = 1,
+                NumeroFoliosContenidos = 10,
+                OrdenIndice = 2,
+                UltimaPaginaIndice = 8,
+                CodigoUnico = "EXP-99"
+            };
+            var unidad = new UnidadConservacionInfoModel
+            {
+                IdUnidadConservacion = 77,
+                CodigoUnico = "UC-77",
+                EstadoUnidadConservacion = 1,
+                NumeroFolioUnidadConservacion = 10
+            };
+            var calc = new IndiceElectronicoCalculationResult
+            {
+                NuevoOrden = 3,
+                PaginaInicial = 9,
+                PaginaFinal = 10,
+                NumeroFolios = 2
+            };
+            var insertModel = new IndiceElectronicoInsertModel
+            {
+                IdRegistroProduccionDocumental = 200,
+                IdExpediente = 99,
+                NombreDocumento = "doc",
+                TipologiaDocumental = "10",
+                FechaDeclaracionDocumento = DateTime.UtcNow,
+                FechaIncorporacionDocumento = DateTime.UtcNow,
+                ValorHuella = new string('A', 64),
+                OrdenDocumentoExpedicion = 3,
+                PaginaInicial = 9,
+                PaginaFinal = 10,
+                RutaDocumento = "tmp/f1",
+                NumeroFolios = 2
+            };
+
+            connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            connection.Setup(x => x.BeginTransaction(IsolationLevel.Serializable)).Returns(transaction.Object);
+            dbFactory.Setup(x => x.GetOpenConnectionAsync("db")).ReturnsAsync(connection.Object);
+            identityAllocator.Setup(x => x.ReserveAsync(context, connection.Object, transaction.Object)).ReturnsAsync(reservation);
+            gabineteRepo.Setup(x => x.InsertAsync(It.IsAny<GabineteInsertModel>(), connection.Object, transaction.Object)).ReturnsAsync(1);
+            inventarioRepo.Setup(x => x.InsertAsync(It.IsAny<InventarioInsertModel>(), connection.Object, transaction.Object)).ReturnsAsync(200L);
+            expedienteRepo.Setup(x => x.LockExpedienteAsync(99, connection.Object, transaction.Object)).ReturnsAsync(expediente);
+            unidadRepo.Setup(x => x.LockAsync(77, connection.Object, transaction.Object)).ReturnsAsync(unidad);
+            indiceCalculator.Setup(x => x.Calculate(expediente, 2)).Returns(calc);
+            expedienteRepo.Setup(x => x.UpdateIndiceAsync(expediente, calc, connection.Object, transaction.Object)).ReturnsAsync(1);
+            unidadRepo.Setup(x => x.UpdateFoliosAsync(unidad, calc, connection.Object, transaction.Object)).ReturnsAsync(1);
+            indiceBuilder.Setup(x => x.Build(context, 200L, expediente, calc)).Returns(insertModel);
+            indiceRepo.Setup(x => x.InsertAsync(insertModel, connection.Object, transaction.Object)).ReturnsAsync(900L);
+            diskRepo.Setup(x => x.LockDiskStatusAsync("gab", 2, connection.Object, transaction.Object))
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 8, NumPagCarp = 2 });
+            diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
+                .ReturnsAsync(1);
+
+            var coordinator = new StorageTransactionCoordinator(
+                dbFactory.Object,
+                identityAllocator.Object,
+                gabineteRepo.Object,
+                inventarioRepo.Object,
+                expedienteRepo.Object,
+                unidadRepo.Object,
+                indiceRepo.Object,
+                indiceCalculator.Object,
+                indiceBuilder.Object,
+                diskRepo.Object,
+                Mock.Of<ILogger<StorageTransactionCoordinator>>());
+
+            var result = await coordinator.ExecuteAsync(context);
+
+            Assert.True(result.Success);
+            expedienteRepo.Verify(x => x.LockExpedienteAsync(99, connection.Object, transaction.Object), Times.Once);
+            unidadRepo.Verify(x => x.LockAsync(77, connection.Object, transaction.Object), Times.Once);
+            indiceRepo.Verify(x => x.InsertAsync(insertModel, connection.Object, transaction.Object), Times.Once);
+            transaction.Verify(x => x.Commit(), Times.Once);
+        }
+
+        private static StorageContext BuildContext(int numeroPaginasDeclaradas, long? workflowTaskId, int? idExpediente = null, int? idUnidadConservacion = null)
         {
             return new StorageContext
             {
@@ -194,6 +327,14 @@ namespace TramiteDiasVencimiento.Tests
                     NumeroPaginasDeclaradas = numeroPaginasDeclaradas,
                     Trd = new TrdStorageDto { IdTipoDocumento = 10 },
                     Inventario = new InventarioDocumentalDto { IdUsuarioGestion = 1, IdEmpresa = 20, Radicado = "RAD-1" },
+                    Expediente = (idExpediente.HasValue || idUnidadConservacion.HasValue)
+                        ? new ExpedienteStorageDto
+                        {
+                            IdExpediente = idExpediente,
+                            IdUnidadConservacion = idUnidadConservacion,
+                            IdClaseDocumento = 1
+                        }
+                        : null,
                     Workflow = workflowTaskId.HasValue ? new WorkflowStorageDto { IdTareaWorkflow = workflowTaskId } : null,
                     Documentos = new[]
                     {
