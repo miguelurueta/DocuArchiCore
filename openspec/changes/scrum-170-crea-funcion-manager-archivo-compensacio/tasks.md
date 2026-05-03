@@ -22,4 +22,4 @@
 
 - [x] 4.1 Implementar pruebas unitarias de seguridad de rutas y fase física (`StoragePathResolverTests`, `StoragePhysicalPhaseExecutorTests`) y ajustar tests de orquestador.
 - [x] 4.2 Ejecutar `dotnet test` y documentar evidencia o bloqueo explícito. (Resultado: ejecución bloqueada durante restore/MSBuild sin errores C# detallados, condición de entorno preexistente).
-- [ ] 4.3 Ejecutar `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al cierre multi-repo.
+- [x] 4.3 Ejecutar `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al cierre multi-repo. (Publish ejecutado; PRs satélite y principal mergeados; archivo en ejecución de cierre).
