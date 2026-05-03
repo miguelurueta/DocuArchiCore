@@ -13,9 +13,11 @@ using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Gab
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.IndiceElectronico;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.UnidadConservacion;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using Moq;
 using Xunit;
 
@@ -35,6 +37,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
         var indiceRepo = new Mock<IIndiceElectronicoRepository>();
         var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
         var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+        var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+        var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
 
         var gabineteRepo = new GabineteStorageRepository(dapper.Object, Mock.Of<ILogger<GabineteStorageRepository>>());
         var inventarioRepo = new InventarioDocumentalRepository(dapper.Object, Mock.Of<ILogger<InventarioDocumentalRepository>>());
@@ -48,6 +52,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             indiceRepo.Object,
             indiceCalculator.Object,
             indiceBuilder.Object,
+            workflowRepo.Object,
+            workflowBuilder.Object,
             diskRepo.Object,
             Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -85,6 +91,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
         var indiceRepo = new Mock<IIndiceElectronicoRepository>();
         var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
         var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+        var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+        var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
 
         var gabineteRepo = new GabineteStorageRepository(dapper.Object, Mock.Of<ILogger<GabineteStorageRepository>>());
         var inventarioRepo = new InventarioDocumentalRepository(dapper.Object, Mock.Of<ILogger<InventarioDocumentalRepository>>());
@@ -98,6 +106,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             indiceRepo.Object,
             indiceCalculator.Object,
             indiceBuilder.Object,
+            workflowRepo.Object,
+            workflowBuilder.Object,
             diskRepo.Object,
             Mock.Of<ILogger<StorageTransactionCoordinator>>());
 

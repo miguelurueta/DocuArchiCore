@@ -11,9 +11,11 @@ using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Gab
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.IndiceElectronico;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.UnidadConservacion;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using Moq;
 using Xunit;
 
@@ -33,6 +35,8 @@ namespace TramiteDiasVencimiento.Tests
             var indiceRepo = new Mock<IIndiceElectronicoRepository>();
             var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
             var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+            var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+            var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
@@ -73,6 +77,8 @@ namespace TramiteDiasVencimiento.Tests
                 indiceRepo.Object,
                 indiceCalculator.Object,
                 indiceBuilder.Object,
+                workflowRepo.Object,
+                workflowBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -113,6 +119,8 @@ namespace TramiteDiasVencimiento.Tests
             var indiceRepo = new Mock<IIndiceElectronicoRepository>();
             var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
             var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+            var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+            var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
@@ -143,6 +151,8 @@ namespace TramiteDiasVencimiento.Tests
                 indiceRepo.Object,
                 indiceCalculator.Object,
                 indiceBuilder.Object,
+                workflowRepo.Object,
+                workflowBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -164,6 +174,7 @@ namespace TramiteDiasVencimiento.Tests
             var indiceRepo = new Mock<IIndiceElectronicoRepository>();
             var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
             var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+            var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
             var connection = new Mock<IDbConnection>();
@@ -184,8 +195,21 @@ namespace TramiteDiasVencimiento.Tests
                 .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 8, NumPagCarp = 2 });
             diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
                 .ReturnsAsync(1);
-            workflowRepo.Setup(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object))
-                .Returns(Task.CompletedTask);
+            var workflowModel = new WorkflowStorageLogModel
+            {
+                IdAlmacen = 11,
+                UsuarioOperacion = "u",
+                FechaTransaccion = DateTime.UtcNow.Date,
+                RutaDocumento = "tmp/f1",
+                NombreGabinete = "gab",
+                IdTareaWorkflow = 77,
+                IdRutaWorkflow = 9,
+                UsuarioPropietario = "u"
+            };
+            workflowBuilder.Setup(x => x.Build(context, It.IsAny<StorageTransactionResult>()))
+                .Returns(workflowModel);
+            workflowRepo.Setup(x => x.InsertAsync(workflowModel, connection.Object, transaction.Object))
+                .ReturnsAsync(1);
 
             var coordinator = new StorageTransactionCoordinator(
                 dbFactory.Object,
@@ -197,14 +221,15 @@ namespace TramiteDiasVencimiento.Tests
                 indiceRepo.Object,
                 indiceCalculator.Object,
                 indiceBuilder.Object,
+                workflowRepo.Object,
+                workflowBuilder.Object,
                 diskRepo.Object,
-                Mock.Of<ILogger<StorageTransactionCoordinator>>(),
-                workflowRepo.Object);
+                Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
             var result = await coordinator.ExecuteAsync(context);
 
             Assert.True(result.WorkflowLogInserted);
-            workflowRepo.Verify(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object), Times.Once);
+            workflowRepo.Verify(x => x.InsertAsync(workflowModel, connection.Object, transaction.Object), Times.Once);
         }
 
         [Fact]
@@ -219,6 +244,8 @@ namespace TramiteDiasVencimiento.Tests
             var indiceRepo = new Mock<IIndiceElectronicoRepository>();
             var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
             var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
+            var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+            var workflowBuilder = new Mock<IWorkflowStorageLogBuilder>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
@@ -294,6 +321,8 @@ namespace TramiteDiasVencimiento.Tests
                 indiceRepo.Object,
                 indiceCalculator.Object,
                 indiceBuilder.Object,
+                workflowRepo.Object,
+                workflowBuilder.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
