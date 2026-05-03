@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-170`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/85 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | orquestador OpenSpec central, pruebas y documentación técnica | done | https://github.com/miguelurueta/DocuArchiCore/pull/228 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/85 | done | archived |
+| DocuArchiCore | yes | implementation_required | orquestador OpenSpec central, pruebas y documentación técnica | done | https://github.com/miguelurueta/DocuArchiCore/pull/228 | done | archived |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | no | no_code_change | la fase física no requiere nuevos DTOs | n/a | n/a | n/a | n_a |
-| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/115 | pending | in_review |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/115 | done | archived |
 | MiApp.Repository | no | no_code_change | esta fase no accede a DB ni agrega repositories de datos | n/a | n/a | n/a | n_a |
-| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/30 | pending | in_review |
+| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/30 | done | archived |
 
 ## Operating Rule
 
