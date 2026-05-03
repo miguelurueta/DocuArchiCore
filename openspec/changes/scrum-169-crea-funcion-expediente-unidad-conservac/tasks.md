@@ -26,4 +26,4 @@
 - [x] 4.3 Ejecutar `dotnet test` y registrar evidencia (o bloqueo explicito externo al alcance). (Resultado: ejecución intentada; bloqueo en build MSBuild `_GetProjectReferenceTargetFrameworkProperties` con salida `ERROR al compilar` y sin errores C# detallados).
 - [x] 4.4 Actualizar `sync.md` y estado multi-repo con PRs satelite reales.
 - [x] 4.5 Completar documentacion tecnica SCRUM-169 (arquitectura, implementacion, pruebas, observabilidad, concurrencia, seguridad hash, metadata).
-- [ ] 4.6 Ejecutar `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al cierre de merges.
+- [ ] 4.6 Ejecutar `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al cierre de merges. (`publish` ejecutado; `archive` pendiente tras merge satélite).
