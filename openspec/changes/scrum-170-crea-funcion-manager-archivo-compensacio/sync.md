@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-170`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/228 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | registro DI de fase física FileSystem/XML/compensación | done | n/a | pending | tracked |
+| DocuArchiCore | yes | implementation_required | orquestador OpenSpec central, pruebas y documentación técnica | done | https://github.com/miguelurueta/DocuArchiCore/pull/228 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | no | no_code_change | la fase física no requiere nuevos DTOs | n/a | n/a | n/a | n_a |
+| MiApp.Services | yes | implementation_required | implementación de path resolver, file/xml writer, compensation manager y ejecutor físico | done | n/a | pending | tracked |
+| MiApp.Repository | no | no_code_change | esta fase no accede a DB ni agrega repositories de datos | n/a | n/a | n/a | n_a |
+| MiApp.Models | yes | implementation_required | ajuste de contrato `StoragePhysicalStatusModel` (`NombreArchivoFinal`) | done | n/a | pending | tracked |
 
 ## Operating Rule
 

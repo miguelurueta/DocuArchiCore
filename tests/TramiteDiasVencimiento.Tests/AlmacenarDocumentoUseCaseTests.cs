@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
@@ -82,9 +84,40 @@ namespace TramiteDiasVencimiento.Tests
             pipeline
                 .Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
                 .ReturnsAsync(new StorageValidationResult { IsValid = true });
+            var tx = new Mock<IStorageTransactionCoordinator>();
+            tx.Setup(x => x.ExecuteAsync(It.IsAny<StorageContext>()))
+                .ReturnsAsync(new StorageTransactionResult
+                {
+                    IdentityReservation = new StorageIdentityReservationResult
+                    {
+                        Identity = new StorageIdentityModel
+                        {
+                            IdAlmacen = 100,
+                            Disco = 1,
+                            Carpeta = 1,
+                            NumeroPaginasCarpeta = 2
+                        }
+                    },
+                    IdRegistroProduccionDocumental = 900,
+                    Success = true,
+                    Estado = StorageDocumentState.Reserved,
+                    RequestId = "req-abc",
+                    FechaEjecucion = DateTime.UtcNow,
+                    DuracionMs = 1
+                });
+            var physical = new Mock<IStoragePhysicalPhaseExecutor>();
+            physical.Setup(x => x.ExecuteAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
+                .ReturnsAsync(new StoragePhysicalStatusModel
+                {
+                    RequestId = "req-abc",
+                    IdAlmacen = 100,
+                    NombreArchivoFinal = "alm_100.pdf",
+                    Estado = StorageDocumentState.Completed,
+                    FechaActualizacion = DateTime.UtcNow
+                });
 
             var logger = new Mock<ILogger<DocumentStorageOrchestrator>>();
-            var orchestrator = new DocumentStorageOrchestrator(pipeline.Object, logger.Object);
+            var orchestrator = new DocumentStorageOrchestrator(pipeline.Object, tx.Object, physical.Object, logger.Object);
 
             var result = await orchestrator.ExecuteAsync(new StorageContext
             {
@@ -109,7 +142,8 @@ namespace TramiteDiasVencimiento.Tests
                 }
             });
 
-            Assert.Equal(StorageDocumentState.Pending, result.Estado);
+            Assert.Equal(StorageDocumentState.Completed, result.Estado);
+            Assert.Equal("alm_100.pdf", result.NombreArchivoFinal);
             Assert.Equal("req-abc", result.RequestId);
         }
     }
