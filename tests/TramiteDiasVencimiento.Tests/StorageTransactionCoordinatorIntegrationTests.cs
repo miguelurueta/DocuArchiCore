@@ -8,8 +8,12 @@ using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Repository.DataAccess;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Disk;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Gabinete;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.IndiceElectronico;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.UnidadConservacion;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using Moq;
@@ -26,6 +30,11 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
         var identityAllocator = BuildIdentityAllocator();
         var diskRepo = BuildDiskRepo();
         var dapper = BuildDapperEngine();
+        var expedienteRepo = new Mock<IExpedienteRepository>();
+        var unidadRepo = new Mock<IUnidadConservacionRepository>();
+        var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+        var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+        var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
 
         var gabineteRepo = new GabineteStorageRepository(dapper.Object, Mock.Of<ILogger<GabineteStorageRepository>>());
         var inventarioRepo = new InventarioDocumentalRepository(dapper.Object, Mock.Of<ILogger<InventarioDocumentalRepository>>());
@@ -34,6 +43,11 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             identityAllocator.Object,
             gabineteRepo,
             inventarioRepo,
+            expedienteRepo.Object,
+            unidadRepo.Object,
+            indiceRepo.Object,
+            indiceCalculator.Object,
+            indiceBuilder.Object,
             diskRepo.Object,
             Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
@@ -66,6 +80,11 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
         var identityAllocator = BuildIdentityAllocator();
         var diskRepo = BuildDiskRepo();
         var dapper = BuildDapperEngine(radicadoToFail: "RAD-FAIL");
+        var expedienteRepo = new Mock<IExpedienteRepository>();
+        var unidadRepo = new Mock<IUnidadConservacionRepository>();
+        var indiceRepo = new Mock<IIndiceElectronicoRepository>();
+        var indiceCalculator = new Mock<IIndiceElectronicoCalculator>();
+        var indiceBuilder = new Mock<IIndiceElectronicoBuilder>();
 
         var gabineteRepo = new GabineteStorageRepository(dapper.Object, Mock.Of<ILogger<GabineteStorageRepository>>());
         var inventarioRepo = new InventarioDocumentalRepository(dapper.Object, Mock.Of<ILogger<InventarioDocumentalRepository>>());
@@ -74,6 +93,11 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             identityAllocator.Object,
             gabineteRepo,
             inventarioRepo,
+            expedienteRepo.Object,
+            unidadRepo.Object,
+            indiceRepo.Object,
+            indiceCalculator.Object,
+            indiceBuilder.Object,
             diskRepo.Object,
             Mock.Of<ILogger<StorageTransactionCoordinator>>());
 
