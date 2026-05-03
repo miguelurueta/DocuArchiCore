@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-172`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/227 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | registro DI y wiring de workflow log | pending | n/a | pending | tracked |
+| DocuArchiCore | yes | implementation_required | orquestador OpenSpec y documentacion tecnica central | done | https://github.com/miguelurueta/DocuArchiCore/pull/227 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | no | no_code_change | contrato actual cubre workflow sin cambios DTO | n/a | n/a | n/a | n_a |
+| MiApp.Services | yes | implementation_required | builder workflow e integracion coordinator | pending | n/a | pending | tracked |
+| MiApp.Repository | yes | implementation_required | repositorio transaccional `logdocuarchi` con DapperCrudEngine | pending | n/a | pending | tracked |
+| MiApp.Models | yes | implementation_required | modelo `WorkflowStorageLogModel` | pending | n/a | pending | tracked |
 
 ## Operating Rule
 
