@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-178`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/88 | pending | in_review |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/233 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real (rama limpia) | done | https://github.com/miguelurueta/DocuArchi.Api/pull/89 | done | merged |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/233 | done | merged |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/63 | pending | in_review |
-| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/117 | pending | in_review |
-| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
-| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/32 | pending | in_review |
+| MiApp.DTOs | yes | traceability_only | sin diff funcional requerido para SCRUM-178 | n/a | n/a | done | tracked |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real (rama limpia) | done | https://github.com/miguelurueta/MiApp.Services/pull/118 | done | merged |
+| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | done | tracked |
+| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real (rama limpia) | done | https://github.com/miguelurueta/MiApp.Models/pull/33 | done | merged |
 
 ## Operating Rule
 
