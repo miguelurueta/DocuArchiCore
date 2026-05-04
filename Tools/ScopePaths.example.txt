@@ -1,0 +1,11 @@
+# Lista blanca de rutas permitidas para un ticket.
+# Una ruta por linea (prefijo relativo al repo).
+# Las lineas vacias y con # se ignoran.
+
+Service/GestorDocumental/AlmacenamientoDocumental
+Repositorio/GestorDocumental/AlmacenamientoDocumental
+Models/GestorDocumental/AlmacenamientoDocumental
+Controllers/GestorDocumental/AlmacenamientoDocumental
+Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine
+tests/TramiteDiasVencimiento.Tests
+openspec/changes
