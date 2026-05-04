@@ -24,14 +24,16 @@ namespace TramiteDiasVencimiento.Tests
             {
                 StorageRoot = @"C:\tmp",
                 RutaFinal = @"C:\tmp\final",
-                NombreArchivoPrincipal = "alm_10.pdf",
+                NombreArchivoPrincipal = "DIG00000010.pdf",
+                NombreXml = "FXL00000010.xml",
+                SegundoNombreDocumental = "DIG00000010.pdf",
                 ArchivosOrigen = new List<string> { @"C:\tmp\source.pdf" }
             };
 
-            planBuilder.Setup(x => x.BuildFilePlan(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
-                .Returns(plan);
+            planBuilder.Setup(x => x.BuildFilePlanAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
+                .ReturnsAsync(plan);
             fileWriter.Setup(x => x.CopyAsync(plan, It.IsAny<StorageCompensationPlan>(), "req-1"))
-                .ReturnsAsync(@"C:\tmp\final\alm_10.pdf");
+                .ReturnsAsync(@"C:\tmp\final\DIG00000010.pdf");
             xmlBuilder.Setup(x => x.BuildXmlModel(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
                 .Returns(new StorageXmlModel
                 {
@@ -47,7 +49,7 @@ namespace TramiteDiasVencimiento.Tests
                     It.IsAny<StorageXmlModel>(),
                     It.IsAny<StorageCompensationPlan>(),
                     "req-1"))
-                .ReturnsAsync(@"C:\tmp\final\alm_10.xml");
+                .ReturnsAsync(@"C:\tmp\final\FXL00000010.xml");
 
             var executor = new StoragePhysicalPhaseExecutor(
                 planBuilder.Object,
@@ -60,7 +62,7 @@ namespace TramiteDiasVencimiento.Tests
             var result = await executor.ExecuteAsync(BuildContext(), BuildTxResult());
 
             Assert.Equal(StorageDocumentState.Completed, result.Estado);
-            Assert.Equal("alm_10.pdf", result.NombreArchivoFinal);
+            Assert.Equal("DIG00000010.pdf", result.NombreArchivoFinal);
             compensation.Verify(x => x.ExecuteAsync(It.IsAny<StorageCompensationPlan>(), It.IsAny<string>()), Times.Never);
         }
 
@@ -77,12 +79,14 @@ namespace TramiteDiasVencimiento.Tests
             {
                 StorageRoot = @"C:\tmp",
                 RutaFinal = @"C:\tmp\final",
-                NombreArchivoPrincipal = "alm_10.pdf",
+                NombreArchivoPrincipal = "DIG00000010.pdf",
+                NombreXml = "FXL00000010.xml",
+                SegundoNombreDocumental = "DIG00000010.pdf",
                 ArchivosOrigen = new List<string> { @"C:\tmp\source.pdf" }
             };
 
-            planBuilder.Setup(x => x.BuildFilePlan(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
-                .Returns(plan);
+            planBuilder.Setup(x => x.BuildFilePlanAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
+                .ReturnsAsync(plan);
             fileWriter.Setup(x => x.CopyAsync(plan, It.IsAny<StorageCompensationPlan>(), "req-1"))
                 .ThrowsAsync(new StoragePhysicalException("copy failed"));
 
