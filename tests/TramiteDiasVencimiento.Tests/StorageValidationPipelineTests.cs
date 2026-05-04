@@ -23,37 +23,53 @@ namespace TramiteDiasVencimiento.Tests
         [Fact]
         public async Task PreindexValidator_ShouldSkip_WhenTipoIsNotBatchPreindex()
         {
+            var resolver = new Mock<IStoragePreindexResolver>(MockBehavior.Strict);
             var reader = new Mock<IStoragePreindexReader>(MockBehavior.Strict);
+            var integrator = new Mock<IStoragePreindexIntegrator>(MockBehavior.Strict);
             var logger = new Mock<ILogger<PreindexValidator>>();
-            var validator = new PreindexValidator(reader.Object, logger.Object);
+            var validator = new PreindexValidator(resolver.Object, reader.Object, integrator.Object, logger.Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(BuildContext(TipoAlmacenamientoEnum.Manual), errors);
 
             Assert.Empty(errors);
-            reader.Verify(x => x.ReadAsync(It.IsAny<StorageContext>()), Times.Never);
+            resolver.Verify(x => x.Resolve(It.IsAny<StorageContext>()), Times.Never);
+            reader.Verify(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()), Times.Never);
+            integrator.Verify(x => x.Integrate(It.IsAny<StorageContext>(), It.IsAny<StoragePreindexResult>()), Times.Never);
         }
 
         [Fact]
         public async Task PreindexValidator_ShouldReturnNotFound_WhenBatchAndNoFile()
         {
-            var reader = new Mock<IStoragePreindexReader>();
-            reader.Setup(x => x.ReadAsync(It.IsAny<StorageContext>()))
-                .ReturnsAsync(new StoragePreindexResult { Found = false });
+            var resolver = new Mock<IStoragePreindexResolver>();
+            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
+                .Returns(new StoragePreindexFile { Found = false });
 
-            var validator = new PreindexValidator(reader.Object, new Mock<ILogger<PreindexValidator>>().Object);
+            var reader = new Mock<IStoragePreindexReader>();
+            var integrator = new Mock<IStoragePreindexIntegrator>(MockBehavior.Strict);
+
+            var validator = new PreindexValidator(
+                resolver.Object,
+                reader.Object,
+                integrator.Object,
+                new Mock<ILogger<PreindexValidator>>().Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(BuildContext(TipoAlmacenamientoEnum.BatchPreindex), errors);
 
             Assert.Contains(errors, e => e.Code == "PREINDEX_NOT_FOUND");
+            reader.Verify(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()), Times.Never);
         }
 
         [Fact]
         public async Task PreindexValidator_ShouldReadValues_WhenBatchAndTxtValid()
         {
+            var resolver = new Mock<IStoragePreindexResolver>();
+            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
+                .Returns(new StoragePreindexFile { Found = true, SourceFile = "a.txt" });
+
             var reader = new Mock<IStoragePreindexReader>();
-            reader.Setup(x => x.ReadAsync(It.IsAny<StorageContext>()))
+            reader.Setup(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()))
                 .ReturnsAsync(new StoragePreindexResult
                 {
                     Found = true,
@@ -61,29 +77,132 @@ namespace TramiteDiasVencimiento.Tests
                     Values = new[] { "a", "b" }
                 });
 
+            var integrator = new StoragePreindexIntegrator();
             var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
-            var validator = new PreindexValidator(reader.Object, new Mock<ILogger<PreindexValidator>>().Object);
+            context.Command = new AlmacenarDocumentoCommand
+            {
+                NombreGabinete = context.Command!.NombreGabinete,
+                RutaTemporalId = context.Command.RutaTemporalId,
+                NombreDocumento = context.Command.NombreDocumento,
+                RequestId = context.Command.RequestId,
+                TipoAlmacenamiento = context.Command.TipoAlmacenamiento,
+                Documentos = context.Command.Documentos,
+                CamposIndexacion = new List<CampoIndexacionDto>
+                {
+                    new() { NombreCampo = "campo1", Valor = "" },
+                    new() { NombreCampo = "campo2", Valor = "" }
+                }
+            };
+            var validator = new PreindexValidator(
+                resolver.Object,
+                reader.Object,
+                integrator,
+                new Mock<ILogger<PreindexValidator>>().Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(context, errors);
 
             Assert.Empty(errors);
             Assert.Equal(2, context.PreindexValues.Count);
+            Assert.Equal("a", context.EffectiveCamposIndexacion[0].Valor);
+            Assert.Equal("b", context.EffectiveCamposIndexacion[1].Valor);
         }
 
         [Fact]
         public async Task PreindexValidator_ShouldReturnPathInvalid_WhenPathIsInvalid()
         {
-            var reader = new Mock<IStoragePreindexReader>();
-            reader.Setup(x => x.ReadAsync(It.IsAny<StorageContext>()))
-                .ThrowsAsync(new InvalidOperationException("PREINDEX_PATH_INVALID"));
+            var resolver = new Mock<IStoragePreindexResolver>();
+            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
+                .Throws(new InvalidOperationException("PREINDEX_PATH_INVALID"));
 
-            var validator = new PreindexValidator(reader.Object, new Mock<ILogger<PreindexValidator>>().Object);
+            var reader = new Mock<IStoragePreindexReader>();
+            var integrator = new Mock<IStoragePreindexIntegrator>(MockBehavior.Strict);
+
+            var validator = new PreindexValidator(
+                resolver.Object,
+                reader.Object,
+                integrator.Object,
+                new Mock<ILogger<PreindexValidator>>().Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(BuildContext(TipoAlmacenamientoEnum.BatchPreindex), errors);
 
             Assert.Contains(errors, e => e.Code == "PREINDEX_PATH_INVALID");
+        }
+
+        [Fact]
+        public async Task PreindexValidator_ShouldReturnMismatch_WhenValuesCountDoesNotMatchCampos()
+        {
+            var resolver = new Mock<IStoragePreindexResolver>();
+            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
+                .Returns(new StoragePreindexFile { Found = true, SourceFile = "a.txt" });
+
+            var reader = new Mock<IStoragePreindexReader>();
+            reader.Setup(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()))
+                .ReturnsAsync(new StoragePreindexResult
+                {
+                    Found = true,
+                    SourceFile = "a.txt",
+                    Values = new[] { "uno", "dos" }
+                });
+
+            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
+            var validator = new PreindexValidator(
+                resolver.Object,
+                reader.Object,
+                new StoragePreindexIntegrator(),
+                new Mock<ILogger<PreindexValidator>>().Object);
+            var errors = new List<StorageError>();
+
+            await validator.ValidateAsync(context, errors);
+
+            Assert.Contains(errors, e => e.Code == "PREINDEX_FIELDS_MISMATCH");
+        }
+
+        [Fact]
+        public async Task PreindexValidator_ShouldNotOverwriteManualValues_WhenPreindexHasData()
+        {
+            var resolver = new Mock<IStoragePreindexResolver>();
+            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
+                .Returns(new StoragePreindexFile { Found = true, SourceFile = "a.txt" });
+
+            var reader = new Mock<IStoragePreindexReader>();
+            reader.Setup(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()))
+                .ReturnsAsync(new StoragePreindexResult
+                {
+                    Found = true,
+                    SourceFile = "a.txt",
+                    Values = new[] { "pre-1", "pre-2" }
+                });
+
+            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
+            context.Command = new AlmacenarDocumentoCommand
+            {
+                NombreGabinete = context.Command!.NombreGabinete,
+                RutaTemporalId = context.Command.RutaTemporalId,
+                NombreDocumento = context.Command.NombreDocumento,
+                RequestId = context.Command.RequestId,
+                TipoAlmacenamiento = context.Command.TipoAlmacenamiento,
+                Documentos = context.Command.Documentos,
+                CamposIndexacion = new List<CampoIndexacionDto>
+                {
+                    new() { NombreCampo = "campo1", Valor = "manual-1" },
+                    new() { NombreCampo = "campo2", Valor = "" }
+                }
+            };
+
+            var validator = new PreindexValidator(
+                resolver.Object,
+                reader.Object,
+                new StoragePreindexIntegrator(),
+                new Mock<ILogger<PreindexValidator>>().Object);
+            var errors = new List<StorageError>();
+
+            await validator.ValidateAsync(context, errors);
+
+            Assert.Empty(errors);
+            Assert.Equal("manual-1", context.EffectiveCamposIndexacion[0].Valor);
+            Assert.Equal("pre-2", context.EffectiveCamposIndexacion[1].Valor);
         }
 
         [Fact]
