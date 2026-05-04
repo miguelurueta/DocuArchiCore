@@ -221,6 +221,44 @@ Archivar cambio:
 npm.cmd --prefix Tools/jira-open run opsxj:archive -- SCRUM-23
 ```
 
+## Control anti-contaminacion (obligatorio)
+
+Antes de `git push` en cada repo del ticket, ejecutar:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Check-BranchScope.ps1 -IssueKey SCRUM-179
+```
+
+Si quiere validar alcance de rutas (lista blanca):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Check-BranchScope.ps1 `
+  -IssueKey SCRUM-179 `
+  -AllowedPathsFile Tools/ScopePaths.example.txt
+```
+
+Que bloquea:
+
+- branch que no inicia con `SCRUM-179-...`
+- commits con otros issue keys (`SCRUM-177`, `SCRUM-178`, etc.)
+- archivos fuera del alcance permitido (si usa `-AllowedPathsFile`)
+
+Regla operativa:
+
+1. Si falla el check, no hacer push.
+2. Crear rama limpia desde `origin/main`.
+3. Reaplicar solo commits del ticket con `cherry-pick`.
+4. Abrir PR limpio y cerrar PR contaminado.
+
+Opcional (recomendado): instalar hook `pre-push` para que el bloqueo sea automatico:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Install-BranchScopePrePushHook.ps1 `
+  -IssueKey SCRUM-179 `
+  -AllowedPathsFile Tools/ScopePaths.example.txt `
+  -Force
+```
+
 ## Errores comunes
 
 - `No change found for issue key ...`:
