@@ -90,10 +90,15 @@ namespace TramiteDiasVencimiento.Tests
         public async Task GabineteRequiredFieldsValidator_ShouldReturnNotFound_WhenMetadataEmpty()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
-            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(Array.Empty<GabineteFieldMetadata>());
+            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ThrowsAsync(new InvalidOperationException("No existe metadata para gabinete"));
 
-            var validator = new GabineteRequiredFieldsValidator(provider.Object, new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>(MockBehavior.Strict);
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                requiredFieldsValidator.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(BuildContext(), errors);
@@ -102,14 +107,17 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task GabineteRequiredFieldsValidator_ShouldReturnMismatchAndRequiredEmpty()
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnMismatch_WhenCountDoesNotMatch()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
-            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new List<GabineteFieldMetadata>
+            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new GabineteMetadataResult
                 {
-                    new() { FieldName = "campo1", IsRequired = true, Orden = 1 },
-                    new() { FieldName = "campo2", IsRequired = false, Orden = 2 }
+                    Campos = new List<GabineteFieldMetadata>
+                    {
+                        new() { FieldName = "campo1", IsRequired = true, Orden = 1 },
+                        new() { FieldName = "campo2", IsRequired = false, Orden = 2 }
+                    }
                 });
 
             var context = BuildContext();
@@ -127,12 +135,54 @@ namespace TramiteDiasVencimiento.Tests
                 EvaluarCamposObligatorios = true
             };
 
-            var validator = new GabineteRequiredFieldsValidator(provider.Object, new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>();
+            requiredFieldsValidator
+                .Setup(v => v.Validate(
+                    It.IsAny<List<GabineteFieldMetadata>>(),
+                    It.IsAny<List<CampoIndexacionDto>>(),
+                    It.IsAny<bool>()))
+                .Throws(new InvalidOperationException("Cantidad de campos no coincide con metadata"));
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                requiredFieldsValidator.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
             var errors = new List<StorageError>();
 
             await validator.ValidateAsync(context, errors);
 
             Assert.Contains(errors, e => e.Code == "GAB_FIELDS_MISMATCH");
+        }
+
+        [Fact]
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnRequiredEmpty_WhenRequiredIsBlank()
+        {
+            var provider = new Mock<IStorageGabineteMetadataProvider>();
+            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new GabineteMetadataResult
+                {
+                    Campos = new List<GabineteFieldMetadata>
+                    {
+                        new() { FieldName = "campo1", IsRequired = true, Orden = 1 }
+                    }
+                });
+
+            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>();
+            requiredFieldsValidator
+                .Setup(v => v.Validate(
+                    It.IsAny<List<GabineteFieldMetadata>>(),
+                    It.IsAny<List<CampoIndexacionDto>>(),
+                    It.IsAny<bool>()))
+                .Throws(new InvalidOperationException("Campo obligatorio vacío: campo1"));
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                requiredFieldsValidator.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+
+            var errors = new List<StorageError>();
+            await validator.ValidateAsync(BuildContext(), errors);
+
             Assert.Contains(errors, e => e.Code == "GAB_REQUIRED_EMPTY");
         }
 
