@@ -18,7 +18,7 @@ Use this template at the start of each Jira ticket (`SCRUM-177`) to decide exact
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/62 | pending | in_review |
 | MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/116 | pending | in_review |
-| MiApp.Repository | yes | traceability_only | sin diff real publicado | n/a | n/a | pending | tracked |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/61 | pending | in_review |
 | MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/31 | pending | in_review |
 
 ## Operating Rule
