@@ -250,6 +250,15 @@ Regla operativa:
 3. Reaplicar solo commits del ticket con `cherry-pick`.
 4. Abrir PR limpio y cerrar PR contaminado.
 
+Opcional (recomendado): instalar hook `pre-push` para que el bloqueo sea automatico:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Install-BranchScopePrePushHook.ps1 `
+  -IssueKey SCRUM-179 `
+  -AllowedPathsFile Tools/ScopePaths.example.txt `
+  -Force
+```
+
 ## Errores comunes
 
 - `No change found for issue key ...`:
