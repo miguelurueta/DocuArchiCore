@@ -1,6 +1,7 @@
+using System;
 using System.Data;
 using Microsoft.Extensions.Logging;
-using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Repository.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
@@ -22,17 +23,15 @@ namespace TramiteDiasVencimiento.Tests
             connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
 
             var model = BuildModel();
-            model = new InventarioInsertModel
+            model = new InventarioDocumentalInsertModel
             {
                 IdUsuarioGestion = model.IdUsuarioGestion,
-                IdEmpresa = 0,
-                Radicado = model.Radicado,
-                FullText = model.FullText,
-                NumeroFolios = model.NumeroFolios,
-                IdAlmacen = model.IdAlmacen,
+                IdEmpresaDocumento = 0,
+                IdDocumentoDocuarchiAlmacen = model.IdDocumentoDocuarchiAlmacen,
                 NombreGabinete = model.NombreGabinete,
-                Formato = model.Formato,
-                Tamano = model.Tamano
+                NumeroFolios = model.NumeroFolios,
+                Tamano = model.Tamano,
+                Formato = model.Formato
             };
 
             await Assert.ThrowsAsync<StorageTransactionException>(() =>
@@ -61,17 +60,18 @@ namespace TramiteDiasVencimiento.Tests
             connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
 
             var model = BuildModel();
-            model = new InventarioInsertModel
+            model = new InventarioDocumentalInsertModel
             {
                 IdUsuarioGestion = model.IdUsuarioGestion,
-                IdEmpresa = model.IdEmpresa,
-                Radicado = model.Radicado,
-                FullText = new string('A', 1_000_100),
+                IdEmpresaDocumento = model.IdEmpresaDocumento,
+                RadicadoDocumento = model.RadicadoDocumento,
+                FullTextDocumento = new string('A', 1_000_100),
                 NumeroFolios = model.NumeroFolios,
-                IdAlmacen = model.IdAlmacen,
+                IdDocumentoDocuarchiAlmacen = model.IdDocumentoDocuarchiAlmacen,
                 NombreGabinete = model.NombreGabinete,
                 Formato = model.Formato,
-                Tamano = model.Tamano
+                Tamano = model.Tamano,
+                FechaDocumento = model.FechaDocumento
             };
 
             var id = await repo.InsertAsync(model, connection.Object, Mock.Of<IDbTransaction>());
@@ -80,6 +80,8 @@ namespace TramiteDiasVencimiento.Tests
             Assert.NotNull(captured);
             Assert.Equal("registro_producion_documental", captured!.TableName);
             Assert.Equal(1_000_000, ((string)captured.ReglasValidacionCampo["FULTEXT_DOCUMENTO"]).Length);
+            Assert.True(captured.ReglasValidacionCampo.ContainsKey("SEGUNDO_NOMBRE_DOCUMENTO"));
+            Assert.True(captured.ReglasValidacionCampo.ContainsKey("ID_TIPO_UNIDAD_DOCUMENTAL"));
         }
 
         [Fact]
@@ -104,19 +106,20 @@ namespace TramiteDiasVencimiento.Tests
                 repo.InsertAsync(BuildModel(), connection.Object, Mock.Of<IDbTransaction>()));
         }
 
-        private static InventarioInsertModel BuildModel()
+        private static InventarioDocumentalInsertModel BuildModel()
         {
-            return new InventarioInsertModel
+            return new InventarioDocumentalInsertModel
             {
                 IdUsuarioGestion = 1,
-                IdEmpresa = 10,
-                Radicado = "RAD-1",
-                FullText = "texto",
+                IdEmpresaDocumento = 10,
+                RadicadoDocumento = "RAD-1",
+                FullTextDocumento = "texto",
                 NumeroFolios = 4,
-                IdAlmacen = 100,
+                IdDocumentoDocuarchiAlmacen = 100,
                 NombreGabinete = "gabinete",
                 Formato = "pdf",
-                Tamano = "100kb"
+                Tamano = "100kb",
+                FechaDocumento = DateTime.UtcNow
             };
         }
     }

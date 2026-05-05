@@ -4,9 +4,14 @@ using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Inventario;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Disk;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Inventario;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Naming;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using Moq;
 using Xunit;
@@ -141,6 +146,125 @@ namespace TramiteDiasVencimiento.Tests
 
             Assert.True(result.WorkflowLogInserted);
             workflowRepo.Verify(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object), Times.Once);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ShouldInsertInventario_WhenOptionApplies()
+        {
+            var dbFactory = new Mock<IDbConnectionFactory>();
+            var identityAllocator = new Mock<IStorageIdentityAllocator>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var inventarioBuilder = new Mock<IInventarioDocumentalBuilder>();
+            var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var namingService = new Mock<IStorageNamingService>();
+            var connection = new Mock<IDbConnection>();
+            var transaction = new Mock<IDbTransaction>();
+
+            var context = BuildContext(numeroPaginasDeclaradas: 3, workflowTaskId: null);
+            context.ResolvedOptions = new StorageResolvedOptionsModel
+            {
+                NombreGabinete = "gab",
+                AplicaInventarioDocumental = true
+            };
+            context.PhysicalMetadata = new StorageDocumentPhysicalMetadata
+            {
+                TotalBytes = 1200,
+                TamanoLegacy = "1.17 Kb",
+                Formato = ".PDF",
+                NumeroPaginas = 3,
+                PaginasCalculadasDesdeArchivo = true
+            };
+
+            var reservation = BuildReservation();
+
+            connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            connection.Setup(x => x.BeginTransaction(IsolationLevel.Serializable)).Returns(transaction.Object);
+            dbFactory.Setup(x => x.GetOpenConnectionAsync("db")).ReturnsAsync(connection.Object);
+            identityAllocator.Setup(x => x.ReserveAsync(context, connection.Object, transaction.Object)).ReturnsAsync(reservation);
+            diskRepo.Setup(x => x.LockDiskStatusAsync("gab", 2, connection.Object, transaction.Object))
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 3, NumPagCarp = 2 });
+            diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
+                .ReturnsAsync(1);
+            namingService.Setup(x => x.Generate(11, ".PDF", It.IsAny<string?>()))
+                .Returns(new StorageNamingResult { NombreArchivoPrincipal = "DIG00000011.pdf", NombreXml = "FXL00000011.xml", SegundoNombre = "DIG00000011.pdf" });
+            inventarioBuilder.Setup(x => x.Build(context, reservation.Identity, It.IsAny<StorageNamingResult>()))
+                .Returns(new InventarioDocumentalBuildResult
+                {
+                    ShouldInsert = true,
+                    Model = new InventarioDocumentalInsertModel
+                    {
+                        IdUsuarioGestion = 1,
+                        IdEmpresaDocumento = 10,
+                        IdDocumentoDocuarchiAlmacen = 11,
+                        NombreGabinete = "gab",
+                        NumeroFolios = 3,
+                        Tamano = "1.17 Kb",
+                        Formato = ".PDF"
+                    }
+                });
+            inventarioRepo.Setup(x => x.InsertAsync(It.IsAny<InventarioDocumentalInsertModel>(), connection.Object, transaction.Object))
+                .ReturnsAsync(321);
+
+            var coordinator = new StorageTransactionCoordinator(
+                dbFactory.Object,
+                identityAllocator.Object,
+                diskRepo.Object,
+                Mock.Of<ILogger<StorageTransactionCoordinator>>(),
+                workflowStorageLogRepository: null,
+                inventarioBuilder: inventarioBuilder.Object,
+                inventarioRepository: inventarioRepo.Object,
+                namingService: namingService.Object);
+
+            var result = await coordinator.ExecuteAsync(context);
+
+            Assert.Equal(321, result.IdRegistroProduccionDocumental);
+            inventarioRepo.Verify(x => x.InsertAsync(It.IsAny<InventarioDocumentalInsertModel>(), connection.Object, transaction.Object), Times.Once);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ShouldSkipInventario_WhenOptionDisabled()
+        {
+            var dbFactory = new Mock<IDbConnectionFactory>();
+            var identityAllocator = new Mock<IStorageIdentityAllocator>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var inventarioBuilder = new Mock<IInventarioDocumentalBuilder>();
+            var inventarioRepo = new Mock<IInventarioDocumentalRepository>();
+            var namingService = new Mock<IStorageNamingService>();
+            var connection = new Mock<IDbConnection>();
+            var transaction = new Mock<IDbTransaction>();
+
+            var context = BuildContext(numeroPaginasDeclaradas: 3, workflowTaskId: null);
+            context.ResolvedOptions = new StorageResolvedOptionsModel
+            {
+                NombreGabinete = "gab",
+                AplicaInventarioDocumental = false
+            };
+
+            var reservation = BuildReservation();
+
+            connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            connection.Setup(x => x.BeginTransaction(IsolationLevel.Serializable)).Returns(transaction.Object);
+            dbFactory.Setup(x => x.GetOpenConnectionAsync("db")).ReturnsAsync(connection.Object);
+            identityAllocator.Setup(x => x.ReserveAsync(context, connection.Object, transaction.Object)).ReturnsAsync(reservation);
+            diskRepo.Setup(x => x.LockDiskStatusAsync("gab", 2, connection.Object, transaction.Object))
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 3, NumPagCarp = 2 });
+            diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
+                .ReturnsAsync(1);
+
+            var coordinator = new StorageTransactionCoordinator(
+                dbFactory.Object,
+                identityAllocator.Object,
+                diskRepo.Object,
+                Mock.Of<ILogger<StorageTransactionCoordinator>>(),
+                workflowStorageLogRepository: null,
+                inventarioBuilder: inventarioBuilder.Object,
+                inventarioRepository: inventarioRepo.Object,
+                namingService: namingService.Object);
+
+            var result = await coordinator.ExecuteAsync(context);
+
+            Assert.Null(result.IdRegistroProduccionDocumental);
+            inventarioRepo.Verify(x => x.InsertAsync(It.IsAny<InventarioDocumentalInsertModel>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()), Times.Never);
         }
 
         private static StorageContext BuildContext(int numeroPaginasDeclaradas, long? workflowTaskId)
