@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-180`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/238 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | registro DI para path service/policy/repository | done | pending | pending | in_progress |
+| DocuArchiCore | yes | implementation_required | orquestador openspec central + pruebas + documentación | done | https://github.com/miguelurueta/DocuArchiCore/pull/238 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | sin cambios funcionales de DTO en SCRUM-180 | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | implementación path service, policy, resolver y writers | done | pending | pending | in_progress |
+| MiApp.Repository | yes | implementation_required | repositorio ruta legacy `system1rut` | done | pending | pending | in_progress |
+| MiApp.Models | yes | implementation_required | nuevos modelos físicos de ruta legacy | done | pending | pending | in_progress |
 
 ## Operating Rule
 

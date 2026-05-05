@@ -5,6 +5,7 @@ using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Builders;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
 using Xunit;
 
 namespace TramiteDiasVencimiento.Tests
@@ -167,6 +168,8 @@ namespace TramiteDiasVencimiento.Tests
         {
             Assert.True(typeof(IStoragePlanBuilder).IsInterface);
             Assert.True(typeof(IStorageXmlBuilder).IsInterface);
+            Assert.True(typeof(IStoragePhysicalPathService).IsInterface);
+            Assert.True(typeof(IStorageFolderLegacyPolicy).IsInterface);
         }
     }
 }

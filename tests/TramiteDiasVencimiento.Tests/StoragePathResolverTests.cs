@@ -16,15 +16,24 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public void GetFinalFolder_ShouldReturnSafePath_WhenInputIsValid()
+        public void ResolveSafePath_ShouldReturnSafePath_WhenInputIsValid()
         {
             var resolver = new StoragePathResolver();
 
-            var path = resolver.GetFinalFolder("gabinete", 2, 5);
+            var path = resolver.ResolveSafePath(@"C:\storage-root", @"gab1\00001");
 
-            Assert.Contains("docuarchi", path, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("storage-engine", path, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("gabinete", path, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("storage-root", path, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("gab1", path, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("00001", path, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ResolveSafePath_ShouldThrow_WhenTraversalEscapesRoot()
+        {
+            var resolver = new StoragePathResolver();
+
+            Assert.Throws<StoragePhysicalException>(() =>
+                resolver.ResolveSafePath(@"C:\storage-root", @"..\outside"));
         }
     }
 }
