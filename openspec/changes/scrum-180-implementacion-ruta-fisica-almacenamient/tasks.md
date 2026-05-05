@@ -20,6 +20,6 @@
 
 - [x] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
 - [x] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.3 Validar y archivar con OpenSpec.
 
 Nota: `dotnet test` global del proyecto `TramiteDiasVencimiento.Tests` falla por errores preexistentes de baseline no relacionados con SCRUM-180 (constructores/contratos de otros módulos).
