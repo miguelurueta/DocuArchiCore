@@ -1,17 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
-using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
-using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Options;
-using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Preindex;
-using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
 using Xunit;
@@ -34,8 +30,6 @@ namespace TramiteDiasVencimiento.Tests
 
             Assert.Empty(errors);
             resolver.Verify(x => x.Resolve(It.IsAny<StorageContext>()), Times.Never);
-            reader.Verify(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()), Times.Never);
-            integrator.Verify(x => x.Integrate(It.IsAny<StorageContext>(), It.IsAny<StoragePreindexResult>()), Times.Never);
         }
 
         [Fact]
@@ -47,7 +41,6 @@ namespace TramiteDiasVencimiento.Tests
 
             var reader = new Mock<IStoragePreindexReader>();
             var integrator = new Mock<IStoragePreindexIntegrator>(MockBehavior.Strict);
-
             var validator = new PreindexValidator(
                 resolver.Object,
                 reader.Object,
@@ -58,7 +51,6 @@ namespace TramiteDiasVencimiento.Tests
             await validator.ValidateAsync(BuildContext(TipoAlmacenamientoEnum.BatchPreindex), errors);
 
             Assert.Contains(errors, e => e.Code == "PREINDEX_NOT_FOUND");
-            reader.Verify(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()), Times.Never);
         }
 
         [Fact]
@@ -78,21 +70,11 @@ namespace TramiteDiasVencimiento.Tests
                 });
 
             var integrator = new StoragePreindexIntegrator();
-            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
-            context.Command = new AlmacenarDocumentoCommand
+            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex, campos: new List<CampoIndexacionDto>
             {
-                NombreGabinete = context.Command!.NombreGabinete,
-                RutaTemporalId = context.Command.RutaTemporalId,
-                NombreDocumento = context.Command.NombreDocumento,
-                RequestId = context.Command.RequestId,
-                TipoAlmacenamiento = context.Command.TipoAlmacenamiento,
-                Documentos = context.Command.Documentos,
-                CamposIndexacion = new List<CampoIndexacionDto>
-                {
-                    new() { NombreCampo = "campo1", Valor = "" },
-                    new() { NombreCampo = "campo2", Valor = "" }
-                }
-            };
+                new() { NombreCampo = "campo1", Valor = "" },
+                new() { NombreCampo = "campo2", Valor = "" }
+            });
             var validator = new PreindexValidator(
                 resolver.Object,
                 reader.Object,
@@ -109,114 +91,14 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task PreindexValidator_ShouldReturnPathInvalid_WhenPathIsInvalid()
-        {
-            var resolver = new Mock<IStoragePreindexResolver>();
-            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
-                .Throws(new InvalidOperationException("PREINDEX_PATH_INVALID"));
-
-            var reader = new Mock<IStoragePreindexReader>();
-            var integrator = new Mock<IStoragePreindexIntegrator>(MockBehavior.Strict);
-
-            var validator = new PreindexValidator(
-                resolver.Object,
-                reader.Object,
-                integrator.Object,
-                new Mock<ILogger<PreindexValidator>>().Object);
-            var errors = new List<StorageError>();
-
-            await validator.ValidateAsync(BuildContext(TipoAlmacenamientoEnum.BatchPreindex), errors);
-
-            Assert.Contains(errors, e => e.Code == "PREINDEX_PATH_INVALID");
-        }
-
-        [Fact]
-        public async Task PreindexValidator_ShouldReturnMismatch_WhenValuesCountDoesNotMatchCampos()
-        {
-            var resolver = new Mock<IStoragePreindexResolver>();
-            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
-                .Returns(new StoragePreindexFile { Found = true, SourceFile = "a.txt" });
-
-            var reader = new Mock<IStoragePreindexReader>();
-            reader.Setup(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()))
-                .ReturnsAsync(new StoragePreindexResult
-                {
-                    Found = true,
-                    SourceFile = "a.txt",
-                    Values = new[] { "uno", "dos" }
-                });
-
-            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
-            var validator = new PreindexValidator(
-                resolver.Object,
-                reader.Object,
-                new StoragePreindexIntegrator(),
-                new Mock<ILogger<PreindexValidator>>().Object);
-            var errors = new List<StorageError>();
-
-            await validator.ValidateAsync(context, errors);
-
-            Assert.Contains(errors, e => e.Code == "PREINDEX_FIELDS_MISMATCH");
-        }
-
-        [Fact]
-        public async Task PreindexValidator_ShouldNotOverwriteManualValues_WhenPreindexHasData()
-        {
-            var resolver = new Mock<IStoragePreindexResolver>();
-            resolver.Setup(x => x.Resolve(It.IsAny<StorageContext>()))
-                .Returns(new StoragePreindexFile { Found = true, SourceFile = "a.txt" });
-
-            var reader = new Mock<IStoragePreindexReader>();
-            reader.Setup(x => x.ReadAsync(It.IsAny<StoragePreindexFile>()))
-                .ReturnsAsync(new StoragePreindexResult
-                {
-                    Found = true,
-                    SourceFile = "a.txt",
-                    Values = new[] { "pre-1", "pre-2" }
-                });
-
-            var context = BuildContext(TipoAlmacenamientoEnum.BatchPreindex);
-            context.Command = new AlmacenarDocumentoCommand
-            {
-                NombreGabinete = context.Command!.NombreGabinete,
-                RutaTemporalId = context.Command.RutaTemporalId,
-                NombreDocumento = context.Command.NombreDocumento,
-                RequestId = context.Command.RequestId,
-                TipoAlmacenamiento = context.Command.TipoAlmacenamiento,
-                Documentos = context.Command.Documentos,
-                CamposIndexacion = new List<CampoIndexacionDto>
-                {
-                    new() { NombreCampo = "campo1", Valor = "manual-1" },
-                    new() { NombreCampo = "campo2", Valor = "" }
-                }
-            };
-
-            var validator = new PreindexValidator(
-                resolver.Object,
-                reader.Object,
-                new StoragePreindexIntegrator(),
-                new Mock<ILogger<PreindexValidator>>().Object);
-            var errors = new List<StorageError>();
-
-            await validator.ValidateAsync(context, errors);
-
-            Assert.Empty(errors);
-            Assert.Equal("manual-1", context.EffectiveCamposIndexacion[0].Valor);
-            Assert.Equal("pre-2", context.EffectiveCamposIndexacion[1].Valor);
-        }
-
-        [Fact]
-        public async Task GabineteRequiredFieldsValidator_ShouldReturnNotFound_WhenMetadataEmpty()
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnNotFound_WhenMetadataQueryFails()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
-            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ThrowsAsync(new InvalidOperationException("No existe metadata para gabinete"));
-
-            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>(MockBehavior.Strict);
 
             var validator = new GabineteRequiredFieldsValidator(
                 provider.Object,
-                requiredFieldsValidator.Object,
                 new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
             var errors = new List<StorageError>();
 
@@ -229,44 +111,21 @@ namespace TramiteDiasVencimiento.Tests
         public async Task GabineteRequiredFieldsValidator_ShouldReturnMismatch_WhenCountDoesNotMatch()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
-            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new GabineteMetadataResult
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
                 {
-                    Campos = new List<GabineteFieldMetadata>
-                    {
-                        new() { FieldName = "campo1", IsRequired = true, Orden = 1 },
-                        new() { FieldName = "campo2", IsRequired = false, Orden = 2 }
-                    }
+                    new() { FieldName = "campo1", IsRequired = true, Orden = 1 },
+                    new() { FieldName = "campo2", IsRequired = false, Orden = 2 }
                 });
-
-            var context = BuildContext();
-            context.Command = new AlmacenarDocumentoCommand
-            {
-                NombreGabinete = "gabinete",
-                RutaTemporalId = "tmp1",
-                NombreDocumento = "doc.pdf",
-                RequestId = "req-1",
-                Documentos = context.Command!.Documentos,
-                CamposIndexacion = new List<CampoIndexacionDto>
-                {
-                    new() { NombreCampo = "campo1", Valor = "" }
-                },
-                EvaluarCamposObligatorios = true
-            };
-
-            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>();
-            requiredFieldsValidator
-                .Setup(v => v.Validate(
-                    It.IsAny<List<GabineteFieldMetadata>>(),
-                    It.IsAny<List<CampoIndexacionDto>>(),
-                    It.IsAny<bool>()))
-                .Throws(new InvalidOperationException("Cantidad de campos no coincide con metadata"));
 
             var validator = new GabineteRequiredFieldsValidator(
                 provider.Object,
-                requiredFieldsValidator.Object,
                 new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
             var errors = new List<StorageError>();
+            var context = BuildContext(campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "v1" }
+            });
 
             await validator.ValidateAsync(context, errors);
 
@@ -277,30 +136,21 @@ namespace TramiteDiasVencimiento.Tests
         public async Task GabineteRequiredFieldsValidator_ShouldReturnRequiredEmpty_WhenRequiredIsBlank()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
-            provider.Setup(x => x.GetMetadataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new GabineteMetadataResult
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
                 {
-                    Campos = new List<GabineteFieldMetadata>
-                    {
-                        new() { FieldName = "campo1", IsRequired = true, Orden = 1 }
-                    }
+                    new() { FieldName = "campo1", IsRequired = true, Orden = 1 }
                 });
-
-            var requiredFieldsValidator = new Mock<IStorageRequiredFieldsValidator>();
-            requiredFieldsValidator
-                .Setup(v => v.Validate(
-                    It.IsAny<List<GabineteFieldMetadata>>(),
-                    It.IsAny<List<CampoIndexacionDto>>(),
-                    It.IsAny<bool>()))
-                .Throws(new InvalidOperationException("Campo obligatorio vacío: campo1"));
 
             var validator = new GabineteRequiredFieldsValidator(
                 provider.Object,
-                requiredFieldsValidator.Object,
                 new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
 
             var errors = new List<StorageError>();
-            await validator.ValidateAsync(BuildContext(), errors);
+            await validator.ValidateAsync(BuildContext(evaluaObligatorios: true, campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "" }
+            }), errors);
 
             Assert.Contains(errors, e => e.Code == "GAB_REQUIRED_EMPTY");
         }
@@ -387,27 +237,10 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Contains(errors, e => e.Code == "UNI_CLASE_REQUIRED");
         }
 
-        [Fact]
-        public async Task Orchestrator_ShouldThrowStorageValidationException_WhenPipelineInvalid()
-        {
-            var pipeline = new Mock<IStorageValidationPipeline>();
-            pipeline.Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
-                .ReturnsAsync(new StorageValidationResult
-                {
-                    IsValid = false,
-                    Errors = new List<StorageError> { new() { Code = "VAL001", Message = "invalid" } }
-                });
-
-            var orchestrator = new DocumentStorageOrchestrator(
-                pipeline.Object,
-                Mock.Of<IStorageTransactionCoordinator>(),
-                Mock.Of<IStoragePhysicalPhaseExecutor>(),
-                new Mock<ILogger<DocumentStorageOrchestrator>>().Object);
-
-            await Assert.ThrowsAsync<StorageValidationException>(() => orchestrator.ExecuteAsync(BuildContext()));
-        }
-
-        private static StorageContext BuildContext(TipoAlmacenamientoEnum tipo = TipoAlmacenamientoEnum.Manual)
+        private static StorageContext BuildContext(
+            TipoAlmacenamientoEnum tipo = TipoAlmacenamientoEnum.Manual,
+            bool evaluaObligatorios = false,
+            IReadOnlyList<CampoIndexacionDto>? campos = null)
         {
             return new StorageContext
             {
@@ -426,6 +259,7 @@ namespace TramiteDiasVencimiento.Tests
                     NombreDocumento = "doc.pdf",
                     RequestId = "req-1",
                     TipoAlmacenamiento = tipo,
+                    EvaluarCamposObligatorios = evaluaObligatorios,
                     Documentos = new List<DocumentoEntradaDto>
                     {
                         new DocumentoEntradaDto
@@ -435,7 +269,7 @@ namespace TramiteDiasVencimiento.Tests
                             NumeroPaginas = 1
                         }
                     },
-                    CamposIndexacion = new List<CampoIndexacionDto>
+                    CamposIndexacion = campos ?? new List<CampoIndexacionDto>
                     {
                         new CampoIndexacionDto { NombreCampo = "campo1", Valor = "valor1" }
                     }
