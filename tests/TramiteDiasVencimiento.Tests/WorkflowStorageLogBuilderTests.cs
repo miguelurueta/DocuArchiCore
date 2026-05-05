@@ -1,6 +1,6 @@
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
-using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Physical;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using Xunit;
 
@@ -13,41 +13,50 @@ namespace TramiteDiasVencimiento.Tests
         {
             var builder = new WorkflowStorageLogBuilder();
             var context = BuildContext(idTareaWorkflow: 77);
-            var result = BuildResult(idAlmacen: 101);
+            var identity = BuildIdentity(idAlmacen: 101);
+            var naming = BuildNaming();
+            var path = BuildPath();
 
-            var model = builder.Build(context, result);
+            var result = builder.Build(context, identity, naming, path);
+            var model = result.Model!;
 
-            Assert.Equal(101, model.IdAlmacen);
-            Assert.Equal("Registra", model.DescripcionOperacion);
-            Assert.Equal("user-1", model.UsuarioOperacion);
-            Assert.Equal("gab", model.NombreGabinete);
-            Assert.Equal("tmp/doc-1.pdf", model.RutaDocumento);
+            Assert.True(result.ShouldInsert);
+            Assert.Equal("READY", result.Estado);
+            Assert.Equal(101, model.IdTran);
+            Assert.Equal("Registra", model.DescOp);
+            Assert.Equal("user-1", model.UserOper);
+            Assert.Equal("gab", model.Gabinete);
+            Assert.Equal(@"C:\storage\gab2\00001\DIG00000101.pdf", model.RutDocu);
             Assert.Equal("RAD-1", model.Radicado);
             Assert.Equal(77, model.IdTareaWorkflow);
             Assert.Equal(9, model.IdRutaWorkflow);
-            Assert.Equal("user-1", model.UsuarioPropietario);
-            Assert.Equal("10", model.TipologiaDocumental);
-            Assert.Equal("campoA:valorA|campoB:valorB", model.Campos);
+            Assert.Equal("user-1", model.UserPropietario);
+            Assert.Equal("TIPO-10", model.TipologiaDocumental);
+            Assert.Equal("|valorA|valorB", model.Campos);
+            Assert.Equal("10.1.1.20", model.IpTrans);
         }
 
         [Fact]
-        public void Build_ShouldThrow_WhenWorkflowTaskIsInvalid()
+        public void Build_ShouldReturnNoWorkflow_WhenWorkflowTaskIsInvalid()
         {
             var builder = new WorkflowStorageLogBuilder();
             var context = BuildContext(idTareaWorkflow: 0);
-            var result = BuildResult(idAlmacen: 101);
+            var identity = BuildIdentity(idAlmacen: 101);
 
-            Assert.Throws<StorageTransactionException>(() => builder.Build(context, result));
+            var result = builder.Build(context, identity, BuildNaming(), BuildPath());
+            Assert.False(result.ShouldInsert);
+            Assert.Equal("NO_WORKFLOW", result.Estado);
+            Assert.Null(result.Model);
         }
 
         [Fact]
-        public void Build_ShouldThrow_WhenIdAlmacenIsInvalid()
+        public void Build_ShouldThrow_WhenIdentityIsInvalid()
         {
             var builder = new WorkflowStorageLogBuilder();
             var context = BuildContext(idTareaWorkflow: 99);
-            var result = BuildResult(idAlmacen: 0);
+            var identity = BuildIdentity(idAlmacen: 0);
 
-            Assert.Throws<StorageTransactionException>(() => builder.Build(context, result));
+            Assert.Throws<InvalidOperationException>(() => builder.Build(context, identity, BuildNaming(), BuildPath()));
         }
 
         private static StorageContext BuildContext(long idTareaWorkflow)
@@ -69,7 +78,7 @@ namespace TramiteDiasVencimiento.Tests
                     NombreDocumento = "doc-1.pdf",
                     RequestId = "req-1",
                     NumeroPaginasDeclaradas = 2,
-                    Trd = new TrdStorageDto { IdTipoDocumento = 10 },
+                    Trd = new TrdStorageDto { IdTipoDocumento = 10, NombreTipoDocumento = "TIPO-10" },
                     Inventario = new InventarioDocumentalDto
                     {
                         IdUsuarioGestion = 1,
@@ -96,24 +105,40 @@ namespace TramiteDiasVencimiento.Tests
                         }
                     }
                 }
+                ,
+                IpTrans = "10.1.1.20"
             };
         }
 
-        private static StorageTransactionResult BuildResult(long idAlmacen)
+        private static StorageIdentityModel BuildIdentity(long idAlmacen)
         {
-            return new StorageTransactionResult
+            return new StorageIdentityModel
             {
-                IdentityReservation = new StorageIdentityReservationResult
-                {
-                    Identity = new StorageIdentityModel
-                    {
-                        IdAlmacen = idAlmacen,
-                        Disco = 1,
-                        Carpeta = 1,
-                        NumeroPaginasCarpeta = 2
-                    }
-                }
+                IdAlmacen = idAlmacen,
+                Disco = 2,
+                Carpeta = 1,
+                NumeroPaginasCarpeta = 2
             };
         }
+
+        private static StorageNamingResult BuildNaming() =>
+            new()
+            {
+                NombreArchivoPrincipal = "DIG00000101.pdf",
+                NombreXml = "FXL00000101.xml",
+                SegundoNombre = "SEGUNDO.pdf"
+            };
+
+        private static StoragePhysicalPathModel BuildPath() =>
+            new()
+            {
+                StorageRoot = @"C:\storage",
+                NombreGabinete = "gab",
+                Disco = 2,
+                Carpeta = 1,
+                RutaGabineteDisco = @"C:\storage\gab2",
+                CarpetaLegacy = "00001",
+                RutaFinal = @"C:\storage\gab2\00001"
+            };
     }
 }
