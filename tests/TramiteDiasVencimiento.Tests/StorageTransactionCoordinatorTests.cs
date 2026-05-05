@@ -13,8 +13,10 @@ using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inv
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Naming;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using Moq;
 using Xunit;
 
@@ -119,7 +121,9 @@ namespace TramiteDiasVencimiento.Tests
             var dbFactory = new Mock<IDbConnectionFactory>();
             var identityAllocator = new Mock<IStorageIdentityAllocator>();
             var diskRepo = new Mock<IStorageDiskQuotaRepository>();
-            var workflowRepo = new Mock<IWorkflowStorageLogRepository>();
+            var workflowLogService = new Mock<IWorkflowStorageLogService>();
+            var namingService = new Mock<IStorageNamingService>();
+            var pathService = new Mock<IStoragePhysicalPathService>();
             var connection = new Mock<IDbConnection>();
             var transaction = new Mock<IDbTransaction>();
 
@@ -134,7 +138,34 @@ namespace TramiteDiasVencimiento.Tests
                 .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 8, NumPagCarp = 2 });
             diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
                 .ReturnsAsync(1);
-            workflowRepo.Setup(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object))
+            namingService.Setup(x => x.Generate(
+                    It.IsAny<long>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string?>()))
+                .Returns(new StorageNamingResult
+                {
+                    NombreArchivoPrincipal = "DIG00000011.pdf",
+                    NombreXml = "FXL00000011.xml",
+                    SegundoNombre = "DIG00000011.pdf"
+                });
+            pathService.Setup(x => x.ResolveAsync(context, reservation.Identity))
+                .ReturnsAsync(new MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Physical.StoragePhysicalPathModel
+                {
+                    StorageRoot = @"C:\storage",
+                    NombreGabinete = "gab",
+                    Disco = 2,
+                    Carpeta = 1,
+                    RutaGabineteDisco = @"C:\storage\gab2",
+                    CarpetaLegacy = "00001",
+                    RutaFinal = @"C:\storage\gab2\00001"
+                });
+            workflowLogService.Setup(x => x.ExecuteAsync(
+                    context,
+                    reservation.Identity,
+                    It.IsAny<StorageNamingResult>(),
+                    It.IsAny<MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Physical.StoragePhysicalPathModel>(),
+                    connection.Object,
+                    transaction.Object))
                 .Returns(Task.CompletedTask);
 
             var coordinator = new StorageTransactionCoordinator(
@@ -142,12 +173,20 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>(),
-                workflowRepo.Object);
+                workflowStorageLogService: workflowLogService.Object,
+                namingService: namingService.Object,
+                storagePhysicalPathService: pathService.Object);
 
             var result = await coordinator.ExecuteAsync(context);
 
             Assert.True(result.WorkflowLogInserted);
-            workflowRepo.Verify(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object), Times.Once);
+            workflowLogService.Verify(x => x.ExecuteAsync(
+                context,
+                reservation.Identity,
+                It.IsAny<StorageNamingResult>(),
+                It.IsAny<MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Physical.StoragePhysicalPathModel>(),
+                connection.Object,
+                transaction.Object), Times.Once);
         }
 
         [Fact]
@@ -212,7 +251,7 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>(),
-                workflowStorageLogRepository: null,
+                workflowStorageLogService: null,
                 inventarioBuilder: inventarioBuilder.Object,
                 inventarioRepository: inventarioRepo.Object,
                 namingService: namingService.Object);
@@ -258,7 +297,7 @@ namespace TramiteDiasVencimiento.Tests
                 identityAllocator.Object,
                 diskRepo.Object,
                 Mock.Of<ILogger<StorageTransactionCoordinator>>(),
-                workflowStorageLogRepository: null,
+                workflowStorageLogService: null,
                 inventarioBuilder: inventarioBuilder.Object,
                 inventarioRepository: inventarioRepo.Object,
                 namingService: namingService.Object);

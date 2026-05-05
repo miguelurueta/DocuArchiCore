@@ -36,19 +36,20 @@ namespace TramiteDiasVencimiento.Tests
             var invalid = BuildModel();
             invalid = new WorkflowStorageLogModel
             {
-                IdAlmacen = 0,
-                UsuarioOperacion = invalid.UsuarioOperacion,
-                FechaTransaccion = invalid.FechaTransaccion,
-                RutaDocumento = invalid.RutaDocumento,
+                IdTran = 0,
+                DescOp = invalid.DescOp,
+                UserOper = invalid.UserOper,
+                DateTrans = invalid.DateTrans,
+                RutDocu = invalid.RutDocu,
                 ModuloRegistro = invalid.ModuloRegistro,
-                NombreGabinete = invalid.NombreGabinete,
+                Gabinete = invalid.Gabinete,
                 Campos = invalid.Campos,
-                IpTransaccion = invalid.IpTransaccion,
+                IpTrans = invalid.IpTrans,
                 HoraRegistro = invalid.HoraRegistro,
                 Radicado = invalid.Radicado,
                 IdTareaWorkflow = invalid.IdTareaWorkflow,
                 IdRutaWorkflow = invalid.IdRutaWorkflow,
-                UsuarioPropietario = invalid.UsuarioPropietario,
+                UserPropietario = invalid.UserPropietario,
                 TipologiaDocumental = invalid.TipologiaDocumental
             };
 
@@ -113,20 +114,20 @@ namespace TramiteDiasVencimiento.Tests
         {
             return new WorkflowStorageLogModel
             {
-                IdAlmacen = 11,
-                DescripcionOperacion = "Registra",
-                UsuarioOperacion = "user",
-                FechaTransaccion = DateTime.UtcNow.Date,
-                RutaDocumento = "tmp/doc-1.pdf",
+                IdTran = 11,
+                DescOp = "Registra",
+                UserOper = "user",
+                DateTrans = DateTime.UtcNow.Date,
+                RutDocu = "tmp/doc-1.pdf",
                 ModuloRegistro = "WORKFLOW",
-                NombreGabinete = "gab",
+                Gabinete = "gab",
                 Campos = "campoA:valorA",
-                IpTransaccion = string.Empty,
-                HoraRegistro = new TimeSpan(10, 20, 30),
+                IpTrans = string.Empty,
+                HoraRegistro = "10:20:30",
                 Radicado = "RAD-1",
                 IdTareaWorkflow = 77,
                 IdRutaWorkflow = 9,
-                UsuarioPropietario = "user",
+                UserPropietario = "user",
                 TipologiaDocumental = "10"
             };
         }

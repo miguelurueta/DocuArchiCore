@@ -13,3 +13,33 @@ Backend update requests MUST follow repository, architecture and testing constra
 #### Scenario: Missing implementation constraints
 - **WHEN** proposal/design/tasks are reviewed
 - **THEN** they explicitly include route confirmation, interface policy, DI registration, AppResponses/try-catch and test requirements
+
+### Requirement: Workflow log activation rule
+The system MUST insert `logdocuarchi` only when workflow task is present and greater than zero.
+
+#### Scenario: Workflow absent or disabled
+- **WHEN** command workflow is null, missing task id, or task id <= 0
+- **THEN** workflow log is not inserted
+
+#### Scenario: Workflow enabled
+- **WHEN** `Workflow.IdTareaWorkflow > 0`
+- **THEN** workflow log is built and inserted inside current DB transaction
+
+### Requirement: Legacy-compatible workflow log mapping
+Workflow log fields MUST preserve VB-compatible semantics for route, typology, fields, and identity.
+
+#### Scenario: Build legacy log payload
+- **WHEN** workflow logging applies
+- **THEN** `id_tran` uses storage identity (`IdAlmacen`)
+- **AND** `RUT_DOCU` uses physical final route plus DIG filename
+- **AND** `TIPOLOGIA_DOCUMENTAL` uses document typology description (not numeric id)
+- **AND** `CAMPOS` uses legacy format `|valor1|valor2|...`
+
+### Requirement: HTTP IP propagation to storage context
+The API MUST resolve requester IP and propagate it into storage context for workflow logging.
+
+#### Scenario: Resolve IP from HTTP context
+- **WHEN** storage endpoint is called
+- **THEN** controller resolves IP using standard proxy-aware helper
+- **AND** use case receives and stores the value in storage context (`IpTrans`)
+- **AND** workflow log uses `IP_TRANS` from this propagated value

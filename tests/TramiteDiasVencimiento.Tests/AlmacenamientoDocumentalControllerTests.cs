@@ -4,6 +4,7 @@ using DocuArchi.Api.Infrastructure.Features;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.DTOs.DTOs.Utilidades;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Services.Service.SessionHelper;
 using MiApp.Services.Service.Seguridad.Autorizacion.CurrentClaim;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -85,7 +86,8 @@ namespace TramiteDiasVencimiento.Tests
                     It.IsAny<AlmacenarDocumentoRequest>(),
                     "tenantA",
                     It.IsAny<string>(),
-                    25))
+                    25,
+                    It.IsAny<string?>()))
                 .ReturnsAsync(new AppResponses<AlmacenarDocumentoResponse?>
                 {
                     success = false,
@@ -113,7 +115,8 @@ namespace TramiteDiasVencimiento.Tests
                     It.IsAny<AlmacenarDocumentoRequest>(),
                     "tenantA",
                     "qa.user",
-                    99))
+                    99,
+                    It.IsAny<string?>()))
                 .ReturnsAsync(new AppResponses<AlmacenarDocumentoResponse?>
                 {
                     success = true,
@@ -159,11 +162,14 @@ namespace TramiteDiasVencimiento.Tests
         {
             useCase ??= Mock.Of<IAlmacenarDocumentoUseCase>();
             featureToggle ??= Mock.Of<IFeatureToggleService>(x => x.IsEnabledAsync("StorageEngineV2") == Task.FromResult(true));
+            var ipHelper = new Mock<IIpHelper>();
+            ipHelper.Setup(x => x.ObtenerDireccionIP(It.IsAny<HttpContext>())).Returns("10.0.0.10");
 
             var controller = new AlmacenamientoDocumentalController(
                 claimValidationService,
                 useCase,
                 featureToggle,
+                ipHelper.Object,
                 Mock.Of<ILogger<AlmacenamientoDocumentalController>>());
 
             var httpContext = new DefaultHttpContext();
