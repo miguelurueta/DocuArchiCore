@@ -152,16 +152,26 @@ namespace TramiteDiasVencimiento.Tests
                 Orden = 1
             };
 
-            var options = new StorageOptionsModel
+            var options = new StorageResolvedOptionsModel
             {
+                NombreGabinete = "gabinete",
                 AplicaInventarioDocumental = true,
                 AplicaTrd = true,
                 AplicaUnidadConservacion = true
             };
 
+            var systemOptions = new StorageSystemOptionsModel
+            {
+                NombreGabinete = "gabinete",
+                AplicaInventarioDocumental = 1,
+                AplicaTablaRetencion = 1,
+                AplicaUnidadConservacion = 1
+            };
+
             Assert.True(preindex.Found);
             Assert.Equal("CampoA", field.FieldName);
             Assert.True(options.AplicaInventarioDocumental);
+            Assert.Equal(1, systemOptions.AplicaInventarioDocumental);
         }
 
         [Fact]
