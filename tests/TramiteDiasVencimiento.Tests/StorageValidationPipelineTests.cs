@@ -160,7 +160,7 @@ namespace TramiteDiasVencimiento.Tests
         {
             var resolver = new Mock<IStorageOptionsResolver>();
             resolver.Setup(x => x.ResolveAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new StorageOptionsModel { AplicaInventarioDocumental = true });
+                .ReturnsAsync(new StorageResolvedOptionsModel { AplicaInventarioDocumental = true });
 
             var context = BuildContext();
             context.Command = new AlmacenarDocumentoCommand
@@ -186,7 +186,7 @@ namespace TramiteDiasVencimiento.Tests
         {
             var resolver = new Mock<IStorageOptionsResolver>();
             resolver.Setup(x => x.ResolveAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new StorageOptionsModel { AplicaTrd = true });
+                .ReturnsAsync(new StorageResolvedOptionsModel { AplicaTrd = true });
 
             var context = BuildContext();
             context.Command = new AlmacenarDocumentoCommand
@@ -215,7 +215,7 @@ namespace TramiteDiasVencimiento.Tests
         {
             var resolver = new Mock<IStorageOptionsResolver>();
             resolver.Setup(x => x.ResolveAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new StorageOptionsModel { AplicaUnidadConservacion = true });
+                .ReturnsAsync(new StorageResolvedOptionsModel { AplicaUnidadConservacion = true });
 
             var context = BuildContext();
             context.Command = new AlmacenarDocumentoCommand
