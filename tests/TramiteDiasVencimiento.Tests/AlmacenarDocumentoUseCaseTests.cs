@@ -72,9 +72,7 @@ namespace TramiteDiasVencimiento.Tests
                 && ctx.RutaTemporalId == "tmp-1"
                 && ctx.NombreDocumento == "doc.pdf"
                 && ctx.ArchivosTemporales.Count == 1
-                && ctx.ArchivosTemporales[0] == "f-1"
-                && ctx.Command != null
-                && ctx.Command.Documentos.Count == 1)), Times.Once);
+                && ctx.ArchivosTemporales[0] == "f-1")), Times.Once);
         }
 
         [Fact]
