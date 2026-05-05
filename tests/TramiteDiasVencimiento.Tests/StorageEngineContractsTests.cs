@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
@@ -21,8 +21,6 @@ namespace TramiteDiasVencimiento.Tests
                 RutaTemporalId = "tmp-1",
                 NombreDocumento = "doc.pdf",
                 RequestId = "req-1",
-                TipoAlmacenamiento = 1,
-                EvaluarCamposObligatorios = true,
                 Documentos = new List<DocumentoEntradaDto>
                 {
                     new DocumentoEntradaDto
@@ -31,6 +29,10 @@ namespace TramiteDiasVencimiento.Tests
                         ArchivoTemporalId = "file-1",
                         NumeroPaginas = 1
                     }
+                },
+                CamposIndexacion = new List<CampoIndexacionDto>
+                {
+                    new CampoIndexacionDto { NombreCampo = "campoA", Valor = "valorA" }
                 }
             };
 
@@ -41,14 +43,13 @@ namespace TramiteDiasVencimiento.Tests
                 NombreDocumento = request.NombreDocumento,
                 RequestId = request.RequestId,
                 Documentos = request.Documentos,
-                TipoAlmacenamiento = (TipoAlmacenamientoEnum)request.TipoAlmacenamiento,
-                EvaluarCamposObligatorios = request.EvaluarCamposObligatorios
+                CamposIndexacion = request.CamposIndexacion
             };
 
             Assert.Equal("file-1", request.Documentos[0].ArchivoTemporalId);
             Assert.Equal("req-1", command.RequestId);
-            Assert.Equal(TipoAlmacenamientoEnum.BatchPreindex, command.TipoAlmacenamiento);
-            Assert.True(command.EvaluarCamposObligatorios);
+            Assert.Equal(TipoAlmacenamientoEnum.Manual, command.TipoAlmacenamiento);
+            Assert.False(command.EvaluarCamposObligatorios);
         }
 
         [Fact]
@@ -131,7 +132,7 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(StorageDocumentState.Pending, idem.Estado);
             Assert.Equal(StorageDocumentState.PhysicalFailed, physical.Estado);
             Assert.True(transaction.Success);
-            Assert.Equal(StorageDocumentState.PhysicalFailed, StorageDocumentState.PhysicalFailed);
+            Assert.Equal(StorageDocumentState.Reserved, transaction.Estado);
         }
 
         [Fact]

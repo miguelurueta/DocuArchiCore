@@ -81,7 +81,7 @@ namespace TramiteDiasVencimiento.Tests
                         IdTareaWorkflow = idTareaWorkflow,
                         IdRutaWorkflow = 9
                     },
-                    CamposIndexacion =
+                    CamposIndexacion = new[]
                     {
                         new CampoIndexacionDto { NombreCampo = "campoA", Valor = "valorA" },
                         new CampoIndexacionDto { NombreCampo = "campoB", Valor = "valorB" }
