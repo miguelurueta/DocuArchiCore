@@ -1,5 +1,6 @@
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using Xunit;
@@ -107,6 +108,27 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal("FULLTEXT-CMD", result.Model!.FullTextDocumento);
         }
 
+        [Fact]
+        public void Build_ShouldPrioritizeIdTipoUnidadDocumental_FromExpedienteUnidadResult()
+        {
+            var context = BuildContext(aplicaInventario: true);
+            context.ExpedienteUnidadResult = new ExpedienteUnidadLegacyResult
+            {
+                Ejecutado = true,
+                IdTipoUnidadDocumental = 2,
+                TieneExpediente = true,
+                NumeroFolios = 7,
+                UnidadConservaTipo = UnidadConservaTipoEnum.Electronico
+            };
+
+            var result = _builder.Build(
+                context,
+                new StorageIdentityModel { IdAlmacen = 105 },
+                BuildNaming());
+
+            Assert.Equal(2, result.Model!.IdTipoUnidadDocumental);
+        }
+
         private static StorageContext BuildContext(bool aplicaInventario)
         {
             return new StorageContext
@@ -197,4 +219,3 @@ namespace TramiteDiasVencimiento.Tests
         }
     }
 }
-

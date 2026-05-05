@@ -235,6 +235,7 @@ namespace TramiteDiasVencimiento.Tests
 
             Assert.Contains(errors, e => e.Code == "EXP_CLASE_REQUIRED");
             Assert.Contains(errors, e => e.Code == "UNI_CLASE_REQUIRED");
+            Assert.Contains(errors, e => e.Code == "EXP_UNI_AMBIGUO");
         }
 
         private static StorageContext BuildContext(
@@ -278,3 +279,4 @@ namespace TramiteDiasVencimiento.Tests
         }
     }
 }
+

@@ -6,12 +6,14 @@ using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Disk;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Inventario;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Naming;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using Moq;
 using Xunit;
@@ -267,6 +269,65 @@ namespace TramiteDiasVencimiento.Tests
             inventarioRepo.Verify(x => x.InsertAsync(It.IsAny<InventarioDocumentalInsertModel>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()), Times.Never);
         }
 
+
+        [Fact]
+        public async Task ExecuteAsync_ShouldRunExpedienteUnidadService_WhenOptionApplies()
+        {
+            var dbFactory = new Mock<IDbConnectionFactory>();
+            var identityAllocator = new Mock<IStorageIdentityAllocator>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var expedienteUnidadService = new Mock<IExpedienteUnidadLegacyService>();
+            var connection = new Mock<IDbConnection>();
+            var transaction = new Mock<IDbTransaction>();
+
+            var context = BuildContext(numeroPaginasDeclaradas: 2, workflowTaskId: null);
+            context.ResolvedOptions = new StorageResolvedOptionsModel
+            {
+                NombreGabinete = "gab",
+                AplicaUnidadConservacion = true
+            };
+            context.PhysicalMetadata = new StorageDocumentPhysicalMetadata
+            {
+                TotalBytes = 100,
+                TamanoLegacy = "0.1 Kb",
+                Formato = ".PDF",
+                NumeroPaginas = 2,
+                PaginasCalculadasDesdeArchivo = true
+            };
+
+            var reservation = BuildReservation();
+
+            connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            connection.Setup(x => x.BeginTransaction(IsolationLevel.Serializable)).Returns(transaction.Object);
+            dbFactory.Setup(x => x.GetOpenConnectionAsync("db")).ReturnsAsync(connection.Object);
+            identityAllocator.Setup(x => x.ReserveAsync(context, connection.Object, transaction.Object)).ReturnsAsync(reservation);
+            diskRepo.Setup(x => x.LockDiskStatusAsync("gab", 2, connection.Object, transaction.Object))
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK", NumeroImagenes = 3, NumPagCarp = 2 });
+            diskRepo.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), connection.Object, transaction.Object))
+                .ReturnsAsync(1);
+            expedienteUnidadService.Setup(x => x.ExecuteAsync(context, connection.Object, transaction.Object))
+                .ReturnsAsync(new ExpedienteUnidadLegacyResult
+                {
+                    Ejecutado = true,
+                    TieneExpediente = true,
+                    IdTipoUnidadDocumental = 2,
+                    NumeroFolios = 2,
+                    UnidadConservaTipo = UnidadConservaTipoEnum.Electronico
+                });
+
+            var coordinator = new StorageTransactionCoordinator(
+                dbFactory.Object,
+                identityAllocator.Object,
+                diskRepo.Object,
+                Mock.Of<ILogger<StorageTransactionCoordinator>>(),
+                expedienteUnidadLegacyService: expedienteUnidadService.Object);
+
+            var result = await coordinator.ExecuteAsync(context);
+
+            Assert.NotNull(result.ExpedienteUnidadResult);
+            Assert.True(result.ExpedienteUnidadResult!.Ejecutado);
+            expedienteUnidadService.Verify(x => x.ExecuteAsync(context, connection.Object, transaction.Object), Times.Once);
+        }
         private static StorageContext BuildContext(int numeroPaginasDeclaradas, long? workflowTaskId)
         {
             return new StorageContext
@@ -319,3 +380,4 @@ namespace TramiteDiasVencimiento.Tests
         }
     }
 }
+
