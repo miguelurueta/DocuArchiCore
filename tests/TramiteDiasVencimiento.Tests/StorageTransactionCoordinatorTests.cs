@@ -143,6 +143,57 @@ namespace TramiteDiasVencimiento.Tests
             workflowRepo.Verify(x => x.InsertAsync(context, reservation, connection.Object, transaction.Object), Times.Once);
         }
 
+        [Fact]
+        public async Task ExecuteAsync_ShouldUsePhysicalMetadataPages_WhenAvailable()
+        {
+            var dbFactory = new Mock<IDbConnectionFactory>();
+            var identityAllocator = new Mock<IStorageIdentityAllocator>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var connection = new Mock<IDbConnection>();
+            var transaction = new Mock<IDbTransaction>();
+
+            var context = BuildContext(numeroPaginasDeclaradas: 1, workflowTaskId: null);
+            context.PhysicalMetadata = new MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata.StorageDocumentPhysicalMetadata
+            {
+                NumeroPaginas = 9
+            };
+            var reservation = BuildReservation();
+            var status = new DiskQuotaStatusModel
+            {
+                Disco = 2,
+                NombreGabinete = "gab",
+                EstadoDisco = "OK",
+                NumeroImagenes = 10,
+                NumPagCarp = 5
+            };
+
+            connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            connection.Setup(x => x.BeginTransaction(IsolationLevel.Serializable)).Returns(transaction.Object);
+            dbFactory.Setup(x => x.GetOpenConnectionAsync("db")).ReturnsAsync(connection.Object);
+            identityAllocator.Setup(x => x.ReserveAsync(context, connection.Object, transaction.Object)).ReturnsAsync(reservation);
+            diskRepo.Setup(x => x.LockDiskStatusAsync("gab", 2, connection.Object, transaction.Object)).ReturnsAsync(status);
+            diskRepo.Setup(x => x.UpdateDiskUsageAsync(
+                    It.IsAny<DiskQuotaUpdateModel>(),
+                    connection.Object,
+                    transaction.Object))
+                .ReturnsAsync(1);
+
+            var coordinator = new StorageTransactionCoordinator(
+                dbFactory.Object,
+                identityAllocator.Object,
+                diskRepo.Object,
+                Mock.Of<ILogger<StorageTransactionCoordinator>>());
+
+            await coordinator.ExecuteAsync(context);
+
+            diskRepo.Verify(x => x.UpdateDiskUsageAsync(
+                    It.Is<DiskQuotaUpdateModel>(m =>
+                        m.NuevoNumeroImagenes == 19),
+                    connection.Object,
+                    transaction.Object),
+                Times.Once);
+        }
+
         private static StorageContext BuildContext(int numeroPaginasDeclaradas, long? workflowTaskId)
         {
             return new StorageContext

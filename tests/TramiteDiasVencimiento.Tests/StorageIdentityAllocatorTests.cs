@@ -81,6 +81,62 @@ namespace TramiteDiasVencimiento.Tests
             diskPolicy.Verify(x => x.ValidateDiskAvailable(It.IsAny<DiskQuotaStatusModel?>()), Times.Once);
         }
 
+        [Fact]
+        public async Task ReserveAsync_ShouldUsePhysicalMetadataPages_WhenPresent()
+        {
+            var systemRepo = new Mock<ISystemStorageRepository>();
+            var diskRepo = new Mock<IStorageDiskQuotaRepository>();
+            var identityPolicy = new Mock<IStorageIdentityPolicy>();
+            var diskPolicy = new Mock<IStorageDiskQuotaPolicy>();
+
+            var systemRow = new SystemStorageRow { Disco = 2, ProxId = 10, TamDisc = 572523149, NumCarp = 1, NumPagCarp = 10 };
+            var reservation = new StorageIdentityReservationResult
+            {
+                Identity = new StorageIdentityModel { IdAlmacen = 11, Disco = 2, Carpeta = 1, NumeroPaginasCarpeta = 19 },
+                PreviousProxId = 10,
+                NewProxId = 11,
+                PreviousFolder = 1,
+                NewFolder = 1,
+                PreviousFolderPages = 10,
+                NewFolderPages = 19,
+                TamDisc = 572523149
+            };
+
+            systemRepo
+                .Setup(x => x.LockByGabineteAsync(It.IsAny<string>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+                .ReturnsAsync(systemRow);
+            identityPolicy
+                .Setup(x => x.Calculate(systemRow, 9))
+                .Returns(reservation);
+            diskRepo
+                .Setup(x => x.LockDiskStatusAsync(It.IsAny<string>(), 2, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK" });
+            systemRepo
+                .Setup(x => x.UpdateReservationAsync(It.IsAny<string>(), reservation, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+                .ReturnsAsync(1);
+
+            var allocator = new StorageIdentityAllocator(
+                systemRepo.Object,
+                identityPolicy.Object,
+                diskRepo.Object,
+                diskPolicy.Object,
+                Mock.Of<ILogger<StorageIdentityAllocator>>());
+
+            var context = BuildContext();
+            context.PhysicalMetadata = new MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata.StorageDocumentPhysicalMetadata
+            {
+                NumeroPaginas = 9
+            };
+
+            var conn = new Mock<IDbConnection>();
+            conn.SetupGet(x => x.State).Returns(ConnectionState.Open);
+
+            var result = await allocator.ReserveAsync(context, conn.Object, Mock.Of<IDbTransaction>());
+
+            Assert.Equal(11, result.Identity.IdAlmacen);
+            identityPolicy.Verify(x => x.Calculate(systemRow, 9), Times.Once);
+        }
+
         private static StorageContext BuildContext()
         {
             return new StorageContext
