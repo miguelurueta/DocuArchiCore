@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-180`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registro DI para path service/policy/repository | done | pending | pending | in_progress |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/92 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central + pruebas + documentación | done | https://github.com/miguelurueta/DocuArchiCore/pull/238 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | sin cambios funcionales de DTO en SCRUM-180 | pending | n/a | pending | tracked |
-| MiApp.Services | yes | implementation_required | implementación path service, policy, resolver y writers | done | pending | pending | in_progress |
-| MiApp.Repository | yes | implementation_required | repositorio ruta legacy `system1rut` | done | pending | pending | in_progress |
-| MiApp.Models | yes | implementation_required | nuevos modelos físicos de ruta legacy | done | pending | pending | in_progress |
+| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/65 | pending | in_review |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/121 | pending | in_review |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/63 | pending | in_review |
+| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/35 | pending | in_review |
 
 ## Operating Rule
 
