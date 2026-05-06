@@ -1,0 +1,31 @@
+﻿@startuml
+autonumber
+participant "Controller" as C
+participant "AlmacenarDocumentoUseCase" as UC
+participant "DocumentStorageOrchestrator" as OR
+
+C -> UC : ExecuteAsync(request, alias, usuario, usuarioId, ip)
+UC -> UC : validar request/alias/usuario/documentos
+
+alt request invalido
+  UC --> C : AppResponses{success=false, Validation}
+else request valido
+  UC -> UC : construir AlmacenarDocumentoCommand
+  UC -> UC : construir StorageContext
+  UC -> OR : ExecuteAsync(context)
+
+  alt StorageValidationException
+    OR --> UC : throw StorageValidationException
+    UC --> C : AppResponses{success=false, Validation + errores}
+  else StorageTransactionException
+    OR --> UC : throw StorageTransactionException
+    UC --> C : AppResponses{success=false, Error transaccional}
+  else StoragePhysicalException
+    OR --> UC : throw StoragePhysicalException
+    UC --> C : AppResponses{success=false, Error FS/XML}
+  else OK
+    OR --> UC : AlmacenarDocumentoResult
+    UC --> C : AppResponses{success=true, AlmacenarDocumentoResponse}
+  end
+end
+@enduml

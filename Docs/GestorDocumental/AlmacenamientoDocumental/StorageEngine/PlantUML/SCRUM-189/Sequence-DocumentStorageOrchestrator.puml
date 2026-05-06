@@ -1,0 +1,22 @@
+﻿@startuml
+autonumber
+participant "UseCase" as UC
+participant "DocumentStorageOrchestrator" as OR
+participant "IStoragePathResolver" as PR
+participant "IStorageDocumentMetadataAnalyzer" as MA
+
+UC -> OR : ExecuteAsync(context)
+OR -> OR : validar context y requestId
+
+opt metadataAnalyzer y pathResolver disponibles
+  loop por cada documento temporal
+    OR -> PR : GetTemporaryFilePath(rutaTemporalId, archivoTemporalId)
+    PR --> OR : rutaAbsolutaTemporal
+  end
+  OR -> MA : AnalyzeAsync(context, archivosOrigen)
+  MA --> OR : StorageDocumentPhysicalMetadata
+  OR -> OR : context.PhysicalMetadata = metadata
+end
+
+OR --> UC : AlmacenarDocumentoResult
+@enduml

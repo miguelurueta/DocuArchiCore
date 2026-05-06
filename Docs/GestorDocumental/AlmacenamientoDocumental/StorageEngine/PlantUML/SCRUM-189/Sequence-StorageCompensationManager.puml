@@ -1,0 +1,30 @@
+﻿@startuml
+autonumber
+participant "PhysicalExecutor" as PE
+participant "StorageCompensationManager" as CM
+participant "FileSystem" as FS
+
+PE -> CM : ExecuteAsync(compensationPlan, requestId)
+
+loop por cada lista de archivos (xml/final/tmp)
+  CM -> FS : Exists(path)?
+  alt existe
+    CM -> FS : Delete(path)
+    FS --> CM : OK
+  else no existe
+    FS --> CM : skip
+  end
+end
+
+loop directorios creados (descendente)
+  CM -> FS : Directory.Exists(dir) && Empty?
+  alt vacio
+    CM -> FS : Directory.Delete(dir, false)
+    FS --> CM : OK
+  else no vacio/error
+    FS --> CM : warning
+  end
+end
+
+CM --> PE : Task.CompletedTask
+@enduml
