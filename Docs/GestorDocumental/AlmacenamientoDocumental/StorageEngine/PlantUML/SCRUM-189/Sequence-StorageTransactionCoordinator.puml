@@ -1,0 +1,49 @@
+﻿@startuml
+autonumber
+participant "Orchestrator" as OR
+participant "StorageTransactionCoordinator" as TC
+participant "IDbConnectionFactory" as CF
+participant "IStorageIdentityAllocator" as IA
+participant "IStorageDiskQuotaRepository" as DQ
+participant "IInventarioDocumentalBuilder" as IB
+participant "IInventarioDocumentalRepository" as IR
+participant "IExpedienteUnidadLegacyService" as EU
+participant "IWorkflowStorageLogService" as WL
+database "MySQL" as DB
+
+OR -> TC : ExecuteAsync(context)
+TC -> CF : GetOpenConnectionAsync(alias)
+CF --> TC : connection
+TC -> DB : BEGIN TRANSACTION (Serializable)
+TC -> IA : ReserveAsync(context, connection, tx)
+IA --> TC : StorageIdentityReservationResult
+TC -> DQ : LockDiskStatusAsync(gabinete, disco)
+DQ --> TC : diskStatus
+TC -> DQ : UpdateDiskUsageAsync(...)
+DQ --> TC : rows=1
+
+opt context.ResolvedOptions.AplicaInventarioDocumental == true
+  TC -> IB : Build(context, identity, naming)
+  IB --> TC : buildResult
+  TC -> IR : InsertAsync(model, connection, tx)
+  IR --> TC : idRegistroProduccion
+end
+
+opt context.ResolvedOptions.AplicaUnidadConservacion == true
+  TC -> EU : ExecuteAsync(context, connection, tx)
+  EU --> TC : ExpedienteUnidadLegacyResult
+end
+
+opt workflow con IdTareaWorkflow > 0
+  TC -> WL : ExecuteAsync(context, identity, naming, physicalPath, connection, tx)
+  WL --> TC : OK
+end
+
+TC -> DB : COMMIT
+TC --> OR : StorageTransactionResult
+
+alt excepcion
+  TC -> DB : ROLLBACK
+  TC --> OR : throw StorageTransactionException
+end
+@enduml

@@ -1,0 +1,34 @@
+﻿@startuml
+autonumber
+participant "Orchestrator" as OR
+participant "StoragePhysicalPhaseExecutor" as PE
+participant "IStoragePlanBuilder" as PB
+participant "IStorageFileWriter" as FW
+participant "IStorageXmlBuilder" as XB
+participant "IStorageXmlWriter" as XW
+participant "IExpedienteIndiceXmlService" as EX
+participant "IStorageCompensationManager" as CM
+
+OR -> PE : ExecuteAsync(context, transactionResult)
+PE -> PB : BuildFilePlanAsync(context, txResult)
+PB --> PE : StorageFilePlanModel
+PE -> FW : CopyAsync(filePlan, compensationPlan, requestId)
+FW --> PE : primaryFile
+PE -> XB : BuildXmlModel(context, txResult)
+XB --> PE : xmlModel
+PE -> XW : WriteAsync(filePlan, xmlModel, compensationPlan, requestId)
+XW --> PE : OK
+
+opt servicio indice expediente configurado
+  PE -> EX : ExecuteAsync(context, txResult, naming, physicalPath)
+  EX --> PE : ExpedienteIndiceXmlUpdateResult
+end
+
+PE --> OR : StoragePhysicalStatusModel{Completed}
+
+alt exception en FS/XML
+  PE -> CM : ExecuteAsync(compensationPlan, requestId)
+  CM --> PE : OK
+  PE --> OR : throw StoragePhysicalException
+end
+@enduml

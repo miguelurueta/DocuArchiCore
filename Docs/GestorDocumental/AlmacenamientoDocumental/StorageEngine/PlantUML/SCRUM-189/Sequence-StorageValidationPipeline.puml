@@ -1,0 +1,20 @@
+﻿@startuml
+autonumber
+participant "Orchestrator" as OR
+participant "StorageValidationPipeline" as VP
+participant "IStorageValidator[*]" as V
+
+OR -> VP : ValidateAsync(context)
+VP -> VP : iniciar stopwatch + lista errors
+
+alt context nulo
+  VP -> VP : agregar error CTX_REQUIRED
+  VP --> OR : StorageValidationResult{IsValid=false}
+else context valido
+  loop validators ordenados por Order
+    VP -> V : ValidateAsync(context, errors)
+    V --> VP : errors actualizado
+  end
+  VP --> OR : StorageValidationResult{IsValid=(errors==0)}
+end
+@enduml
