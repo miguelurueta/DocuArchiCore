@@ -34,5 +34,5 @@
 ## 6. Cierre de Flujo OpenSpec
 
 - [x] 6.1 Commit/push en repos impactados (`MiApp.Services`, `DocuArchiCore`).
-- [ ] 6.2 Ejecutar `opsxj:orchestrate:publish -- SCRUM-190 -NonInteractive`.
-- [ ] 6.3 Verificar estado final en Jira y trazabilidad multi-repo.
+- [x] 6.2 Ejecutar `opsxj:orchestrate:publish -- SCRUM-190 -NonInteractive`.
+- [x] 6.3 Verificar estado final en Jira y trazabilidad multi-repo.
