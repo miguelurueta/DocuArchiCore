@@ -9,8 +9,8 @@
 
 - [x] 2.1 Definir en `design.md` la referencia legacy como fuente de verdad funcional.
 - [x] 2.2 Definir flujo obligatorio: Validation -> Metadata -> Transaction -> Physical -> Resultado.
-- [ ] 2.3 Incorporar en `spec.md` requisitos verificables de paridad contra legacy (orden y cortes).
-- [ ] 2.4 Corregir trazabilidad documental del ticket (SCRUM-190) en artefactos donde aplique.
+- [x] 2.3 Incorporar en `spec.md` requisitos verificables de paridad contra legacy (orden y cortes).
+- [x] 2.4 Corregir trazabilidad documental del ticket (SCRUM-190) en artefactos donde aplique.
 
 ## 3. Implementación Runtime
 
@@ -22,17 +22,17 @@
 ## 4. Validación Técnica
 
 - [x] 4.1 Compilar `MiApp.Services` en Release sin errores.
-- [ ] 4.2 Ejecutar pruebas unitarias focales del orquestador (o registrar brecha de pruebas automatizadas).
-- [ ] 4.3 Validar en evidencia que, si validation falla, no avanza a transaction ni physical.
+- [x] 4.2 Ejecutar pruebas unitarias focales del orquestador (o registrar brecha de pruebas automatizadas).
+- [x] 4.3 Validar en evidencia que, si validation falla, no avanza a transaction ni physical.
 
 ## 5. Documentación Técnica y Arquitectura
 
 - [x] 5.1 Crear documentos técnicos SCRUM-190 en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
 - [x] 5.2 Añadir sección explícita "Comparación contra legacy fuente" con hallazgos de cumplimiento y brechas.
-- [ ] 5.3 Publicar evidencia de compilación/pruebas y decisión de cierre.
+- [x] 5.3 Publicar evidencia de compilación/pruebas y decisión de cierre.
 
 ## 6. Cierre de Flujo OpenSpec
 
-- [ ] 6.1 Commit/push en repos impactados (`MiApp.Services`, `DocuArchiCore`).
+- [x] 6.1 Commit/push en repos impactados (`MiApp.Services`, `DocuArchiCore`).
 - [ ] 6.2 Ejecutar `opsxj:orchestrate:publish -- SCRUM-190 -NonInteractive`.
 - [ ] 6.3 Verificar estado final en Jira y trazabilidad multi-repo.

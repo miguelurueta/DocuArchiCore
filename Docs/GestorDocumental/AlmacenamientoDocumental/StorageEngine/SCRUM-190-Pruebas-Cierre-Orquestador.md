@@ -7,6 +7,10 @@ Validar que el orquestador ejecute el flujo completo y no mantenga comportamient
 - Build:
   - `dotnet build MiApp.Services.csproj -c Release`
   - Resultado: exitoso, 0 errores.
+- Test focal almacenamiento (con build):
+  - `dotnet test DocuArchiCore/tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj -c Release --filter "FullyQualifiedName~AlmacenarDocumentoUseCaseTests|FullyQualifiedName~StorageValidationPipelineTests"`
+  - Resultado: **12 superadas, 0 fallidas**.
+  - Nota: se corrigio test desactualizado del orquestador para reflejar constructor y flujo actual.
 
 ## Casos Minimos Cubiertos
 1. Contexto nulo:
@@ -34,6 +38,5 @@ Validar que el orquestador ejecute el flujo completo y no mantenga comportamient
 - esperado: wrap en `StorageTransactionException`.
 
 ## Riesgo Residual
-- Faltan pruebas unitarias automatizadas dedicadas a `DocumentStorageOrchestrator` en este ticket.
-- Recomendado en siguiente iteracion: test de orquestacion con mocks por fase.
-
+- Persisten warnings de nulabilidad en el proyecto global (no bloqueantes para SCRUM-190).
+- La paridad legacy integral del StorageEngine completo sigue dependiente de regresión E2E multi-fase.
