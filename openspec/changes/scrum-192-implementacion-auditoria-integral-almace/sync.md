@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-192`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | no | no_code_change | ticket de auditoria/documentacion sin cambios en API | n/a | n/a | n/a | n_a |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/256 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | no | no_code_change | ticket de auditoria/documentacion sin cambios DTO | n/a | n/a | n/a | n_a |
+| MiApp.Services | no | no_code_change | ticket de auditoria/documentacion sin cambios de servicio | n/a | n/a | n/a | n_a |
+| MiApp.Repository | no | no_code_change | ticket de auditoria/documentacion sin cambios de repositorio | n/a | n/a | n/a | n_a |
+| MiApp.Models | no | no_code_change | ticket de auditoria/documentacion sin cambios de modelos | n/a | n/a | n/a | n_a |
 
 ## Operating Rule
 
