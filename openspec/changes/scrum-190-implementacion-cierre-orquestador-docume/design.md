@@ -128,3 +128,8 @@ SCRUM-189-Metadata.md Debe incluir: - eliminación de stubs
 - Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
 - Definir alcance y no-alcance antes de implementar.
 - Validar con openspec.cmd validate scrum-190-implementacion-cierre-orquestador-docume.
+
+## Correcciones de Trazabilidad
+
+- Aunque el prompt referenciaba documentos bajo `SCRUM-189`, para este cambio la evidencia técnica y arquitectura deben publicarse bajo prefijo `SCRUM-190` para mantener consistencia Jira/OpenSpec/repositorio.
+- La comparación contra la función legacy fuente es obligatoria y debe quedar evidenciada en tareas y documentación del ticket actual.

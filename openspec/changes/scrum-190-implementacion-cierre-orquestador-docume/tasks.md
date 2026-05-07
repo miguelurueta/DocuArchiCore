@@ -1,23 +1,38 @@
-## 1. Discovery
+## 1. Discovery y Paridad Legacy
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-190 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Revisar issue Jira SCRUM-190 y confirmar que el objetivo es cierre runtime del orquestador.
+- [x] 1.2 Revisar fuente legacy obligatoria: `D:\imagenesda\GestorDocumental\promp\CORE-API\Almacenamiento\funcion-almacena-consolidad.txt`.
+- [x] 1.3 Identificar brecha inicial: orquestador con stub (`Task.CompletedTask`, `IdAlmacen=0`, `Pending`).
+- [x] 1.4 Construir matriz de paridad de flujo (orden de fases, condiciones de corte, errores) VB vs C#.
 
-## 2. Specs
+## 2. Spec y Diseño
 
-- [ ] 2.1 Completar specs/jira-scrum-190/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Definir en `design.md` la referencia legacy como fuente de verdad funcional.
+- [x] 2.2 Definir flujo obligatorio: Validation -> Metadata -> Transaction -> Physical -> Resultado.
+- [ ] 2.3 Incorporar en `spec.md` requisitos verificables de paridad contra legacy (orden y cortes).
+- [ ] 2.4 Corregir trazabilidad documental del ticket (SCRUM-190) en artefactos donde aplique.
 
-## 3. Application
+## 3. Implementación Runtime
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Eliminar stub en `DocumentStorageOrchestrator`.
+- [x] 3.2 Conectar dependencias reales de pipeline, metadata, transacción y fase física.
+- [x] 3.3 Implementar manejo centralizado de excepciones (`StorageException` y no tipadas).
+- [x] 3.4 Garantizar resultado final con `IdAlmacen > 0` y estado no `Pending`.
 
-## 4. Test
+## 4. Validación Técnica
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Compilar `MiApp.Services` en Release sin errores.
+- [ ] 4.2 Ejecutar pruebas unitarias focales del orquestador (o registrar brecha de pruebas automatizadas).
+- [ ] 4.3 Validar en evidencia que, si validation falla, no avanza a transaction ni physical.
+
+## 5. Documentación Técnica y Arquitectura
+
+- [x] 5.1 Crear documentos técnicos SCRUM-190 en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
+- [x] 5.2 Añadir sección explícita "Comparación contra legacy fuente" con hallazgos de cumplimiento y brechas.
+- [ ] 5.3 Publicar evidencia de compilación/pruebas y decisión de cierre.
+
+## 6. Cierre de Flujo OpenSpec
+
+- [ ] 6.1 Commit/push en repos impactados (`MiApp.Services`, `DocuArchiCore`).
+- [ ] 6.2 Ejecutar `opsxj:orchestrate:publish -- SCRUM-190 -NonInteractive`.
+- [ ] 6.3 Verificar estado final en Jira y trazabilidad multi-repo.
