@@ -33,6 +33,12 @@ The storage engine MUST generate XML document metadata compatible with legacy co
 ### Requirement: Expediente index XML update consistency
 The storage engine MUST update expediente index XML safely and consistently.
 
+#### Scenario: Expediente XML route is resolved from expediente routing table
+- **GIVEN** an expediente eligible for índice electrónico update
+- **WHEN** XML índice route is resolved
+- **THEN** route source is `ra_ruta_expediente` (`RUTA`, `DISCO`) + expediente id zero-fill
+- **AND** this route is independent from `SYSTEM1RUT`
+
 #### Scenario: Safe update of `DocumentoIndizado`
 - **WHEN** expediente electrónico branch applies
 - **THEN** index XML is updated with `DocumentoIndizado` entry

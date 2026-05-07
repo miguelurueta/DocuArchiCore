@@ -14,6 +14,7 @@
 | Regla Legacy VB | Componente C# objetivo | Estado |
 |---|---|---|
 | Ruta final basada en configuracion gabinete/disco/carpeta | `StoragePhysicalPathService` + `StoragePlanBuilder` | En validacion SCRUM-191 |
+| Ruta XML índice expediente desde `ra_ruta_expediente` (no `SYSTEM1RUT`) | `ExpedienteIndiceXmlRepository` + `ExpedienteIndiceXmlService` | En validacion SCRUM-191 |
 | Nombre principal `DIG########.ext` | `StorageFileWriter`/naming service | En validacion SCRUM-191 |
 | Adjuntos `.0000+` | `StorageFileWriter` | En validacion SCRUM-191 |
 | XML `Gabinetes/Gabinete` con atributos | `StorageXmlWriter` | En validacion SCRUM-191 |

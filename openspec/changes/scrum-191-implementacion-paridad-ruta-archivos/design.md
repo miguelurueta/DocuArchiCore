@@ -60,6 +60,10 @@ Estas desviaciones pueden romper compatibilidad con visor y trazabilidad documen
 5. Regresión legacy:
 - cualquier desviación debe quedar explícita como "Cumple con desviación aprobada".
 
+6. Separación de rutas por tipo de artefacto:
+- `StorageFileWriter` y `StorageXmlWriter` usan ruta de almacenamiento documental (`SYSTEM1RUT`).
+- `ExpedienteIndiceXmlWriter` actualiza ruta resuelta por expediente (`ra_ruta_expediente`), independiente de `SYSTEM1RUT`.
+
 ## Risk Analysis
 
 - Riesgo: ruta final no compatible con legado.

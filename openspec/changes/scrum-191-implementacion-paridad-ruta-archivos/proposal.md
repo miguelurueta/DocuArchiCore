@@ -10,6 +10,9 @@ Esto afecta interoperabilidad con visor y procesos documentales históricos.
 ## What Changes
 
 - Implementar paridad física real desde `SYSTEM1RUT` + gabinete + disco + carpeta.
+- Mantener separación de rutas legacy:
+  - almacenamiento documental (`SYSTEM1RUT`) para binario principal/adjuntos + XML FXL,
+  - XML índice de expediente desde `ra_ruta_expediente` (`RUTA` + `DISCO` + `id_expediente` zero-fill).
 - Asegurar naming legacy `DIG########.ext`, `FXL########.xml` y adjuntos `.0000`, `.0001`.
 - Alinear estructura XML documental y actualización XML índice expediente con semántica legacy.
 - Fortalecer compensación física post-commit y hardening de rutas.

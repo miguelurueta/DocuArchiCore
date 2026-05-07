@@ -33,6 +33,11 @@ Este ticket implementa (o deja especificado para implementacion en repos satelit
 
 ## 4) XML indice de expediente
 - Componente: `ExpedienteIndiceXmlWriter`.
+- Fuente de ruta legacy (diferente a almacenamiento documental):
+  - `ra_ruta_expediente.RUTA`
+  - `ra_ruta_expediente.DISCO`
+  - `id_expediente` con zero-fill a 9
+- Nota: esta ruta es independiente de `SYSTEM1RUT`.
 - Regla:
   - agregar `DocumentoIndizado` en `tipodocumentoFoliado`
   - escritura segura con archivo temporal y reemplazo atomico
