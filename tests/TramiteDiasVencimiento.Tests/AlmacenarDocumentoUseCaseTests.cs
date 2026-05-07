@@ -4,7 +4,12 @@ using Microsoft.Extensions.Logging;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
 using Xunit;
 
@@ -76,11 +81,35 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task Orchestrator_DefaultImplementation_ShouldReturnPending()
+        public async Task Orchestrator_ShouldThrowValidationException_WhenPipelineIsInvalid()
         {
-            var orchestrator = new DocumentStorageOrchestrator(new Mock<ILogger<DocumentStorageOrchestrator>>().Object);
+            var logger = new Mock<ILogger<DocumentStorageOrchestrator>>();
+            var pipeline = new Mock<IStorageValidationPipeline>();
+            var metadata = new Mock<IStorageDocumentMetadataAnalyzer>();
+            var pathResolver = new Mock<IStoragePathResolver>();
+            var txCoordinator = new Mock<IStorageTransactionCoordinator>();
+            var physicalExecutor = new Mock<IStoragePhysicalPhaseExecutor>();
 
-            var result = await orchestrator.ExecuteAsync(new StorageContext
+            pipeline
+                .Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
+                .ReturnsAsync(new StorageValidationResult
+                {
+                    IsValid = false,
+                    Errors = new List<StorageError>
+                    {
+                        new StorageError { Code = "TEST", Message = "validation failed" }
+                    }
+                });
+
+            var orchestrator = new DocumentStorageOrchestrator(
+                logger.Object,
+                pipeline.Object,
+                metadata.Object,
+                pathResolver.Object,
+                txCoordinator.Object,
+                physicalExecutor.Object);
+
+            await Assert.ThrowsAsync<StorageValidationException>(() => orchestrator.ExecuteAsync(new StorageContext
             {
                 DefaultDbAlias = "db",
                 Usuario = "usr",
@@ -90,10 +119,11 @@ namespace TramiteDiasVencimiento.Tests
                 RutaTemporalId = "tmp-1",
                 NombreDocumento = "doc.pdf",
                 ArchivosTemporales = new List<string> { "f-1" }
-            });
+            }));
 
-            Assert.Equal(StorageDocumentState.Pending, result.Estado);
-            Assert.Equal("req-abc", result.RequestId);
+            pipeline.Verify(x => x.ValidateAsync(It.IsAny<StorageContext>()), Times.Once);
+            txCoordinator.Verify(x => x.ExecuteAsync(It.IsAny<StorageContext>()), Times.Never);
+            physicalExecutor.Verify(x => x.ExecuteAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()), Times.Never);
         }
     }
 }
