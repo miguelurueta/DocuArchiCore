@@ -56,4 +56,4 @@
 - [x] 9.1 Actualizar documentación técnica en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
 - [x] 9.2 Actualizar `Docs/GestorDocumental/AlmacenamientoDocumental/Arquitectura-Final/` con diseño y operación upload 30GB.
 - [x] 9.3 Ejecutar `openspec.cmd validate scrum-195-implementacion-api-upload-streaming`.
-- [ ] 9.4 Continuar flujo `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive`.
+- [x] 9.4 Continuar flujo `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive`.
