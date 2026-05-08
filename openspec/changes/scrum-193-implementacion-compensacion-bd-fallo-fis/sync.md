@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-193`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | traceability_only | ticket centrado en motor de almacenamiento; API sin cambio contractual | pending | n/a | pending | tracked |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/258 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | traceability_only | no se definen DTOs nuevos ni cambios de contrato API en SCRUM-193 | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | implementar `IStorageDbCompensationService` e integración en orquestador post-fallo físico | pending | n/a | pending | in_progress |
+| MiApp.Repository | yes | implementation_required | operaciones de compensación por tabla con control transaccional/idempotente | pending | n/a | pending | in_progress |
+| MiApp.Models | yes | implementation_required | modelos `StorageCompensationDbPlan` y `StorageCompensationDbResult` | pending | n/a | pending | in_progress |
 
 ## Operating Rule
 
