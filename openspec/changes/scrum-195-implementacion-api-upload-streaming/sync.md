@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-195`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| DocuArchi.Api | yes | implementation_required | nuevos endpoints upload-temporal + integración validación previa almacenamiento | pending | n/a | pending | pending |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/259 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.DTOs | yes | implementation_required | DTOs init/chunk/status/complete/cancel y respuestas estándar upload | pending | n/a | pending | pending |
+| MiApp.Services | yes | implementation_required | servicios de streaming/chunk, ensamblaje, hash, política y cleanup | pending | n/a | pending | pending |
+| MiApp.Repository | yes | implementation_required | persistencia de sesión upload temporal y estado de chunks | pending | n/a | pending | pending |
+| MiApp.Models | yes | implementation_required | modelos de sesión temporal, estados y metadatos upload | pending | n/a | pending | pending |
 
 ## Operating Rule
 
@@ -30,9 +30,9 @@ Rows with `Impacta? = no` must stay as `n/a` to make scope explicit.
 
 ## Typical API Change Pattern
 
-- `DocuArchi.Api`: usually yes
-- `MiApp.Services`: usually yes
-- `MiApp.Repository`: usually yes
-- `MiApp.DTOs`: usually yes
-- `MiApp.Models`: optional (only if model changes)
-- `DocuArchiCore` / `DocuArchiCore.Web`: only if coordinator or UI is in scope
+- `DocuArchi.Api`: yes (upload endpoints and integration guard)
+- `MiApp.Services`: yes (streaming/chunk/upload orchestration)
+- `MiApp.Repository`: yes (session state persistence)
+- `MiApp.DTOs`: yes (upload request/response contracts)
+- `MiApp.Models`: yes (domain models for upload state)
+- `DocuArchiCore`: yes (OpenSpec + docs + orchestrated flow)

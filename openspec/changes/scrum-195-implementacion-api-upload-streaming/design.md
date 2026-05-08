@@ -1,348 +1,169 @@
 ## Context
 
-- Jira issue key: SCRUM-195
-- Jira summary: IMPLEMENTACION-API-UPLOAD-STREAMING
-- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-195
+- Jira issue key: `SCRUM-195`
+- Jira summary: `IMPLEMENTACION-API-UPLOAD-STREAMING`
+- Change: `scrum-195-implementacion-api-upload-streaming`
 
-## Context Reference
+Referencias:
+- `openspec/context/multi-repo-context.md`
+- `openspec/context/OPSXJ_BACKEND_RULES.md`
+- `Docs/Publicacion/*` (IIS deployment and env vars)
 
-- openspec/context/multi-repo-context.md
-- openspec/context/OPSXJ_BACKEND_RULES.md
+## Problem
 
-## Problem Statement
+El endpoint actual de almacenamiento recibe JSON con referencias temporales y no puede recibir binario directo en forma robusta para archivos grandes.  
+Integraciones externas requieren subir documentos de alto tamaño (hasta 30GB) sin agotar memoria ni romper la paridad funcional del motor de almacenamiento.
 
-PROMPT ARQUITECTÓNICO — ORCHESTRATOR / API PROMPT 24 (REV C) — Upload Temporal Enterprise para Archivos Grandes hasta 30GB (IIS + Streaming + Chunked Upload + Integración Storage Engine) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto Master Backend .NET experto en: Core Web API IIS / Windows Server streaming y carga chunked resiliencia de red y reintentos seguridad documental operación enterprise y observabilidad integración con Storage Engine DocuArchi sin regresiones ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar carga temporal para archivos de hasta 30GB sin romper el flujo actual: Upload temporal chunked seguro. AlmacenarDocumento consume RutaTemporalId + ArchivoTemporalId . El endpoint final de almacenamiento NO recibe binario ni URL externa. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DECISIÓN ARQUITECTÓNICA CLAVE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Para 30GB: NO usar upload monolítico. NO cargar archivo completo en memoria. NO usar IFormFile como mecanismo principal para carga grande. SÍ usar application/octet-stream + Request.Body por chunk. SÍ usar sesión de upload con estado persistente. SÍ usar ensamblaje final controlado + hash final. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACLARACIÓN TÉCNICA IIS (OBLIGATORIA) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Aunque el objetivo funcional sea 30GB, IIS no debe recibir una sola request de 30GB. Regla: El archivo total (30GB) se soporta por múltiples chunks . Cada request de chunk debe estar dentro de límites seguros (ej. 10MB–50MB). No depender de maxAllowedContentLength=30GB para request única. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ FLUJO GENERAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Cliente externo: Init upload session. Enviar chunks ( PUT ) en paralelo o secuencial. Consultar estado/reintentar chunks fallidos. Completar upload (ensamble + validación hash/tamaño). Invocar POST /almacenamiento con referencias temporales. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENDPOINTS REQUERIDOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1) Iniciar upload POST /api/gestor-documental/almacenamiento/upload-temporal/init Request: {
-  "nombreOriginal": "documento.pdf",
-  "tamanoBytes": 32212254720,
-  "extension": ".pdf",
-  "hashSha256Esperado": "opcional",
-  "numeroChunks": 3200
-}
+## Architectural Decision
 
-Response:
+Implementar flujo de **2 pasos**:
 
-{
-  "rutaTemporalId": "rt_xxxxx",
-  "archivoTemporalId": "af_xxxxx.pdf",
-  "chunkSizeBytes": 10485760,
-  "estado": "IN_PROGRESS"
-}
+1. **Upload temporal chunked** (streaming a disco por chunk).
+2. **Persistencia documental final** usando el endpoint actual con `RutaTemporalId + ArchivoTemporalId`.
 
-### 2) Subir chunk
+### Constraints
 
-PUT /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/chunk/{chunkIndex}
+- No usar request monolítica de 30GB.
+- No usar `IFormFile` como mecanismo principal para archivo completo.
+- No aceptar URL externa en endpoint final.
+- No cambiar semántica del Storage Engine final.
 
-Headers:
+## High-Level Flow
 
-- Content-Length
-- X-Chunk-Index
-- X-Chunk-Size
-- X-Total-Chunks
-- X-Upload-Session-Id
+1. Cliente inicia sesión de upload (`init`).
+2. Cliente envía chunks (`PUT` octet-stream).
+3. API persiste chunks y actualiza estado.
+4. Cliente consulta estado (`status`) y reintenta chunks fallidos.
+5. Cliente completa upload (`complete`): ensamble, hash, tamaño, estado `COMPLETED`.
+6. Cliente llama `POST /almacenamiento` con referencias temporales.
+7. API de almacenamiento valida sesión/ownership/estado y ejecuta flujo existente.
 
-Body:
+## API Surface
 
-- application/octet-stream
+### Upload
 
-### 3) Estado
+- `POST /api/gestor-documental/almacenamiento/upload-temporal/init`
+- `PUT /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/chunk/{chunkIndex}`
+- `GET /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/status`
+- `POST /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/complete`
+- `DELETE /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}`
 
-GET /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/status
+### Storage final
 
-### 4) Completar
+- Se mantiene `POST /api/gestor-documental/almacenamiento` sin binario.
 
-POST /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}/complete
+## Data and Session Model
 
-Validar:
+### Upload session metadata
 
-- chunks completos
-- tamaño final
-- hash final
-- extensión permitida
-- ownership usuario
+Campos mínimos:
+- `RutaTemporalId`
+- `ArchivoTemporalId`
+- `UsuarioId`
+- `TamanoBytesEsperado`
+- `TamanoBytesRecibido`
+- `NumeroChunks`
+- `ChunksRecibidos` / bitmap equivalente
+- `HashSha256Esperado` (opcional)
+- `HashSha256Calculado`
+- `Estado` (`IN_PROGRESS|COMPLETED|FAILED|CANCELLED|EXPIRED`)
+- `CreatedAt`, `CompletedAt`, `ExpiresAt`
 
-### 5) Cancelar
+### Persistence choice
 
-DELETE /api/gestor-documental/almacenamiento/upload-temporal/{rutaTemporalId}/{archivoTemporalId}
+Requerido estado persistente (no solo memoria).  
+Opciones permitidas:
+- Tabla MySQL dedicada.
+- Redis con TTL + snapshot/metadata en DB.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## INTEGRACIÓN CON ALMACENARDOCUMENTO
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-POST /api/gestor-documental/almacenamiento no cambia contrato principal.
-
-Antes de almacenar validar:
-
-- sesión existe
-- pertenece al usuario
-- estado = COMPLETED
-- archivo final existe
-- tamaño/hash válidos (si aplica)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## CONFIGURACIÓN OBLIGATORIA
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Variables (IIS/env):
-
-- StoragePaths__Temp
-- StorageUpload__MaxFileSizeBytes = 32212254720
-- StorageUpload__ChunkSizeBytes = 10485760 (ajustable)
-- StorageUpload__AllowedExtensions = .pdf,.tif,.tiff,.jpg,.jpeg,.png,.bmp
-- StorageUpload__TtlMinutes = 1440
-- StorageUpload__MaxParallelChunksPerSession (recomendado)
-- StorageUpload__MaxConcurrentSessionsPerUser (recomendado)
-- StorageUpload__MaxDiskQuotaPerUserBytes (recomendado)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## RUTAS MULTIUSUARIO
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## File System Strategy
 
 Ruta base:
-{StoragePaths:Temp}\usr_{usuarioId}\{rutaTemporalId}\
+- `StoragePaths:Temp` (desde `StoragePaths__Temp` en IIS/env).
 
 Estructura:
-
-- chunks\00000001.part
-- final\af_xxxxx.ext
+- `{Temp}\usr_{usuarioId}\{rutaTemporalId}\chunks\{chunkIndex}.part`
+- `{Temp}\usr_{usuarioId}\{rutaTemporalId}\final\{archivoTemporalId}`
 
 Reglas:
+- `rutaTemporalId` y `archivoTemporalId` generados por servidor (GUID/ULID).
+- No usar nombre original en ruta física.
+- Bloquear traversal (`GetFullPath` + root guard).
 
-- rutaTemporalId GUID/ULID
-- archivoTemporalId GUID/ULID + extensión
-- no usar nombre original en path físico
-- bloqueo traversal
-- todo bajo StoragePaths:Temp
+## IIS and Runtime Considerations
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Soporte 30GB se logra por **múltiples requests chunk**.
+- Cada request debe respetar límite seguro de chunk.
+- Configuración obligatoria:
+  - `StoragePaths__Temp`
+  - `StorageUpload__MaxFileSizeBytes`
+  - `StorageUpload__ChunkSizeBytes`
+  - `StorageUpload__AllowedExtensions`
+  - `StorageUpload__TtlMinutes`
+  - límites de concurrencia/cuota por usuario
 
-## PERSISTENCIA DE SESIÓN (CRÍTICO)
+## Security
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Implementar IStorageUploadSessionStore persistente:
-
-- DB o Redis (preferido para multi-instancia).
-- No depender solo de memoria local.
-
-Guardar:
-
-- estado
-- chunks recibidos
-- tamaño acumulado
-- hash esperado/calculado
-- usuario propietario
-- timestamps/TTL
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## ESTADOS DE UPLOAD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- IN_PROGRESS
-- COMPLETED
-- FAILED
-- CANCELLED
-- EXPIRED
-
-Solo COMPLETED puede pasar a AlmacenarDocumento.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## ENSAMBLAJE E INTEGRIDAD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-En complete:
-
-1. validar chunks requeridos
-2. ensamblar en orden
-3. calcular SHA256 incremental
-4. validar tamaño final
-5. validar hash esperado (si viene)
-6. marcar COMPLETED
-
-Si falla:
-
-- marcar FAILED
-- limpiar resultado parcial si aplica
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## SEGURIDAD
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Validar:
-
-- tamaño por chunk y total
-- extensión whitelist
+Validaciones:
+- tamaño total y por chunk
+- extensión permitida
 - ownership usuario
-- índices de chunk válidos
-- no sobrescritura fuera de sesión
+- índice de chunk dentro de rango
+- coherencia de headers de chunk
+- hash final (si se envía esperado)
+- estado permitido para transición
 
-Agregar:
+Prohibiciones:
+- URL externa como fuente de archivo
+- rutas provistas por cliente
+- escritura fuera de `StoragePaths:Temp`
 
-- rate limiting por IP/usuario
-- control de cuotas por usuario/sesión
-- rechazo explícito de rutas/URLs cliente
+## Concurrency and Idempotency
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Lock por `(rutaTemporalId, archivoTemporalId)` en `complete/cancel`.
+- Reintento del mismo chunk permitido e idempotente.
+- `complete` rechaza si faltan chunks.
+- Paralelismo de chunks controlado por límites configurables.
 
-## CONCURRENCIA E IDEMPOTENCIA
+## Observability
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Logs estructurados:
+- `requestId`, `usuarioId`, `rutaTemporalId`, `archivoTemporalId`
+- `chunkIndex`, `bytes`, `estado`, `duracionMs`
 
-- lock por (rutaTemporalId, archivoTemporalId)
-- reintento de chunk permitido (idempotente)
-- no completar si faltan chunks
-- tolerar reenvío del mismo chunk validando tamaño/hash
+Métricas:
+- `uploads_iniciados`, `uploads_completados`, `uploads_fallidos`
+- `chunks_recibidos`, `bytes_recibidos`, `uploads_expirados`
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## Cleanup
 
-## LIMPIEZA TTL
+`IStorageUploadCleanupService` (job programado):
+- limpia sesiones `IN_PROGRESS` expiradas
+- limpia `FAILED/CANCELLED/EXPIRED`
+- limpia chunks huérfanos
+- registra auditoría operativa
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## Integration with Existing Storage Engine
 
-IStorageUploadCleanupService (BackgroundService):
+Antes de ejecutar `AlmacenarDocumento`:
+- verificar que referencia temporal existe
+- verificar ownership
+- verificar estado `COMPLETED`
+- verificar archivo final presente y consistente
 
-- limpia IN_PROGRESS expirados
-- limpia FAILED, CANCELLED, EXPIRED
-- limpia huérfanos en disco
-- registra auditoría de limpieza
+No se modifica el pipeline central de persistencia final fuera de esa validación de precondición.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## Repository Scope
 
-## OBSERVABILIDAD Y ERRORES
+Implementación requerida:
+- `DocuArchi.Api`
+- `MiApp.Services`
+- `MiApp.Repository`
+- `MiApp.DTOs`
+- `MiApp.Models`
+- `DocuArchiCore` (OpenSpec + docs)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No alcance:
+- `DocuArchiCore.Web`
+- `DocuArchiCore.Abstractions` (salvo necesidad explícita detectada durante implementación)
 
-Respuesta estándar:
-
-- AppResponses<T>
-
-Códigos:
-
-- UPLOAD_FILE_TOO_LARGE
-- UPLOAD_EXTENSION_NOT_ALLOWED
-- UPLOAD_INVALID_CHUNK
-- UPLOAD_HASH_MISMATCH
-- UPLOAD_SESSION_NOT_FOUND
-- UPLOAD_NOT_COMPLETED
-- UPLOAD_ACCESS_DENIED
-- UPLOAD_STORAGE_UNAVAILABLE
-
-Logs:
-
-- requestId, usuarioId, ip
-- rutaTemporalId, archivoTemporalId
-- chunkIndex, bytes
-- estado, duración
-
-No loguear binario/secretos.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## PRUEBAS
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Unitarias:
-
-- init inválido
-- chunk inválido
-- hash mismatch
-- ownership inválido
-- complete con faltantes
-
-Integración:
-
-- upload real por chunks
-- ensamblaje y hash real
-- AlmacenarDocumento consume referencia COMPLETED
-
-Carga:
-
-- simulación multiusuario
-- reintentos de red
-- chunks en paralelo
-
-Seguridad:
-
-- traversal bloqueado
-- extensión peligrosa bloqueada
-- cuota/rate limit
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## SWAGGER / DEPURACIÓN
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Swagger:
-
-- solo pruebas funcionales con chunks pequeños.
-
-Para 30GB reales:
-
-- usar Postman/curl/cliente dedicado de carga chunked.
-
-Local debug:
-
-- configurar StoragePaths__Temp en launchSettings.json
-- crear carpeta local con permisos
-- ejecutar flujo: init -> chunk(s) -> status -> complete -> almacenar
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## DOCUMENTACIÓN OBLIGATORIA
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Actualizar:
-Docs/GestorDocumental/AlmacenamientoDocumental/Arquitectura-Final/
-
-Crear:
-
-- SCRUM-189-Arquitectura-Upload-Temporal-30GB.md
-- SCRUM-189-Implementacion-Upload-Temporal-30GB.md
-- SCRUM-189-Pruebas-Upload-Temporal-30GB.md
-- SCRUM-189-Operacion-IIS-Upload-Temporal.md
-- SCRUM-189-Metadata.md
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## CRITERIOS DE ACEPTACIÓN
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✔ Soporte 30GB por chunked upload
-✔ Streaming sin carga completa en memoria
-✔ Estado persistente de sesión
-✔ Integridad por hash/tamaño final
-✔ Integración intacta con AlmacenarDocumento
-✔ TTL/cleanup operativo
-✔ Pruebas en verde
-✔ Sin regresiones en Storage Engine actual
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## INSTRUCCIÓN FINAL
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Implementar upload temporal enterprise de gran tamaño (hasta 30GB) basado en streaming/chunks, con estado persistente, seguridad
-operacional y compatibilidad total con el flujo actual de almacenamiento por referencias temporales.
-
-## Approach
-
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-195-implementacion-api-upload-streaming.
