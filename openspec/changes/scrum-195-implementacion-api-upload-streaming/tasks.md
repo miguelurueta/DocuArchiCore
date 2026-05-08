@@ -1,8 +1,8 @@
 ## 1. Scope and architecture baseline
 
-- [ ] 1.1 Confirmar alcance final: upload temporal chunked hasta 30GB + integración por referencias con `AlmacenarDocumento`.
-- [ ] 1.2 Confirmar no alcance: sin binario en endpoint final, sin URL externa, sin reemplazo del Storage Engine.
-- [ ] 1.3 Confirmar repos de implementación: `DocuArchi.Api`, `MiApp.Services`, `MiApp.Repository`, `MiApp.DTOs`, `MiApp.Models`, `DocuArchiCore`.
+- [x] 1.1 Confirmar alcance final: upload temporal chunked hasta 30GB + integración por referencias con `AlmacenarDocumento`.
+- [x] 1.2 Confirmar no alcance: sin binario en endpoint final, sin URL externa, sin reemplazo del Storage Engine.
+- [x] 1.3 Confirmar repos de implementación: `DocuArchi.Api`, `MiApp.Services`, `MiApp.Repository`, `MiApp.DTOs`, `MiApp.Models`, `DocuArchiCore`.
 
 ## 2. OpenSpec artifacts
 
@@ -42,7 +42,7 @@
 
 - [x] 7.1 Implementar `IStorageUploadCleanupService` con TTL configurable.
 - [x] 7.2 Agregar configuración requerida (`StoragePaths__Temp`, `StorageUpload__*`) y validación fail-fast.
-- [ ] 7.3 Documentar guía IIS + permisos de AppPool para carpeta temporal.
+- [x] 7.3 Documentar guía IIS + permisos de AppPool para carpeta temporal.
 
 ## 8. Tests and verification
 
@@ -53,7 +53,7 @@
 
 ## 9. Documentation and closure
 
-- [ ] 9.1 Actualizar documentación técnica en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
-- [ ] 9.2 Actualizar `Docs/GestorDocumental/AlmacenamientoDocumental/Arquitectura-Final/` con diseño y operación upload 30GB.
+- [x] 9.1 Actualizar documentación técnica en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
+- [x] 9.2 Actualizar `Docs/GestorDocumental/AlmacenamientoDocumental/Arquitectura-Final/` con diseño y operación upload 30GB.
 - [x] 9.3 Ejecutar `openspec.cmd validate scrum-195-implementacion-api-upload-streaming`.
 - [ ] 9.4 Continuar flujo `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive`.
