@@ -1,6 +1,11 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
@@ -10,6 +15,7 @@ using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Compensation;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.TemporaryUpload;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
 using Moq;
@@ -261,6 +267,97 @@ namespace TramiteDiasVencimiento.Tests
                 && p.NewFolderPages == 30
                 && p.PreviousFolderPages == 27
                 && p.IdRegistroProduccionDocumental == 500)), Times.Once);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ShouldAcceptCompletedUploadReference()
+        {
+            var tempRoot = Path.Combine(Path.GetTempPath(), "docuarchi-tests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                var optionsPath = Options.Create(new StoragePathOptions { Temp = tempRoot });
+                var optionsUpload = Options.Create(new MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.TemporaryUpload.StorageUploadOptions
+                {
+                    MaxFileSizeBytes = 1024 * 1024,
+                    ChunkSizeBytes = 1024,
+                    AllowedExtensions = new[] { ".pdf" },
+                    TtlMinutes = 60
+                });
+
+                var pathResolver = new StorageUploadPathResolver(optionsPath);
+                var sessionStore = new StorageUploadSessionStore(pathResolver);
+                var largeUpload = new StorageLargeUploadService(
+                    sessionStore,
+                    pathResolver,
+                    new StorageUploadPolicy(),
+                    optionsUpload,
+                    NullLogger<StorageLargeUploadService>.Instance);
+
+                var init = await largeUpload.InitAsync(new MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental.TemporaryUpload.StorageUploadInitRequestDto
+                {
+                    NombreOriginal = "doc.pdf",
+                    TamanoBytes = 4,
+                    Extension = ".pdf",
+                    NumeroChunks = 1
+                }, usuarioId: 55);
+
+                await largeUpload.UploadChunkAsync(
+                    init.RutaTemporalId,
+                    init.ArchivoTemporalId,
+                    chunkIndex: 0,
+                    totalChunks: 1,
+                    contentLength: 4,
+                    content: new MemoryStream(Encoding.UTF8.GetBytes("ABCD")),
+                    usuarioId: 55);
+
+                await largeUpload.CompleteAsync(init.RutaTemporalId, init.ArchivoTemporalId, usuarioId: 55);
+
+                var orchestrator = new Mock<IDocumentStorageOrchestrator>();
+                orchestrator
+                    .Setup(x => x.ExecuteAsync(It.IsAny<StorageContext>()))
+                    .ReturnsAsync(new AlmacenarDocumentoResult
+                    {
+                        IdAlmacen = 5000,
+                        IdRegistroProduccionDocumental = 7000,
+                        NombreArchivoFinal = "DIG00005000.pdf",
+                        RequestId = "req-int",
+                        Estado = StorageDocumentState.Completed
+                    });
+
+                var useCase = new AlmacenarDocumentoUseCase(
+                    orchestrator.Object,
+                    largeUpload,
+                    NullLogger<AlmacenarDocumentoUseCase>.Instance);
+
+                var result = await useCase.ExecuteAsync(new AlmacenarDocumentoRequest
+                {
+                    RequestId = "req-int",
+                    NombreGabinete = "GAB_INTEGRATION",
+                    RutaTemporalId = init.RutaTemporalId,
+                    NombreDocumento = "doc.pdf",
+                    Documentos = new List<DocumentoEntradaDto>
+                    {
+                        new DocumentoEntradaDto
+                        {
+                            IdDocumento = "1",
+                            ArchivoTemporalId = init.ArchivoTemporalId,
+                            NumeroPaginas = 1
+                        }
+                    }
+                }, "db", "usr", 55);
+
+                Assert.True(result.success);
+                Assert.NotNull(result.data);
+                Assert.Equal(5000, result.data!.IdAlmacen);
+                orchestrator.Verify(x => x.ExecuteAsync(It.IsAny<StorageContext>()), Times.Once);
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
         }
     }
 }

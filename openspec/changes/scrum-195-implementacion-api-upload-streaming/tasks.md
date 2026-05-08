@@ -29,7 +29,7 @@
 - [x] 5.2 Implementar escritura streaming de chunk (`Request.Body`) sin cargar archivo completo.
 - [x] 5.3 Implementar ensamble final de chunks en orden y hash SHA256 incremental.
 - [x] 5.4 Implementar `IStorageUploadPathResolver` con root guard bajo `StoragePaths:Temp`.
-- [ ] 5.5 Implementar `IStorageUploadPolicy` (size/extension/chunk/quota/rate constraints).
+- [x] 5.5 Implementar `IStorageUploadPolicy` (size/extension/chunk/quota/rate constraints).
 
 ## 6. API controllers and DI
 
@@ -46,9 +46,9 @@
 
 ## 8. Tests and verification
 
-- [ ] 8.1 Unit tests: init invalid, chunk invalid, ownership invalid, complete con faltantes/hash mismatch.
-- [ ] 8.2 Integration tests: flujo init->chunk->status->complete->almacenamiento con referencia válida.
-- [ ] 8.3 Pruebas de concurrencia/idempotencia de reintento de chunks.
+- [x] 8.1 Unit tests: init invalid, chunk invalid, ownership invalid, complete con faltantes/hash mismatch.
+- [x] 8.2 Integration tests: flujo init->chunk->status->complete->almacenamiento con referencia válida.
+- [x] 8.3 Pruebas de concurrencia/idempotencia de reintento de chunks.
 - [x] 8.4 Documentar evidencia de pruebas ejecutadas y resultados.
 
 ## 9. Documentation and closure
