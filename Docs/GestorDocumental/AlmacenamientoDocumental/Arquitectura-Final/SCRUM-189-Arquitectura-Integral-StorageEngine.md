@@ -23,6 +23,7 @@
 8. Insertar índice electrónico (`ra_cert_indice_expediente`) y actualizar XML índice cuando aplique.
 9. Persistir log workflow (`logdocuarchi`) cuando `IdTareaWorkflow > 0`.
 10. Escribir archivos físicos DIG/FXL y aplicar compensación en fallos post-commit.
+11. Ejecutar compensación DB post-fallo físico para revertir efectos lógicos persistidos.
 
 ## 3. Requisitos No Funcionales
 - Consistencia transaccional DB: `IsolationLevel.Serializable`.
@@ -54,6 +55,7 @@
 - `DocumentStorageOrchestrator`
   - coordina pipeline (actualmente con evolución incremental)
   - invoca analizador físico cuando está cableado
+  - ejecuta compensación DB al capturar `StoragePhysicalException` post-commit
 
 ## Capa Validación
 - `StorageValidationPipeline` + validadores:
@@ -77,6 +79,11 @@
 - `StorageFileWriter`
 - `StorageXmlWriter`
 - `StorageCompensationManager`
+
+## Capa Compensación DB
+- `IStorageDbCompensationService` / `StorageDbCompensationService`
+- `IStorageDbCompensationRepository` / `StorageDbCompensationRepository`
+- modelos `StorageCompensationDbPlan`, `StorageCompensationDbResult`, `StorageCompensationDbStatus`
 
 ## Capa Repositorio
 - Acceso SQL vía `IDapperCrudEngine` y repos especializados.
@@ -112,6 +119,12 @@
 - Fuente legacy auditada: `D:\imagenesda\GestorDocumental\promp\CORE-API\Almacenamiento\funcion-almacena-consolidad.txt`.
 - Resultado de auditoría: **GO CONDICIONADO**.
 - Evidencia de pruebas ejecutadas: `131` total, `129` OK, `2` SKIP (Docker), `0` FAIL.
+
+## 10.1 Evolución Post-Cierre (SCRUM-193)
+- Se añadió compensación lógica DB post-fallo físico en el orquestador.
+- Se incorporó trazabilidad de compensación (`OK|PARTIAL|FAILED`) y duración.
+- Se mantiene invariante legacy: no revertir `system1.proxid/numcarp/NUMPAG_CARP`.
+- Se conserva y relanza el error físico original como causa raíz.
 
 ## 11. Hallazgos de Cierre
 - Paridad funcional crítica VB -> C# sin brechas clasificadas como `NO CUMPLE` crítico.

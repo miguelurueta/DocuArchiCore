@@ -10,8 +10,12 @@
 - Verificación de invocación de `IStorageDbCompensationService`.
 - Verificación de plan construido (`IdAlmacen`, `Disco`, `Paginas`, `FolderPages`, `IdRegistroProduccionDocumental`).
 
-## Riesgos Residuales
-- Pendiente ampliar pruebas de integración con DB real para:
-- tabla dinámica de gabinete
-- auditoría `ra_log_sotorage_compensacion`
-- escenarios de `PARTIAL` y `FAILED` por paso.
+## Estado por Tipo de Prueba
+- Unitarias: Ejecutadas y en verde.
+- Integración DB real: Pendientes en este ciclo.
+- Regresión E2E completa: Pendiente consolidación con suite de cierre.
+
+## Pendientes Recomendados
+- Caso de compensación parcial por fallo controlado en un paso intermedio.
+- Caso de compensación idempotente (doble ejecución del mismo plan).
+- Validación de auditoría `ra_log_sotorage_compensacion` en ambiente con esquema habilitado.

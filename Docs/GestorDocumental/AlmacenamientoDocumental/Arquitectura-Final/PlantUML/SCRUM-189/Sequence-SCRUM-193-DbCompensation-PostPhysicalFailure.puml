@@ -1,0 +1,51 @@
+@startuml
+autonumber
+skinparam responseMessageBelowArrow true
+
+participant "AlmacenarDocumentoUseCase" as UC
+participant "DocumentStorageOrchestrator" as OR
+participant "StorageTransactionCoordinator" as TX
+participant "StoragePhysicalPhaseExecutor" as PH
+participant "IStorageDbCompensationService" as CS
+participant "IStorageDbCompensationRepository" as CR
+database "MySQL" as DB
+participant "ILogger" as LOG
+
+UC -> OR : ExecuteAsync(context)
+OR -> TX : ExecuteAsync(context)
+TX -> DB : BEGIN TRANSACTION
+TX -> DB : INSERT/UPDATE core tablas storage
+TX -> DB : COMMIT
+TX --> OR : StorageTransactionResult{Success=true, IdAlmacen, ...}
+
+OR -> PH : ExecuteAsync(context, txResult)
+PH --> OR : throw StoragePhysicalException
+
+OR -> OR : BuildDbCompensationPlan(context, txResult)
+OR -> CS : ExecuteAsync(plan)
+CS -> CR : ExecuteAsync(plan)
+
+CR -> DB : RevertDiskUsage(disco_detalle)
+CR -> DB : RevertFolios(expediente/unidad) [opt]
+CR -> DB : AnnulInventario(registro_producion_documental) [opt]
+CR -> DB : DeleteWorkflowLog(logdocuarchi) [opt]
+CR -> DB : DeleteGabineteRow({gabinete}.ID=idAlmacen)
+CR -> DB : InsertAudit(ra_log_sotorage_compensacion) [best-effort]
+CR --> CS : StorageCompensationDbResult{Estado, DuracionMs}
+CS --> OR : StorageCompensationDbResult{OK|PARTIAL|FAILED}
+
+alt Estado == OK
+  OR -> LOG : LogWarning(fallo fisico + compensacion OK)
+else Estado == PARTIAL
+  OR -> LOG : LogWarning(fallo fisico + compensacion PARTIAL)
+else Estado == FAILED
+  OR -> LOG : LogError(fallo fisico + compensacion FAILED)
+end
+
+note over OR,DB
+No se revierte system1.proxid/numcarp/NUMPAG_CARP.
+Se preserva la excepcion fisica original.
+end note
+
+OR --> UC : rethrow StoragePhysicalException
+@enduml

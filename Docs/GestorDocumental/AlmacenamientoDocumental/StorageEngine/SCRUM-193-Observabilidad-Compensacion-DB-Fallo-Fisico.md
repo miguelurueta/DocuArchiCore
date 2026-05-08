@@ -12,3 +12,17 @@
 ## Regla Operativa
 - Nunca se oculta la excepción física original.
 - Resultado de compensación se registra como `OK`, `PARTIAL` o `FAILED`.
+
+## Campos Mínimos de Trazabilidad
+- `requestId`
+- `idAlmacen`
+- `idRegistroProduccionDocumental`
+- `gabinete`
+- `fase`
+- `resultado`
+- `duracionMs`
+- `tipoEvento=COMPENSATION`
+
+## Integración de Auditoría
+- Tabla objetivo: `ra_log_sotorage_compensacion` (cuando existe en ambiente).
+- Si la escritura de auditoría falla, la compensación no se revierte; se marca `PARTIAL` y se conserva evidencia en logs.

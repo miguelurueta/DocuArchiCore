@@ -11,6 +11,11 @@ Este índice consolida la documentación integral solicitada para auditoría y a
 - `../StorageEngine/SCRUM-189-Matriz-Paridad-Legacy.md`
 - `../StorageEngine/SCRUM-189-Riesgos-Deuda-Tecnica.md`
 - `../StorageEngine/SCRUM-189-Go-NoGo-Produccion.md`
+- `../StorageEngine/SCRUM-193-Arquitectura-Compensacion-DB-Fallo-Fisico.md`
+- `../StorageEngine/SCRUM-193-Implementacion-Compensacion-DB-Fallo-Fisico.md`
+- `../StorageEngine/SCRUM-193-Observabilidad-Compensacion-DB-Fallo-Fisico.md`
+- `../StorageEngine/SCRUM-193-Pruebas-Compensacion-DB-Fallo-Fisico.md`
+- `../StorageEngine/SCRUM-193-Regresion-Legacy-Compensacion-DB-Fallo-Fisico.md`
 
 ## Estado
 - Ticket: `SCRUM-189`

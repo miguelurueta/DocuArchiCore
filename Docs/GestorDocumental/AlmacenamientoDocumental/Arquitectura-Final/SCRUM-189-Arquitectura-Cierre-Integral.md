@@ -41,3 +41,6 @@ Emitir el cierre técnico integral del Storage Engine con enfoque de auditoría 
 - Se formalizó `StorageCompensationDbPlan/Result` para trazabilidad y ejecución determinística.
 - Se incorporó repositorio de compensación DB para revertir cuota disco, anular inventario, limpiar workflow log y eliminar registro dinámico del gabinete.
 - Se conservó la excepción física original como error raíz para no ocultar el incidente operativo.
+- Se actualizó el diagrama integral con la secuencia específica de compensación en:
+  - `SCRUM-189-Diagramas-StorageEngine.md`
+  - `PlantUML/SCRUM-189/Sequence-SCRUM-193-DbCompensation-PostPhysicalFailure.puml`
