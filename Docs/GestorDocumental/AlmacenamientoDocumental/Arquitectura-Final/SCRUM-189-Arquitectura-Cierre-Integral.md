@@ -35,3 +35,12 @@ Emitir el cierre técnico integral del Storage Engine con enfoque de auditoría 
 ## Resultado Arquitectónico
 - Estado global de cierre: **GO CONDICIONADO**.
 - Razón: no hay brechas críticas abiertas en el flujo principal V2, pero sí riesgos altos/medios de gobernanza operativa (fallback legacy y cobertura E2E de Docker pendiente).
+
+## Evolución SCRUM-193 (post-cierre)
+- Se agregó compensación DB post-fallo físico en `DocumentStorageOrchestrator` como manejo específico de `StoragePhysicalException` luego de `commit`.
+- Se formalizó `StorageCompensationDbPlan/Result` para trazabilidad y ejecución determinística.
+- Se incorporó repositorio de compensación DB para revertir cuota disco, anular inventario, limpiar workflow log y eliminar registro dinámico del gabinete.
+- Se conservó la excepción física original como error raíz para no ocultar el incidente operativo.
+- Se actualizó el diagrama integral con la secuencia específica de compensación en:
+  - `SCRUM-189-Diagramas-StorageEngine.md`
+  - `PlantUML/SCRUM-189/Sequence-SCRUM-193-DbCompensation-PostPhysicalFailure.puml`

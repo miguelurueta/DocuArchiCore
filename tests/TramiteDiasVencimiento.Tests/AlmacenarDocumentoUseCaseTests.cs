@@ -5,7 +5,9 @@ using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Compensation;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Physical;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
@@ -89,6 +91,7 @@ namespace TramiteDiasVencimiento.Tests
             var pathResolver = new Mock<IStoragePathResolver>();
             var txCoordinator = new Mock<IStorageTransactionCoordinator>();
             var physicalExecutor = new Mock<IStoragePhysicalPhaseExecutor>();
+            var dbCompensation = new Mock<IStorageDbCompensationService>();
 
             pipeline
                 .Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
@@ -107,7 +110,8 @@ namespace TramiteDiasVencimiento.Tests
                 metadata.Object,
                 pathResolver.Object,
                 txCoordinator.Object,
-                physicalExecutor.Object);
+                physicalExecutor.Object,
+                dbCompensation.Object);
 
             await Assert.ThrowsAsync<StorageValidationException>(() => orchestrator.ExecuteAsync(new StorageContext
             {
@@ -124,6 +128,139 @@ namespace TramiteDiasVencimiento.Tests
             pipeline.Verify(x => x.ValidateAsync(It.IsAny<StorageContext>()), Times.Once);
             txCoordinator.Verify(x => x.ExecuteAsync(It.IsAny<StorageContext>()), Times.Never);
             physicalExecutor.Verify(x => x.ExecuteAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Orchestrator_ShouldExecuteDbCompensation_WhenPhysicalPhaseFailsAfterCommit()
+        {
+            var logger = new Mock<ILogger<DocumentStorageOrchestrator>>();
+            var pipeline = new Mock<IStorageValidationPipeline>();
+            var metadata = new Mock<IStorageDocumentMetadataAnalyzer>();
+            var pathResolver = new Mock<IStoragePathResolver>();
+            var txCoordinator = new Mock<IStorageTransactionCoordinator>();
+            var physicalExecutor = new Mock<IStoragePhysicalPhaseExecutor>();
+            var dbCompensation = new Mock<IStorageDbCompensationService>();
+
+            pipeline
+                .Setup(x => x.ValidateAsync(It.IsAny<StorageContext>()))
+                .ReturnsAsync(new StorageValidationResult { IsValid = true });
+
+            pathResolver
+                .Setup(x => x.GetTemporaryFilePath("tmp-1", "f-1"))
+                .Returns("C:\\tmp\\f-1.pdf");
+
+            metadata
+                .Setup(x => x.AnalyzeAsync(It.IsAny<StorageContext>(), It.IsAny<IReadOnlyList<string>>()))
+                .ReturnsAsync(new StorageDocumentPhysicalMetadata
+                {
+                    NumeroPaginas = 3,
+                    TamanoLegacy = "10 Kb",
+                    TotalBytes = 10240,
+                    Formato = ".PDF",
+                    PaginasCalculadasDesdeArchivo = true
+                });
+
+            var txResult = new StorageTransactionResult
+            {
+                IdAlmacen = 1001,
+                IdentityReservation = new StorageIdentityReservationResult
+                {
+                    Identity = new StorageIdentityModel
+                    {
+                        IdAlmacen = 1001,
+                        Disco = 7,
+                        Carpeta = 11,
+                        NumeroPaginasCarpeta = 30
+                    },
+                    PreviousProxId = 1000,
+                    NewProxId = 1001,
+                    PreviousFolder = 11,
+                    NewFolder = 11,
+                    PreviousFolderPages = 27,
+                    NewFolderPages = 30,
+                    TamDisc = 572523149
+                },
+                IdRegistroProduccionDocumental = 500,
+                Success = true,
+                Estado = StorageDocumentState.Reserved,
+                RequestId = "req-phys-fail",
+                FechaEjecucion = System.DateTime.UtcNow,
+                DuracionMs = 20,
+                DiskUsageUpdated = true,
+                WorkflowLogInserted = true
+            };
+
+            txCoordinator
+                .Setup(x => x.ExecuteAsync(It.IsAny<StorageContext>()))
+                .ReturnsAsync(txResult);
+
+            physicalExecutor
+                .Setup(x => x.ExecuteAsync(It.IsAny<StorageContext>(), It.IsAny<StorageTransactionResult>()))
+                .ThrowsAsync(new StoragePhysicalException("fallo copia archivo"));
+
+            dbCompensation
+                .Setup(x => x.ExecuteAsync(It.IsAny<StorageCompensationDbPlan>()))
+                .ReturnsAsync(new StorageCompensationDbResult
+                {
+                    Estado = StorageCompensationDbStatus.Partial,
+                    DiskUsageReverted = true,
+                    GabineteDeleted = false,
+                    InventarioAnnulled = true,
+                    ExpedienteReverted = false,
+                    UnidadReverted = false,
+                    WorkflowLogDeleted = true,
+                    AuditWritten = false,
+                    ErrorMessage = "PARTIAL",
+                    DuracionMs = 35
+                });
+
+            var orchestrator = new DocumentStorageOrchestrator(
+                logger.Object,
+                pipeline.Object,
+                metadata.Object,
+                pathResolver.Object,
+                txCoordinator.Object,
+                physicalExecutor.Object,
+                dbCompensation.Object);
+
+            var context = new StorageContext
+            {
+                DefaultDbAlias = "db",
+                Usuario = "usr",
+                UsuarioId = 10,
+                RequestId = "req-phys-fail",
+                NombreGabinete = "GAB_TEST",
+                RutaTemporalId = "tmp-1",
+                NombreDocumento = "doc.pdf",
+                ArchivosTemporales = new List<string> { "f-1" },
+                Command = new AlmacenarDocumentoCommand
+                {
+                    NombreGabinete = "GAB_TEST",
+                    RutaTemporalId = "tmp-1",
+                    NombreDocumento = "doc.pdf",
+                    RequestId = "req-phys-fail",
+                    Documentos = new List<DocumentoEntradaDto>
+                    {
+                        new DocumentoEntradaDto
+                        {
+                            IdDocumento = "1",
+                            ArchivoTemporalId = "f-1",
+                            NumeroPaginas = 3
+                        }
+                    }
+                }
+            };
+
+            await Assert.ThrowsAsync<StoragePhysicalException>(() => orchestrator.ExecuteAsync(context));
+
+            dbCompensation.Verify(x => x.ExecuteAsync(It.Is<StorageCompensationDbPlan>(p =>
+                p.RequestId == "req-phys-fail"
+                && p.IdAlmacen == 1001
+                && p.Disco == 7
+                && p.NumeroPaginasDocumento == 3
+                && p.NewFolderPages == 30
+                && p.PreviousFolderPages == 27
+                && p.IdRegistroProduccionDocumental == 500)), Times.Once);
         }
     }
 }

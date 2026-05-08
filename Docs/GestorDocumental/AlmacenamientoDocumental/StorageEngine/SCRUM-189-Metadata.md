@@ -14,6 +14,11 @@
 - [SCRUM-189-Riesgos-Desviaciones-Aprobadas.md](D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\SCRUM-189-Riesgos-Desviaciones-Aprobadas.md)
 - [SCRUM-189-Go-NoGo-StorageEngine.md](D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\SCRUM-189-Go-NoGo-StorageEngine.md)
 
+## Extensiones Post-Cierre Relacionadas
+- [SCRUM-193-Implementacion-Compensacion-DB-Fallo-Fisico.md](D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\SCRUM-193-Implementacion-Compensacion-DB-Fallo-Fisico.md)
+- [SCRUM-193-Pruebas-Compensacion-DB-Fallo-Fisico.md](D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\SCRUM-193-Pruebas-Compensacion-DB-Fallo-Fisico.md)
+- [SCRUM-193-Observabilidad-Compensacion-DB-Fallo-Fisico.md](D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\SCRUM-193-Observabilidad-Compensacion-DB-Fallo-Fisico.md)
+
 ## Fuente Principal Recomendada para Publicacion
 - Arquitectura principal consolidada: `SCRUM-189-Arquitectura-Integral-StorageEngine.md`.
 - Diagramas oficiales: `SCRUM-189-Diagramas-StorageEngine.md`.
