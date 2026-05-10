@@ -268,7 +268,6 @@ namespace TramiteDiasVencimiento.Tests
                 && p.PreviousFolderPages == 27
                 && p.IdRegistroProduccionDocumental == 500)), Times.Once);
         }
-
         [Fact]
         public async Task ExecuteAsync_ShouldAcceptCompletedUploadReference()
         {
