@@ -168,6 +168,7 @@ namespace TramiteDiasVencimiento.Tests
             var controller = new AlmacenamientoDocumentalController(
                 claimValidationService,
                 useCase,
+                Mock.Of<MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.TemporaryUpload.IStorageLargeUploadService>(),
                 featureToggle,
                 ipHelper.Object,
                 Mock.Of<ILogger<AlmacenamientoDocumentalController>>());
