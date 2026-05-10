@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-195`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | nuevos endpoints upload-temporal + integración validación previa almacenamiento | pending | n/a | pending | pending |
+| DocuArchi.Api | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/DocuArchi.Api/pull/103 | pending | in_review |
 | DocuArchiCore | yes | implementation_required | orquestador openspec central | done | https://github.com/miguelurueta/DocuArchiCore/pull/259 | pending | in_review |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | DTOs init/chunk/status/complete/cancel y respuestas estándar upload | pending | n/a | pending | pending |
-| MiApp.Services | yes | implementation_required | servicios de streaming/chunk, ensamblaje, hash, política y cleanup | pending | n/a | pending | pending |
-| MiApp.Repository | yes | implementation_required | persistencia de sesión upload temporal y estado de chunks | pending | n/a | pending | pending |
-| MiApp.Models | yes | implementation_required | modelos de sesión temporal, estados y metadatos upload | pending | n/a | pending | pending |
+| MiApp.DTOs | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.DTOs/pull/76 | pending | in_review |
+| MiApp.Services | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Services/pull/135 | pending | in_review |
+| MiApp.Repository | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Repository/pull/71 | pending | in_review |
+| MiApp.Models | yes | implementation_required | implementacion publicada desde diff real | done | https://github.com/miguelurueta/MiApp.Models/pull/46 | pending | in_review |
 
 ## Operating Rule
 
