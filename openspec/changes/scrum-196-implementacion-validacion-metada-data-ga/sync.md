@@ -12,14 +12,14 @@ Use this template at the start of each Jira ticket (`SCRUM-196`) to decide exact
 
 | Repo | Impacta? | Tipo impacto | Motivo | `opsxj:new` | PR | `opsxj:archive` | Estado |
 |---|---|---|---|---|---|---|---|
-| DocuArchi.Api | yes | implementation_required | registro DI, contrato API y validaciones de almacenamiento | pending | n/a | pending | pending_impl |
-| DocuArchiCore | yes | implementation_required | coordinacion OpenSpec, docs y trazabilidad de flujo | done | https://github.com/miguelurueta/DocuArchiCore/pull/260 | pending | in_review |
+| DocuArchi.Api | yes | implementation_required | registro DI, contrato API y validaciones de almacenamiento | done | n/a | pending | in_progress |
+| DocuArchiCore | yes | implementation_required | coordinacion OpenSpec, docs y trazabilidad de flujo | done | https://github.com/miguelurueta/DocuArchiCore/pull/260 | pending | in_progress |
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
-| MiApp.DTOs | yes | implementation_required | ajuste de contrato de errores si aplica | pending | n/a | pending | pending_impl |
-| MiApp.Services | yes | implementation_required | provider real metadata, parser y validadores | pending | n/a | pending | pending_impl |
-| MiApp.Repository | yes | implementation_required | consultas SQL metadata legacy + esquema fisico opcional | pending | n/a | pending | pending_impl |
-| MiApp.Models | yes | implementation_required | ampliacion modelo metadata de campo | pending | n/a | pending | pending_impl |
+| MiApp.DTOs | yes | implementation_required | ajuste de contrato de errores si aplica | done | n/a | pending | no_changes_required |
+| MiApp.Services | yes | implementation_required | provider real metadata, parser y validadores | done | n/a | pending | in_progress |
+| MiApp.Repository | yes | implementation_required | consultas SQL metadata legacy + esquema fisico opcional | done | n/a | pending | in_progress |
+| MiApp.Models | yes | implementation_required | ampliacion modelo metadata de campo | done | n/a | pending | in_progress |
 
 ## Operating Rule
 

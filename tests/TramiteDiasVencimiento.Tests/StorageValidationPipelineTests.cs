@@ -108,14 +108,13 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task GabineteRequiredFieldsValidator_ShouldReturnMismatch_WhenCountDoesNotMatch()
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnUnknown_WhenFieldIsNotInMetadata()
         {
             var provider = new Mock<IStorageGabineteMetadataProvider>();
             provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new List<GabineteFieldMetadata>
                 {
-                    new() { FieldName = "campo1", IsRequired = true, Orden = 1 },
-                    new() { FieldName = "campo2", IsRequired = false, Orden = 2 }
+                    new() { FieldName = "campo1", IsRequired = true, Orden = 1 }
                 });
 
             var validator = new GabineteRequiredFieldsValidator(
@@ -124,12 +123,12 @@ namespace TramiteDiasVencimiento.Tests
             var errors = new List<StorageError>();
             var context = BuildContext(campos: new List<CampoIndexacionDto>
             {
-                new() { NombreCampo = "campo1", Valor = "v1" }
+                new() { NombreCampo = "campoX", Valor = "v1" }
             });
 
             await validator.ValidateAsync(context, errors);
 
-            Assert.Contains(errors, e => e.Code == "GAB_FIELDS_MISMATCH");
+            Assert.Contains(errors, e => e.Code == "GAB_FIELD_UNKNOWN");
         }
 
         [Fact]
@@ -153,6 +152,107 @@ namespace TramiteDiasVencimiento.Tests
             }), errors);
 
             Assert.Contains(errors, e => e.Code == "GAB_REQUIRED_EMPTY");
+        }
+
+        [Fact]
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnTypeInvalid_WhenIntValueIsText()
+        {
+            var provider = new Mock<IStorageGabineteMetadataProvider>();
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
+                {
+                    new() { FieldName = "campo1", IsRequired = false, Orden = 1, DeclaredType = "INT", NormalizedType = "INT" }
+                });
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+
+            var errors = new List<StorageError>();
+            await validator.ValidateAsync(BuildContext(campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "abc" }
+            }), errors);
+
+            Assert.Contains(errors, e => e.Code == "GAB_FIELD_TYPE_INVALID");
+        }
+
+        [Fact]
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnLengthInvalid_WhenVarcharExceedsLimit()
+        {
+            var provider = new Mock<IStorageGabineteMetadataProvider>();
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
+                {
+                    new() { FieldName = "campo1", IsRequired = false, Orden = 1, DeclaredType = "VARCHAR(20)", NormalizedType = "VARCHAR", MaxLength = 20 }
+                });
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+
+            var errors = new List<StorageError>();
+            await validator.ValidateAsync(BuildContext(campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "012345678901234567890" }
+            }), errors);
+
+            Assert.Contains(errors, e => e.Code == "GAB_FIELD_LENGTH_INVALID");
+        }
+
+        [Fact]
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnTypeUnsupported_WhenTypeIsUnknown()
+        {
+            var provider = new Mock<IStorageGabineteMetadataProvider>();
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
+                {
+                    new() { FieldName = "campo1", IsRequired = false, Orden = 1, DeclaredType = "DECIMAL(10,2)", NormalizedType = "DECIMAL(10,2)" }
+                });
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+
+            var errors = new List<StorageError>();
+            await validator.ValidateAsync(BuildContext(campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "100.20" }
+            }), errors);
+
+            Assert.Contains(errors, e => e.Code == "GAB_TYPE_UNSUPPORTED");
+        }
+
+        [Fact]
+        public async Task GabineteRequiredFieldsValidator_ShouldReturnSchemaMismatch_WhenFieldMissingInPhysicalTable()
+        {
+            var provider = new Mock<IStorageGabineteMetadataProvider>();
+            provider.Setup(x => x.GetFieldsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<GabineteFieldMetadata>
+                {
+                    new()
+                    {
+                        FieldName = "campo1",
+                        IsRequired = false,
+                        Orden = 1,
+                        DeclaredType = "VARCHAR(20)",
+                        NormalizedType = "VARCHAR",
+                        MaxLength = 20,
+                        IsPhysicalColumnPresent = false
+                    }
+                });
+
+            var validator = new GabineteRequiredFieldsValidator(
+                provider.Object,
+                new Mock<ILogger<GabineteRequiredFieldsValidator>>().Object);
+
+            var errors = new List<StorageError>();
+            await validator.ValidateAsync(BuildContext(campos: new List<CampoIndexacionDto>
+            {
+                new() { NombreCampo = "campo1", Valor = "valor" }
+            }), errors);
+
+            Assert.Contains(errors, e => e.Code == "GAB_SCHEMA_MISMATCH");
         }
 
         [Fact]
