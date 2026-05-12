@@ -1,156 +1,100 @@
 ## Context
 
-- Jira issue key: SCRUM-197
-- Jira summary: CORRECION-VALIDACION-TAMANO-DISCO-ALMACENAMIENTO
-- Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-197
+- Jira issue key: `SCRUM-197`
+- Jira summary: `CORRECION-VALIDACION-TAMANO-DISCO-ALMACENAMIENTO`
+- Change: `scrum-197-correcion-validacion-tamano-disco-almace`
 
-## Context Reference
+References:
+- `openspec/context/multi-repo-context.md`
+- `openspec/context/OPSXJ_BACKEND_RULES.md`
 
-- openspec/context/multi-repo-context.md
-- openspec/context/OPSXJ_BACKEND_RULES.md
+## Problem
 
-## Problem Statement
+En la reserva de identidad transaccional, el repositorio de cuota de disco selecciona
+`ESTADO_DISCO` desde `disco_detalle`. En ambientes legacy/productivos esa columna no existe,
+por lo que la operacion falla antes de validar capacidad.
 
-PROMPT ARQUITECTÓNICO — ORCHESTRATOR / ENGINE PROMPT 23E — Corrección de cuota de disco legacy sin dependencia obligatoria de ESTADO_DISCO (FASE CRÍTICA — BLOQUEANTE FUNCIONAL) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto Master Backend .NET experto en: DocuArchi legacy reglas de almacenamiento por disco system1 y disco_detalle control de capacidad y concurrencia transacciones MySQL con FOR UPDATE Dapper / QueryOptions DapperCrudEngine consistencia transaccional migración VB → C# con paridad funcional ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Corregir la validación de capacidad de disco del Storage Engine para eliminar la dependencia obligatoria de: ESTADO_DISCO y replicar exactamente la lógica legacy VB basada en: TAMDISC + NUMERO_IMAGENES Debe garantizar: ✔ Compatibilidad con producción actual ✔ Paridad exacta con VB ✔ Compatibilidad con ambientes que sí tengan ESTADO_DISCO ✔ Bloqueo antes del commit ✔ Consistencia bajo concurrencia ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REFERENCIA LEGACY OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta del código legacy: D:\imagenesda\GestorDocumental\promp\CORE-API\Almacenamiento\funcion-almacena-consolidad.txt :contentReference[oaicite:0]{index=0} FUNCIÓN LEGACY DE REFERENCIA Function Numero_Imagenes(...) REGLA LEGACY CONFIRMADA - Consultar NUMERO_IMAGENES desde disco_detalle por disco + gabinete.
-- Si no existe registro → error.
-- Si NUMERO_IMAGENES es NULL → error:
-  "El disco {disc} no esta sincronizado para alamcenar contacte a su administrador estado null"
+La paridad funcional requerida viene de legacy VB (`Numero_Imagenes`):
+- Fuente primaria: `TAMDISC` (system1) + `NUMERO_IMAGENES` (disco_detalle)
+- Regla de bloqueo:
+  - `tamdisc > 572523149` y `numero_imagenes > 80000` => bloquear (`SL`)
+  - `tamdisc < 572523149` y `numero_imagenes > 7500` => bloquear (`SL`)
+  - `tamdisc == 572523149` => no activar `SL` por umbral
+- Si `numero_imagenes` es null o `0` => error de disco no sincronizado.
 
-- Si NUMERO_IMAGENES = 0 → error:
-  "El disco {disc} no esta sincronizado para alamcenar contacte a su administrador"
+## Goals
 
-- Si TAMDISC > 572523149 y NUMERO_IMAGENES > 80000:
-    EstadoDisco = "SL"
+1. Eliminar dependencia obligatoria de `ESTADO_DISCO`.
+2. Replicar paridad legacy en validacion de capacidad.
+3. Conservar compatibilidad con ambientes que si tienen `ESTADO_DISCO`.
+4. Mantener validacion dentro de transaccion con locks `FOR UPDATE`.
 
-- Si TAMDISC < 572523149 y NUMERO_IMAGENES > 7500:
-    EstadoDisco = "SL"
+## Non-Goals
 
-- Si TAMDISC == 572523149:
-    NO activar SL (paridad exacta legacy) MENSAJE LEGACY OBLIGATORIO "Disco {disc} Sobrepaso el limite de capacidad" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO DEL PROBLEMA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actualmente el flujo falla con: Unknown column 'ESTADO_DISCO' in 'field list' porque el código C# asume que existe: disco_detalle.ESTADO_DISCO pero producción NO tiene esa columna. La lógica VB: NO leía ESTADO_DISCO.
-La calculaba dinámicamente. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ALCANCE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar validación de capacidad: 1. Leer system1:
-   - disco
-   - tamdisc
-   - proxid
-   - numcarp
-   - NUMPAG_CARP
+- Cambiar contratos HTTP/DTOs publicos.
+- Introducir migracion obligatoria de schema.
+- Redefinir umbrales legacy.
 
-2. Leer disco_detalle:
-   - NUMERO_IMAGENES
-   - NUMPAG_CARP
+## Architecture
 
-3. Calcular estado legacy:
-   - SL
-   - OK
+### Current flow
 
-4. Bloquear operación si aplica.
+`StorageTransactionCoordinator` -> `StorageIdentityAllocator` ->
+`StorageDiskQuotaRepository.LockDiskStatusAsync` -> `StorageDiskQuotaPolicy.ValidateDiskAvailable`.
 
-5. Mantener compatibilidad opcional con ESTADO_DISCO si existe en otros ambientes. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Services MiApp.Services/Service/GestorDocumental/AlmacenamientoDocumental/Disk/ Archivos: IStorageDiskCapacityPolicy.cs
-StorageDiskCapacityPolicy.cs Models MiApp.Models/Models/GestorDocumental/AlmacenamientoDocumental/ DiskCapacityValidationResult.cs Repository Extender: MiApp.Repository/Repositorio/GestorDocumental/AlmacenamientoDocumental/ Archivos relacionados: SystemStorageRepository.cs
-StorageDiskQuotaRepository.cs
-StorageIdentityAllocator.cs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACCESO A DATOS (REGLA) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DapperCrudEngine es obligatorio por defecto. Excepción permitida: Dapper directo cuando exista:
-- FOR UPDATE
-- transacción explícita
-- control de concurrencia No mezclar ambos enfoques en la misma operación. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MODELO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ public sealed class DiskCapacityValidationResult
-{
-    public bool Allowed { get; init; }
+### Target flow
 
-    public string EstadoDisco { get; init; } = "";
+1. Bloquear `system1` (`FOR UPDATE`) y obtener `tamdisc`.
+2. Bloquear `disco_detalle` (`FOR UPDATE`) y obtener `numero_imagenes`/`numpag_carp`.
+3. Evaluar policy de capacidad con regla legacy (`tamdisc + numero_imagenes`).
+4. Si bloquea, lanzar `StorageTransactionException` antes de updates/commit.
+5. Si permite, continuar flujo actual.
 
-    public string Message { get; init; } = "";
+## Data contract adjustments
 
-    public int Disco { get; init; }
+- `DiskQuotaStatusModel` debe permitir operar sin `ESTADO_DISCO` obligatorio.
+- `StorageDiskQuotaRepository.LockDiskStatusAsync` no debe fallar cuando esa columna no exista.
+- Si la columna existe, puede mapearse opcionalmente para refuerzo (`SL` explicito).
 
-    public long TamDisc { get; init; }
+## Decision matrix (with/without ESTADO_DISCO)
 
-    public int NumeroImagenes { get; init; }
-} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ IMPLEMENTACIÓN — StorageDiskCapacityPolicy ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad Replicar exactamente: Numero_Imagenes(...) Reglas - usar system1 + disco_detalle
-- NO depender obligatoriamente de ESTADO_DISCO
-- NO inventar umbrales
-- NO reinterpretar lógica Flujo esperado if (numeroImagenes == null)
-{
-    throw new StorageTransactionException(
-        $"El disco {disc} no esta sincronizado para alamcenar contacte a su administrador estado null");
-}
+1. Schema sin `ESTADO_DISCO`:
+- Validacion se resuelve solo por regla legacy.
+- Flujo debe continuar sin error de columna.
 
-if (numeroImagenes == 0)
-{
-    throw new StorageTransactionException(
-        $"El disco {disc} no esta sincronizado para alamcenar contacte a su administrador");
-}
+2. Schema con `ESTADO_DISCO`:
+- Se mantiene regla legacy como fuente principal.
+- `EstadoDisco == "SL"` puede reforzar bloqueo.
 
-if (tamdisc > 572523149 && numeroImagenes > 80000)
-{
-    estadoDisco = "SL";
-}
+## Error behavior
 
-if (tamdisc < 572523149 && numeroImagenes > 7500)
-{
-    estadoDisco = "SL";
-}
+- `numero_imagenes` null:
+  - `El disco {disc} no esta sincronizado para alamcenar contacte a su administrador estado null`
+- `numero_imagenes == 0`:
+  - `El disco {disc} no esta sincronizado para alamcenar contacte a su administrador`
+- Umbral excedido:
+  - `Disco {disc} Sobrepaso el limite de capacidad`
 
-if (estadoDisco == "SL")
-{
-    throw new StorageTransactionException(
-        $"Disco {disc} Sobrepaso el limite de capacidad");
-} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ COMPATIBILIDAD OPCIONAL ESTADO_DISCO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Si el ambiente SÍ tiene columna: ESTADO_DISCO puede usarse como refuerzo adicional: Si EstadoDisco == "SL" → bloquear Pero: ESTADO_DISCO NO es fuente primaria. La fuente principal siempre debe ser: TAMDISC + NUMERO_IMAGENES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INTEGRACIÓN EN TRANSACTION COORDINATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Orden obligatorio: 1. SELECT system1 FOR UPDATE
-2. SELECT disco_detalle FOR UPDATE
-3. StorageDiskCapacityPolicy
-4. Update system1
-5. Insert gabinete Si policy falla: rollback inmediato ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONCURRENCIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Obligatorio: SELECT ... FOR UPDATE Objetivos: - evitar race conditions
-- evitar sobreasignación de disco
-- garantizar consistencia concurrente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLAS CRÍTICAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ - NO requerir ESTADO_DISCO
-- NO romper producción actual
-- NO inventar umbrales
-- NO reinterpretar lógica VB
-- SIEMPRE validar antes del commit
-- SIEMPRE usar lock transaccional
-- SIEMPRE devolver mensajes homologables a legacy ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Unitarias Validar: - tamdisc grande + numero_imagenes > 80000 → bloquea
-- tamdisc pequeño + numero_imagenes > 7500 → bloquea
-- tamdisc == 572523149 → NO bloquea por umbral
-- numero_imagenes NULL → error
-- numero_imagenes = 0 → error
-- disco permitido → OK
-- EstadoDisco == SL (si existe) → bloquea Integración Validar: - schema sin ESTADO_DISCO → funciona
-- schema con ESTADO_DISCO → funciona
-- SELECT FOR UPDATE ejecutado
-- rollback ejecutado correctamente
-- concurrencia controlada Regresión legacy Comparar contra: Numero_Imagenes(...) Validar: - mensajes equivalentes
-- umbrales equivalentes
-- comportamiento equivalente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs obligatorios: requestId
-gabinete
-disco
-tamdisc
-numeroImagenes
-estadoDisco
-resultado (ALLOW/BLOCK)
-duración NO loguear: datos sensibles
-fulltext
-contenido documental ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actualizar en: D:\imagenesda\GestorDocumental\DocuArchiCore\DocuArchiCore\Docs\GestorDocumental\AlmacenamientoDocumental\StorageEngine\ y/o: Arquitectura-Final\ Crear/actualizar: SCRUM-189-Arquitectura-Capacidad-Disco.md
-SCRUM-189-Implementacion-Capacidad-Disco.md
-SCRUM-189-Pruebas-Capacidad-Disco.md
-SCRUM-189-Observabilidad-Capacidad-Disco.md
-SCRUM-189-Regresion-Legacy-Capacidad-Disco.md
-SCRUM-189-Metadata.md Debe incluir: - brecha detectada
-- regla legacy adoptada
-- matriz con/sin ESTADO_DISCO
-- decisión tamdisc == 572523149
-- evidencia de pruebas
-- diagramas de secuencia y validación ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ no aparece más Unknown column ESTADO_DISCO
-✔ comportamiento igual a VB
-✔ validación antes del commit
-✔ concurrencia controlada
-✔ rollback correcto
-✔ compatibilidad con/sin ESTADO_DISCO
-✔ pruebas en verde
-✔ documentación actualizada ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ - NO cambiar lógica legacy
-- NO introducir migración obligatoria
-- NO hardcodear reglas nuevas
-- NO eliminar FOR UPDATE
-- NO tocar contratos HTTP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar la validación de capacidad de disco replicando exactamente el comportamiento legacy VB, eliminando la dependencia obligatoria de ESTADO_DISCO y garantizando consistencia transaccional bajo concurrencia.
+## Testing strategy
 
-## Approach
+Unit tests:
+- umbral alto (`>80000`) con `tamdisc > 572523149` bloquea.
+- umbral bajo (`>7500`) con `tamdisc < 572523149` bloquea.
+- `tamdisc == 572523149` no bloquea por umbral.
+- `numero_imagenes` null y `0` retornan error esperado.
+- si existe `EstadoDisco == SL`, bloquea.
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-197-correcion-validacion-tamano-disco-almace.
+Integration tests:
+- ambiente sin `ESTADO_DISCO` no rompe lectura transaccional.
+- ambiente con `ESTADO_DISCO` mantiene comportamiento.
+- lock transaccional (`FOR UPDATE`) se conserva.
+
+## Risks
+
+- Riesgo de regresion funcional en cuota de disco si se altera la regla de umbrales.
+- Riesgo de inconsistencia de mensajes si no se homologa con legacy.
+- Riesgo de concurrencia si se elimina/relaja lock.
+
+Mitigaciones:
+- pruebas de paridad con matriz explicita de casos.
+- mantener orden de lock y validacion antes de commit.
