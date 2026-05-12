@@ -39,6 +39,71 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
+        public async Task LockDiskStatusAsync_ShouldFallback_WhenEstadoDiscoColumnIsMissing()
+        {
+            var dapper = new Mock<IDapperCrudEngine>();
+            var calls = 0;
+            QueryOptions? first = null;
+            QueryOptions? second = null;
+
+            dapper.Setup(x => x.GetAllBeginTransAsync<DiskQuotaStatusModel>(
+                    It.IsAny<QueryOptions>(),
+                    It.IsAny<IDbConnection>(),
+                    It.IsAny<IDbTransaction>(),
+                    It.IsAny<bool>()))
+                .Callback<QueryOptions, IDbConnection, IDbTransaction, bool>((o, _, _, _) =>
+                {
+                    calls++;
+                    if (calls == 1)
+                    {
+                        first = o;
+                    }
+                    else
+                    {
+                        second = o;
+                    }
+                })
+                .ReturnsAsync(() =>
+                {
+                    if (calls == 1)
+                    {
+                        return new QueryResult<DiskQuotaStatusModel>
+                        {
+                            Success = false,
+                            ErrorMessage = "GetAllBeginTransAsync Unknown column 'ESTADO_DISCO' in 'field list'"
+                        };
+                    }
+
+                    return new QueryResult<DiskQuotaStatusModel>
+                    {
+                        Success = true,
+                        Data = new[]
+                        {
+                            new DiskQuotaStatusModel
+                            {
+                                Disco = 1,
+                                NombreGabinete = "gab",
+                                EstadoDisco = string.Empty,
+                                NumeroImagenes = 10,
+                                NumeroImagenesIsNull = false
+                            }
+                        },
+                        ErrorMessage = "YES"
+                    };
+                });
+
+            var repo = new StorageDiskQuotaRepository(dapper.Object);
+            var status = await repo.LockDiskStatusAsync("gab", 1, Mock.Of<IDbConnection>(), Mock.Of<IDbTransaction>());
+
+            Assert.NotNull(status);
+            Assert.Equal(2, calls);
+            Assert.NotNull(first);
+            Assert.NotNull(second);
+            Assert.Contains("ESTADO_DISCO AS EstadoDisco", first!.Columns);
+            Assert.Contains("'' AS EstadoDisco", second!.Columns);
+        }
+
+        [Fact]
         public async Task UpdateDiskUsageAsync_ShouldUseUpdateBeginTransAsync()
         {
             var dapper = new Mock<IDapperCrudEngine>();

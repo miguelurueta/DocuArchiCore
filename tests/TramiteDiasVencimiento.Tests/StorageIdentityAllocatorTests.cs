@@ -78,7 +78,7 @@ namespace TramiteDiasVencimiento.Tests
 
             Assert.Equal(11, result.Identity.IdAlmacen);
             systemRepo.Verify(x => x.UpdateReservationAsync("gab", reservation, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()), Times.Once);
-            diskPolicy.Verify(x => x.ValidateDiskAvailable(It.IsAny<DiskQuotaStatusModel?>()), Times.Once);
+            diskPolicy.Verify(x => x.ValidateDiskAvailable(It.IsAny<DiskQuotaStatusModel?>(), It.IsAny<long>()), Times.Once);
         }
 
         [Fact]
