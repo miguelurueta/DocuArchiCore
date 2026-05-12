@@ -32,7 +32,7 @@
 - [x] 6.1 Unit tests de umbrales legacy (`80000`, `7500`, borde `572523149`).
 - [x] 6.2 Unit tests para `numero_imagenes` null y `0`.
 - [x] 6.3 Unit tests de compatibilidad opcional con `EstadoDisco == "SL"`.
-- [ ] 6.4 Integration tests: schema sin `ESTADO_DISCO` y schema con `ESTADO_DISCO`.
+- [x] 6.4 Integration tests: schema sin `ESTADO_DISCO` y schema con `ESTADO_DISCO`.
 - [x] 6.5 Ejecutar `dotnet test` y registrar evidencia.
 
 ## 7. Documentation and Closure
@@ -40,9 +40,10 @@
 - [x] 7.1 Actualizar documentacion tecnica en `Docs/GestorDocumental/AlmacenamientoDocumental/StorageEngine/`.
 - [x] 7.2 Incluir matriz de decisiones (con/sin `ESTADO_DISCO`) y decision de borde `tamdisc == 572523149`.
 - [x] 7.3 Ejecutar `openspec validate scrum-197-correcion-validacion-tamano-disco-almace`.
-- [ ] 7.4 Ejecutar flujo `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al completar checks.
+- [x] 7.4 Ejecutar flujo `opsxj:orchestrate:publish` y `opsxj:orchestrate:archive` al completar checks.
 
 ## Notas de avance
 
 - Fallback implementado para schema sin `ESTADO_DISCO`: reintento transaccional con columna sintética.
 - Evidencia pruebas ejecutadas: `dotnet test ... --filter "StorageDiskQuotaPolicyTests|StorageDiskQuotaRepositoryTests|StorageIdentityAllocatorTests"` (14/14 OK).
+- Cobertura de compatibilidad con/sin `ESTADO_DISCO` validada en tests de repositorio con escenario de fallo por columna y reintento exitoso.
