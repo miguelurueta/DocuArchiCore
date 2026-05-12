@@ -17,6 +17,21 @@ Resultado:
 - Exitosas: 18
 - Fallidas: 0
 
+## Evidencia de revisión global `DBNull`
+
+Comandos ejecutados:
+
+```powershell
+rg -n "DBNull\.Value|System\.DBNull|Convert\.DBNull" -g "*.cs" D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Repository
+rg -n "DBNull\.Value|System\.DBNull|Convert\.DBNull" -g "*.cs" D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Services
+rg -n "DBNull\.Value|System\.DBNull|Convert\.DBNull" -g "*.cs" D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Models
+```
+
+Resultado:
+1. `MiApp.Repository`: sin coincidencias activas en Storage Engine.
+2. `MiApp.Models`: sin coincidencias.
+3. `MiApp.Services`: 4 coincidencias fuera de Storage (`Workflow/BandejaCorrespondencia`).
+
 ## Cobertura específica agregada
 
 Archivo:

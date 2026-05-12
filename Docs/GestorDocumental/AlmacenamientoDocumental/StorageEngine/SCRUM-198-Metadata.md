@@ -19,3 +19,20 @@
 
 - En Storage Engine, usar `null` de C# para ausencia de valor en parámetros.
 - No usar `DBNull.Value` dentro de builders/repos/services del módulo.
+
+## Inventario de revisión global
+
+Patrones revisados:
+- `DBNull.Value`
+- `System.DBNull`
+- `Convert.DBNull`
+
+Cobertura de revisión:
+1. `MiApp.Repository` (`*.cs`)
+2. `MiApp.Services` (`*.cs`)
+3. `MiApp.Models` (`*.cs`)
+
+Hallazgos:
+1. Storage Engine (`Repositorio/GestorDocumental/AlmacenamientoDocumental`): sin usos de `DBNull` luego del ajuste.
+2. `MiApp.Models`: sin usos de `DBNull`.
+3. `MiApp.Services`: 4 usos detectados en `Workflow/BandejaCorrespondencia` (fuera de alcance del ticket).
