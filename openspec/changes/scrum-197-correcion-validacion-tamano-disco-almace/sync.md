@@ -17,9 +17,9 @@ Use this template at the start of each Jira ticket (`SCRUM-197`) to decide exact
 | DocuArchiCore.Abstractions | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | DocuArchiCore.Web | no | no_code_change | solo consulta (sin cambios) | n/a | n/a | n/a | n_a |
 | MiApp.DTOs | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Services | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Repository | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
-| MiApp.Models | yes | traceability_only | trazabilidad centralizada sin diff funcional | pending | n/a | pending | tracked |
+| MiApp.Services | yes | implementation_required | policy legacy de cuota y ajuste de allocator | done | n/a | pending | in_progress |
+| MiApp.Repository | yes | implementation_required | fallback sin `ESTADO_DISCO` en lock de disco_detalle | done | n/a | pending | in_progress |
+| MiApp.Models | yes | implementation_required | `EstadoDisco` opcional y estado null de `NumeroImagenes` | done | n/a | pending | in_progress |
 
 ## Operating Rule
 
