@@ -1,4 +1,5 @@
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Extension;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Naming;
 using Moq;
 using Xunit;
@@ -24,25 +25,32 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task ResolveAsync_ShouldNormalizeExtension_WhenRepositoryReturnsWithoutDot()
+        public async Task ResolveByExtensionAsync_ShouldNormalizeExtension_WhenRepositoryReturnsWithoutDot()
         {
             var repository = new Mock<IStorageExtensionRepository>();
-            repository.Setup(x => x.GetExtensionAsync(3, "da")).ReturnsAsync("PDF");
+            repository.Setup(x => x.GetByExtensionAsync("PDF", "da")).ReturnsAsync(new StorageExtensionClassificationModel
+            {
+                ExtensionNormalizada = "PDF",
+                EstadoNormal = -1,
+                EstadoAdjunto = -10,
+                EstadoLink = -11
+            });
             var sut = new StorageExtensionResolver(repository.Object);
 
-            var extension = await sut.ResolveAsync(3, "da");
+            var result = await sut.ResolveByExtensionAsync(".pdf", "da");
 
-            Assert.Equal(".pdf", extension);
+            Assert.Equal(".pdf", result.ExtensionNormalizada);
+            Assert.Equal(-1, result.EstadoNormal);
         }
 
         [Fact]
-        public async Task ResolveAsync_ShouldThrow_WhenRepositoryReturnsNull()
+        public async Task ResolveByExtensionAsync_ShouldThrow_WhenRepositoryReturnsNull()
         {
             var repository = new Mock<IStorageExtensionRepository>();
-            repository.Setup(x => x.GetExtensionAsync(3, "da")).ReturnsAsync((string?)null);
+            repository.Setup(x => x.GetByExtensionAsync("PDF", "da")).ReturnsAsync((StorageExtensionClassificationModel?)null);
             var sut = new StorageExtensionResolver(repository.Object);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ResolveAsync(3, "da"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ResolveByExtensionAsync("pdf", "da"));
         }
     }
 }

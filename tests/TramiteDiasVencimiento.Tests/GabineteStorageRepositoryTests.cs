@@ -32,6 +32,7 @@ namespace TramiteDiasVencimiento.Tests
                 Carpeta = model.Carpeta,
                 Usuario = model.Usuario,
                 Fecha = model.Fecha,
+                Hora = model.Hora,
                 CamposDinamicos = model.CamposDinamicos
             };
 
@@ -67,6 +68,7 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal("gabinete", captured!.TableName);
             Assert.Contains(captured.CampoParameterRegla, c => c.Nombre == "ID");
             Assert.Contains(captured.CampoParameterRegla, c => c.Nombre == "DISC");
+            Assert.Contains(captured.CampoParameterRegla, c => c.Nombre == "TIME1");
             Assert.Contains(captured.CampoParameterRegla, c => c.Nombre == "CAMPO_A");
             Assert.Equal("valor", captured.ReglasValidacionCampo["CAMPO_A"]);
         }
@@ -98,6 +100,7 @@ namespace TramiteDiasVencimiento.Tests
                 Carpeta = 3,
                 Usuario = "user1",
                 Fecha = DateTime.UtcNow,
+                Hora = "10:20:30",
                 CamposDinamicos = new Dictionary<string, object?>
                 {
                     ["CAMPO_A"] = "valor"
