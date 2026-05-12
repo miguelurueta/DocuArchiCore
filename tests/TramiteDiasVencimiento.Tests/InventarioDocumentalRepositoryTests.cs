@@ -82,6 +82,11 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(1_000_000, ((string)captured.ReglasValidacionCampo["FULTEXT_DOCUMENTO"]).Length);
             Assert.True(captured.ReglasValidacionCampo.ContainsKey("SEGUNDO_NOMBRE_DOCUMENTO"));
             Assert.True(captured.ReglasValidacionCampo.ContainsKey("ID_TIPO_UNIDAD_DOCUMENTAL"));
+            Assert.Null(captured.ReglasValidacionCampo["SERIE_DOCUMENTO"]);
+            Assert.Null(captured.ReglasValidacionCampo["SUBSERIE_DOCUMENTO"]);
+            Assert.Null(captured.ReglasValidacionCampo["ID_SERIE_DOCUMENTO"]);
+            Assert.Null(captured.ReglasValidacionCampo["ID_SUBSERIE_DOCUMENTO"]);
+            Assert.DoesNotContain(captured.ReglasValidacionCampo, kvp => kvp.Value is DBNull);
         }
 
         [Fact]
