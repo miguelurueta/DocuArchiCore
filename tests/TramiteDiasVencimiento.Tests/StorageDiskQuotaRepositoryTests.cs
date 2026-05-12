@@ -24,7 +24,7 @@ namespace TramiteDiasVencimiento.Tests
                 .ReturnsAsync(new QueryResult<DiskQuotaStatusModel>
                 {
                     Success = true,
-                    Data = new[] { new DiskQuotaStatusModel { Disco = 1, EstadoDisco = "OK", NombreGabinete = "gab" } },
+                    Data = new[] { new DiskQuotaStatusModel { Disco = 1, NombreGabinete = "gab" } },
                     ErrorMessage = "YES"
                 });
 
@@ -39,68 +39,40 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task LockDiskStatusAsync_ShouldFallback_WhenEstadoDiscoColumnIsMissing()
+        public async Task LockDiskStatusAsync_ShouldQueryWithoutEstadoDiscoColumn()
         {
             var dapper = new Mock<IDapperCrudEngine>();
-            var calls = 0;
-            QueryOptions? first = null;
-            QueryOptions? second = null;
+            QueryOptions? captured = null;
 
             dapper.Setup(x => x.GetAllBeginTransAsync<DiskQuotaStatusModel>(
                     It.IsAny<QueryOptions>(),
                     It.IsAny<IDbConnection>(),
                     It.IsAny<IDbTransaction>(),
                     It.IsAny<bool>()))
-                .Callback<QueryOptions, IDbConnection, IDbTransaction, bool>((o, _, _, _) =>
+                .Callback<QueryOptions, IDbConnection, IDbTransaction, bool>((o, _, _, _) => captured = o)
+                .ReturnsAsync(new QueryResult<DiskQuotaStatusModel>
                 {
-                    calls++;
-                    if (calls == 1)
+                    Success = true,
+                    Data = new[]
                     {
-                        first = o;
-                    }
-                    else
-                    {
-                        second = o;
-                    }
-                })
-                .ReturnsAsync(() =>
-                {
-                    if (calls == 1)
-                    {
-                        return new QueryResult<DiskQuotaStatusModel>
+                        new DiskQuotaStatusModel
                         {
-                            Success = false,
-                            ErrorMessage = "GetAllBeginTransAsync Unknown column 'ESTADO_DISCO' in 'field list'"
-                        };
-                    }
-
-                    return new QueryResult<DiskQuotaStatusModel>
-                    {
-                        Success = true,
-                        Data = new[]
-                        {
-                            new DiskQuotaStatusModel
-                            {
-                                Disco = 1,
-                                NombreGabinete = "gab",
-                                EstadoDisco = string.Empty,
-                                NumeroImagenes = 10,
-                                NumeroImagenesIsNull = false
-                            }
-                        },
-                        ErrorMessage = "YES"
-                    };
+                            Disco = 1,
+                            NombreGabinete = "gab",
+                            NumeroImagenes = 10,
+                            NumeroImagenesIsNull = false
+                        }
+                    },
+                    ErrorMessage = "YES"
                 });
 
             var repo = new StorageDiskQuotaRepository(dapper.Object);
             var status = await repo.LockDiskStatusAsync("gab", 1, Mock.Of<IDbConnection>(), Mock.Of<IDbTransaction>());
 
             Assert.NotNull(status);
-            Assert.Equal(2, calls);
-            Assert.NotNull(first);
-            Assert.NotNull(second);
-            Assert.Contains("ESTADO_DISCO AS EstadoDisco", first!.Columns);
-            Assert.Contains("'' AS EstadoDisco", second!.Columns);
+            Assert.NotNull(captured);
+            Assert.DoesNotContain(captured!.Columns, c => c.Contains("ESTADO_DISCO"));
+            Assert.DoesNotContain(captured.Columns, c => c.Contains("EstadoDisco"));
         }
 
         [Fact]

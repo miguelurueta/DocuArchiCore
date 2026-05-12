@@ -12,8 +12,9 @@
   - Rotacion de carpeta al superar 230 paginas.
 - `StorageDiskQuotaPolicy`:
   - `status = null` bloquea.
-  - `EstadoDisco = "SL"` bloquea.
-  - Estado habilitado continua.
+  - `numero_imagenes null` bloquea.
+  - `numero_imagenes = 0` bloquea.
+  - Umbrales `tamdisc + numero_imagenes` bloquean o continúan según regla legacy.
 - `StorageIdentityAllocator`:
   - valida contexto, conexion abierta y transaccion no nula.
   - valida lock de `system1` y `disco_detalle`.

@@ -35,8 +35,8 @@ The system MUST reserve storage identity from `system1` using row-level lock sem
 ### Requirement: Locked disk quota validation on disco_detalle
 The system MUST lock and validate `disco_detalle` before confirming reservation in `system1`.
 
-#### Scenario: Disk marked as over limit
-- **WHEN** `EstadoDisco = "SL"` in locked `disco_detalle` row
+#### Scenario: Disk over legacy capacity threshold
+- **WHEN** locked `disco_detalle` row and `tamdisc + numero_imagenes` exceed configured legacy threshold
 - **THEN** allocator throws `StorageTransactionException` and aborts reservation update
 
 #### Scenario: Disk row unavailable

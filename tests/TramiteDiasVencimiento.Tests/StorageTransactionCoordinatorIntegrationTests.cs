@@ -166,7 +166,6 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             {
                 Disco = 1,
                 NombreGabinete = "gab",
-                EstadoDisco = "OK",
                 NumeroImagenes = 10,
                 NumPagCarp = 3
             });

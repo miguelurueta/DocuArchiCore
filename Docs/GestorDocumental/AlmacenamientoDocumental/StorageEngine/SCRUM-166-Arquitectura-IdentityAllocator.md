@@ -14,14 +14,14 @@ Implementar la reserva de identidad documental con compatibilidad legacy para `s
 ## Diagrama de clases (texto)
 - Allocator depende de repositorios y politicas.
 - Repositorios dependen de `IDapperCrudEngine`.
-- Politicas encapsulan reglas legacy (`proxid`, `tamdisc`, `SL`, pagina por carpeta).
+- Politicas encapsulan reglas legacy (`proxid`, `tamdisc`, `numero_imagenes`, pagina por carpeta).
 
 ## Diagrama de secuencia (texto)
 1. `StorageIdentityAllocator.ReserveAsync` valida contexto/connection/transaccion.
 2. `SystemStorageRepository.LockByGabineteAsync` bloquea `system1` (`FOR UPDATE`).
 3. `StorageIdentityPolicy.Calculate` calcula identidad/folder/pages.
 4. `StorageDiskQuotaRepository.LockDiskStatusAsync` bloquea `disco_detalle`.
-5. `StorageDiskQuotaPolicy.ValidateDiskAvailable` valida `EstadoDisco`.
+5. `StorageDiskQuotaPolicy.ValidateDiskAvailable` valida umbrales y estado de sincronizacion por `numero_imagenes`.
 6. `SystemStorageRepository.UpdateReservationAsync` persiste `proxid/numcarp/NUMPAG_CARP`.
 7. Retorna `StorageIdentityReservationResult`.
 
@@ -29,7 +29,7 @@ Implementar la reserva de identidad documental con compatibilidad legacy para `s
 - `IdAlmacen = ProxId + 1` y `NewProxId = IdAlmacen`.
 - `tamdisc` permitido solo en: `572523149`, `4310948432`.
 - Rotacion de carpeta si `NumPagCarp + paginasDocumento > 230`.
-- Bloqueo por disco sobre limite cuando `EstadoDisco = "SL"`.
+- Bloqueo por disco sobre limite con reglas `tamdisc + numero_imagenes`.
 
 ## Integracion con TransactionCoordinator
 - El allocator no abre ni cierra transaccion.
