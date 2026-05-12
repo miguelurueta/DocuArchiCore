@@ -6,6 +6,7 @@ using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Enums;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Metadata;
+using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Naming;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Options;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Preindex;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Validation;
@@ -88,6 +89,52 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(2, context.PreindexValues.Count);
             Assert.Equal("a", context.EffectiveCamposIndexacion[0].Valor);
             Assert.Equal("b", context.EffectiveCamposIndexacion[1].Valor);
+        }
+
+        [Fact]
+        public async Task TechnicalExtensionValidator_ShouldReturnRequired_WhenExtensionIsMissing()
+        {
+            var resolver = new Mock<IStorageExtensionResolver>(MockBehavior.Strict);
+            var context = BuildContext();
+            context.Command = new AlmacenarDocumentoCommand
+            {
+                NombreGabinete = "gabinete",
+                RutaTemporalId = "tmp1",
+                NombreDocumento = "doc",
+                RequestId = "req-1",
+                Documentos = new List<DocumentoEntradaDto>
+                {
+                    new DocumentoEntradaDto
+                    {
+                        IdDocumento = "1",
+                        ArchivoTemporalId = "file1",
+                        Extension = null,
+                        NumeroPaginas = 1
+                    }
+                }
+            };
+
+            var validator = new TechnicalExtensionValidator(resolver.Object);
+            var errors = new List<StorageError>();
+
+            await validator.ValidateAsync(context, errors);
+
+            Assert.Contains(errors, e => e.Code == "DOC_EXTENSION_REQUIRED");
+        }
+
+        [Fact]
+        public async Task TechnicalExtensionValidator_ShouldReturnMappingError_WhenLookupFails()
+        {
+            var resolver = new Mock<IStorageExtensionResolver>();
+            resolver.Setup(x => x.ResolveByExtensionAsync("pdf", "db"))
+                .ThrowsAsync(new InvalidOperationException("No existe mapeo DA_EXTENSION para la extensión 'PDF'"));
+
+            var validator = new TechnicalExtensionValidator(resolver.Object);
+            var errors = new List<StorageError>();
+
+            await validator.ValidateAsync(BuildContext(), errors);
+
+            Assert.Contains(errors, e => e.Code == "EXTENSION_MAPPING_NOT_FOUND");
         }
 
         [Fact]
@@ -367,6 +414,7 @@ namespace TramiteDiasVencimiento.Tests
                         {
                             IdDocumento = "1",
                             ArchivoTemporalId = "file1",
+                            Extension = "pdf",
                             NumeroPaginas = 1
                         }
                     },
