@@ -41,14 +41,6 @@ The system MUST preserve legacy behavior when `numero_imagenes` is null or zero.
 - **WHEN** locked `disco_detalle` row has `numero_imagenes = 0`
 - **THEN** validation fails with legacy message for unsynchronized disk.
 
-### Requirement: Optional compatibility with ESTADO_DISCO
-The system MAY use `EstadoDisco == "SL"` as additional blocking condition when available, but it MUST NOT replace legacy primary rule.
-
-#### Scenario: Schema with ESTADO_DISCO marked SL
-- **WHEN** `EstadoDisco` is available and equals `SL`
-- **THEN** validation blocks operation
-- **AND** behavior remains compatible with legacy threshold decisions.
-
 ### Requirement: Validation must execute under transaction lock before commit
 Disk capacity validation MUST run before commit and while lock context is active.
 
@@ -56,4 +48,3 @@ Disk capacity validation MUST run before commit and while lock context is active
 - **WHEN** disk capacity validation fails
 - **THEN** transaction coordinator aborts the operation before storage persistence commit
 - **AND** returns controlled transactional error.
-

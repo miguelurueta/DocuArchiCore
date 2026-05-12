@@ -6,7 +6,7 @@
 - `tamdisc` permitido -> `StorageIdentityPolicy.Calculate`
 - `numcarp`/`NUMPAG_CARP` -> `StorageIdentityPolicy.Calculate`
 - `disco_detalle FOR UPDATE` -> `StorageDiskQuotaRepository.LockDiskStatusAsync`
-- `EstadoDisco = SL` -> `StorageDiskQuotaPolicy.ValidateDiskAvailable`
+- `tamdisc + numero_imagenes` (y null/0) -> `StorageDiskQuotaPolicy.ValidateDiskAvailable`
 - update `system1` transaccional -> `SystemStorageRepository.UpdateReservationAsync`
 
 ## Cobertura DapperCrudEngine

@@ -22,12 +22,11 @@
 - `previousFolderPages`
 - `newFolderPages`
 - `tamdisc`
-- `estadoDisco`
 - `duracionMs`
 
 ## Eventos de warning/error
 - `tamdisc` no permitido.
-- `EstadoDisco = SL`.
+- `numero_imagenes` fuera de umbral legacy o no sincronizado.
 - `system1` no encontrado.
 - `disco_detalle` no encontrado.
 - update de reserva sin filas afectadas.

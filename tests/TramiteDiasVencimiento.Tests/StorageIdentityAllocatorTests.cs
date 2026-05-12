@@ -59,7 +59,7 @@ namespace TramiteDiasVencimiento.Tests
                 .Returns(reservation);
             diskRepo
                 .Setup(x => x.LockDiskStatusAsync(It.IsAny<string>(), 2, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK" });
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab" });
             systemRepo
                 .Setup(x => x.UpdateReservationAsync(It.IsAny<string>(), reservation, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
                 .ReturnsAsync(1);
@@ -110,7 +110,7 @@ namespace TramiteDiasVencimiento.Tests
                 .Returns(reservation);
             diskRepo
                 .Setup(x => x.LockDiskStatusAsync(It.IsAny<string>(), 2, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
-                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab", EstadoDisco = "OK" });
+                .ReturnsAsync(new DiskQuotaStatusModel { Disco = 2, NombreGabinete = "gab" });
             systemRepo
                 .Setup(x => x.UpdateReservationAsync(It.IsAny<string>(), reservation, It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
                 .ReturnsAsync(1);

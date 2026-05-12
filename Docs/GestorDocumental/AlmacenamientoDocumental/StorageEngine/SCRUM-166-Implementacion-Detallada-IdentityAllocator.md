@@ -32,7 +32,7 @@
   - update `proxid`, `numcarp`, `NUMPAG_CARP`
   - filtros `nombre = @gabinete` y `proxid = @previousProxId`
 - `disco_detalle` lock:
-  - select `disco, gabinete, ESTADO_DISCO, NUMERO_IMAGENES, NUMPAG_CARP`
+  - select `disco, gabinete, NUMERO_IMAGENES, NUMPAG_CARP`
   - filtros `disco` y `gabinete`
   - `LockMode = ForUpdate`
 
@@ -40,7 +40,7 @@
 - Regla proxid legacy: `IdAlmacen = ProxId + 1`.
 - Regla tamdisc legacy: solo dos valores permitidos.
 - Regla de carpeta: umbral maximo `230` paginas.
-- Regla disco detalle: estado `SL` bloquea operacion.
+- Regla disco detalle: bloquea por umbrales legacy y por `numero_imagenes` null/0.
 
 ## Concurrencia
 - Orden de lock: primero `system1`, luego `disco_detalle`.
