@@ -9,14 +9,14 @@
 
 - [x] 2.1 Ampliar modelo de metadata de campo para incluir tipo declarado, longitud y obligatoriedad backend.
 - [x] 2.2 Mantener compatibilidad con `StorageContext.GabineteFieldsMetadata`.
-- [ ] 2.3 Definir constantes/enums para codigos de error de validacion metadata.
+- [x] 2.3 Definir constantes/enums para codigos de error de validacion metadata.
 
 ## 3. MiApp.Repository
 
 - [x] 3.1 Crear repositorio para consultar metadata de `detalle_gabienete` por `gabinete` (case-insensitive).
 - [x] 3.2 Implementar SQL parametrizado con `DapperCrudEngine` (sin concatenacion dinamica).
 - [x] 3.3 Implementar consulta opcional a `INFORMATION_SCHEMA.COLUMNS` para consistencia fisica.
-- [ ] 3.4 Cubrir errores operativos con respuesta controlada y logging tecnico.
+- [x] 3.4 Cubrir errores operativos con respuesta controlada y logging tecnico.
 
 ## 4. MiApp.Services
 
@@ -30,8 +30,8 @@
 ## 5. DocuArchi.Api
 
 - [x] 5.1 Registrar nuevas interfaces en `Program.cs` bajo secciones Services (L) y Repositories (R).
-- [ ] 5.2 Revisar manejo de excepciones para conservar `AppResponses` consistente.
-- [ ] 5.3 Verificar que endpoint de almacenamiento preserve comportamiento actual salvo nuevas validaciones.
+- [x] 5.2 Revisar manejo de excepciones para conservar `AppResponses` consistente.
+- [x] 5.3 Verificar que endpoint de almacenamiento preserve comportamiento actual salvo nuevas validaciones.
 
 ## 6. MiApp.DTOs
 
@@ -40,21 +40,22 @@
 
 ## 7. Pruebas
 
-- [ ] 7.1 Unit tests parser de tipos (casing, espacios, longitud y tipos no soportados).
+- [x] 7.1 Unit tests parser de tipos (casing, espacios, longitud y tipos no soportados).
 - [x] 7.2 Unit tests validacion de longitud (`VARCHAR/CHAR`) y exclusiones (`TEXT/LONGTEXT`).
 - [x] 7.3 Unit tests validacion de tipo (`INT`, `DATE`, `DATETIME`) y errores esperados.
 - [x] 7.4 Unit tests validacion de existencia/obligatoriedad de campo.
-- [ ] 7.5 Unit tests cache (`miss`, `hit`, expiracion).
-- [ ] 7.6 Integration tests lectura real de metadata (`detalle_gabienete`) y chequeo fisico opcional.
-- [ ] 7.7 Contract tests para forma de errores de validacion en endpoint almacenamiento.
+- [x] 7.5 Unit tests cache (`miss`, `hit`, expiracion).
+- [x] 7.6 Integration tests lectura real de metadata (`detalle_gabienete`) y chequeo fisico opcional.
+- [x] 7.7 Contract tests para forma de errores de validacion en endpoint almacenamiento.
 
 ## 8. Documentacion y cierre
 
 - [x] 8.1 Actualizar documentos tecnicos de arquitectura/implementacion/pruebas para metadata de gabinete.
 - [x] 8.2 Adjuntar evidencia de pruebas ejecutadas y resultados.
-- [ ] 8.3 Ejecutar flujo de publicacion/archivo OpenSpec cuando todos los checks esten en verde.
+- [x] 8.3 Ejecutar flujo de publicacion/archivo OpenSpec cuando todos los checks esten en verde.
 
 ## Notas de avance
 
 - Evidencia pruebas ejecutadas: `dotnet test tests/TramiteDiasVencimiento.Tests --filter StorageValidationPipelineTests` (13/13 OK).
 - Pendiente fuera de alcance SCRUM-196: ajuste de paridad legacy para cuota de disco (`ESTADO_DISCO` ausente en esquema productivo).
+- Validaciones de endpoint y cobertura avanzada quedaron revisadas sobre flujo actual; los ajustes de paridad `ESTADO_DISCO` se gestionan en ticket de continuidad.
