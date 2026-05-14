@@ -45,3 +45,10 @@
 - Inserción XML bajo `tipodocumentoFoliado`.
 - No bloqueo de almacenamiento principal por falla de actualización de índice.
 
+## Ajustes de compatibilidad aplicados
+- Escritura XML con formato estructurado legacy (indentación/nodos explícitos), evitando inserciones en una sola línea.
+- El nodo `Nombre_Documento` se llena con nombre físico final (`DIG########.EXT` en mayúscula de extensión).
+- `Tipologia_Documental` se alimenta con el mismo valor homologado del flujo transaccional (no `NA`).
+- `Ruta_Documento` (cuando aplica en el modelo lógico) usa ruta final de almacenamiento, no temporal.
+- Se mantiene incremento de `Orden_Documento_Expediente` a partir del máximo existente.
+

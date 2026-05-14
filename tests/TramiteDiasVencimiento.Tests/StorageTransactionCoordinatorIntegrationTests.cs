@@ -1,11 +1,13 @@
 using System.Collections.Concurrent;
 using System.Data;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
 using MiApp.Repository.Repositorio.DataAccess;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Disk;
+using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Gabinete;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Identity;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Transaction;
 using Moq;
@@ -21,6 +23,7 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
         var dbFactory = new Mock<IDbConnectionFactory>();
         var identityAllocator = BuildIdentityAllocator();
         var diskRepo = BuildDiskRepo();
+        var gabineteRepo = BuildGabineteRepo();
         var txStates = new ConcurrentBag<TxState>();
 
         dbFactory.Setup(x => x.GetOpenConnectionAsync("db"))
@@ -42,7 +45,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             dbFactory.Object,
             identityAllocator.Object,
             diskRepo.Object,
-            Mock.Of<ILogger<StorageTransactionCoordinator>>());
+            Mock.Of<ILogger<StorageTransactionCoordinator>>(),
+            gabineteStorageRepository: gabineteRepo.Object);
 
         var tasks = Enumerable.Range(1, 10)
             .Select(i => coordinator.ExecuteAsync(BuildContext($"req-{i:D2}", $"rad-{i:D2}")));
@@ -63,6 +67,7 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
     {
         var dbFactory = new Mock<IDbConnectionFactory>();
         var diskRepo = BuildDiskRepo();
+        var gabineteRepo = BuildGabineteRepo();
         var txStates = new ConcurrentBag<TxState>();
 
         dbFactory.Setup(x => x.GetOpenConnectionAsync("db"))
@@ -115,7 +120,8 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
             dbFactory.Object,
             identityAllocator.Object,
             diskRepo.Object,
-            Mock.Of<ILogger<StorageTransactionCoordinator>>());
+            Mock.Of<ILogger<StorageTransactionCoordinator>>(),
+            gabineteStorageRepository: gabineteRepo.Object);
 
         var successTask = coordinator.ExecuteAsync(BuildContext("req-ok", "rad-ok"));
         var failTask = coordinator.ExecuteAsync(BuildContext("req-fail", "rad-fail"));
@@ -170,6 +176,24 @@ public sealed class StorageTransactionCoordinatorIntegrationTests
                 NumPagCarp = 3
             });
         mock.Setup(x => x.UpdateDiskUsageAsync(It.IsAny<DiskQuotaUpdateModel>(), It.IsAny<IDbConnection>(), It.IsAny<IDbTransaction>()))
+            .ReturnsAsync(1);
+        return mock;
+    }
+
+    private static Mock<IGabineteStorageRepository> BuildGabineteRepo()
+    {
+        var mock = new Mock<IGabineteStorageRepository>();
+        mock.Setup(x => x.InsertAsync(
+                It.IsAny<GabineteInsertModel>(),
+                It.IsAny<IDbConnection>(),
+                It.IsAny<IDbTransaction>()))
+            .ReturnsAsync(1);
+        mock.Setup(x => x.UpdateByIdAsync(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<IReadOnlyDictionary<string, object?>>(),
+                It.IsAny<IDbConnection>(),
+                It.IsAny<IDbTransaction>()))
             .ReturnsAsync(1);
         return mock;
     }

@@ -354,3 +354,118 @@ CREATE TABLE `logdocuarchi` (
   `TIPOLOGIA_DOCUMENTAL` varchar(200) DEFAULT NULL,
   KEY `Id_log_docuarchi` (`Id_log_docuarchi`)
 ) ENGINE=InnoDB AUTO_INCREMENT=53173 DEFAULT CHARSET=utf8; 
+
+-- REFERENCIA TRD PARA DESCRIPTIVOS DE GABINETE:
+-- NOMBRESERIE y NOMBRESUBSERIE
+
+CREATE TABLE `series_documentales` (
+  `Id_Series` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `Areas_Depart_Radicacion_Codigo_Area` int(10) unsigned NOT NULL,
+  `Consecutivo_Serie` int(10) unsigned NOT NULL,
+  `Nombre_Serie` varchar(255) NOT NULL,
+  `Estado_Serie` int(10) unsigned NOT NULL,
+  `Consecutivo_subserie` int(10) unsigned NOT NULL,
+  `Consecutivo_Tip_Doc` int(10) unsigned NOT NULL,
+  `Tiempo_Ret_Arch_Central` int(11) NOT NULL,
+  `Tiempo_Ret_Archivo_Historico` int(11) NOT NULL,
+  `Conservacion_Total` int(10) unsigned NOT NULL,
+  `Eliminacion` int(10) unsigned NOT NULL,
+  `Microfilm` int(10) unsigned NOT NULL,
+  `Seleccion` int(10) unsigned NOT NULL,
+  `observaciones` text,
+  `Tiempo_Ret_Arch_Gestion` int(11) NOT NULL DEFAULT '0',
+  `ESTADO_DESICION` int(10) unsigned NOT NULL DEFAULT '1',
+  `Estado_Publico_Serie` int(10) unsigned NOT NULL DEFAULT '1',
+  `Proceso` varchar(80) DEFAULT NULL,
+  `Procedimiento` varchar(80) DEFAULT NULL,
+  `Medio_soporte` varchar(20) DEFAULT NULL,
+  `Codigo_Arbitrario` varchar(80) DEFAULT NULL,
+  `Ra_registro_instrumento_archivistico_id_instrumento` int(10) unsigned DEFAULT NULL,
+  `ra_m_sistema_meta_datos_id_sistema_meta_datos` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`Id_Series`,`Areas_Depart_Radicacion_Codigo_Area`),
+  KEY `Series_Documentales_FKIndex1` (`Areas_Depart_Radicacion_Codigo_Area`),
+  KEY `series_documentales_FKIndex_index` (`Ra_registro_instrumento_archivistico_id_instrumento`),
+  KEY `series_documentales_FKIndex1_system_meta` (`ra_m_sistema_meta_datos_id_sistema_meta_datos`),
+  CONSTRAINT `series_documentales_ibfk_1` FOREIGN KEY (`Ra_registro_instrumento_archivistico_id_instrumento`) REFERENCES `ra_registro_instrumento_archivistico` (`id_instrumento`) ON UPDATE CASCADE,
+  CONSTRAINT `series_documentales_ibfk_2` FOREIGN KEY (`ra_m_sistema_meta_datos_id_sistema_meta_datos`) REFERENCES `ra_m_sistema_meta_datos` (`id_sistema_meta_datos`) ON UPDATE CASCADE,
+  CONSTRAINT `series_documentales_ibfk_3` FOREIGN KEY (`ra_m_sistema_meta_datos_id_sistema_meta_datos`) REFERENCES `ra_m_sistema_meta_datos` (`id_sistema_meta_datos`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `subseries_documentales` (
+  `Id_SubSeries` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `Series_Documentales_Id_Series` int(10) unsigned NOT NULL,
+  `Nombre_Subserie` varchar(255) NOT NULL,
+  `Consecutivo_Subserie` int(10) unsigned NOT NULL,
+  `Estado_SubSerie` int(10) unsigned NOT NULL,
+  `Consecutivo_Tip_Doc` int(10) unsigned NOT NULL,
+  `TIEMPO_RET_ARCH_CENTRAL` int(11) NOT NULL,
+  `TIEMPO_RET_ARCH_HISTORICO` int(11) NOT NULL,
+  `TIEMPO_RET_ARCH_GESTION` int(11) NOT NULL,
+  `ELIMINACION` int(10) unsigned NOT NULL DEFAULT '0',
+  `MICROFILM` int(10) unsigned NOT NULL DEFAULT '0',
+  `DIGITALIZACION` int(10) unsigned NOT NULL DEFAULT '0',
+  `SELECCION` int(10) unsigned NOT NULL DEFAULT '0',
+  `observaciones` text,
+  `ESTADO_DESICION` int(10) unsigned NOT NULL DEFAULT '0',
+  `CONSERVACION_TOTAL` int(10) unsigned NOT NULL DEFAULT '0',
+  `Estado_Publico_Sub_Serie` int(10) unsigned NOT NULL DEFAULT '1',
+  `Proceso` varchar(80) DEFAULT NULL,
+  `Procedimiento` varchar(80) DEFAULT NULL,
+  `Medio_soporte` varchar(20) DEFAULT NULL,
+  `Codigo_Arbitrario` varchar(80) DEFAULT NULL,
+  `Ra_registro_instrumento_archivistico_id_instrumento` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`Id_SubSeries`,`Series_Documentales_Id_Series`),
+  UNIQUE KEY `Series_Documentales_Id_Series` (`Series_Documentales_Id_Series`,`Nombre_Subserie`),
+  KEY `SubSeries_Documentales_FKIndex1` (`Series_Documentales_Id_Series`),
+  KEY `series_documentales_FKIndex_index` (`Ra_registro_instrumento_archivistico_id_instrumento`),
+  CONSTRAINT `subseries_documentales_ibfk_1` FOREIGN KEY (`Ra_registro_instrumento_archivistico_id_instrumento`) REFERENCES `ra_registro_instrumento_archivistico` (`id_instrumento`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=latin1;
+
+-- REFERENCIA PARA CLASEDOCUMENTO / UNIDADCONSERVA
+CREATE TABLE `ra_tipo_documento` (
+  `ID_TIPO_DOCUMENTO` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `DOCUMENTO` varchar(120) NOT NULL,
+  `AYUDA_DOCUMENTO` text,
+  `ESTADO_DOCUMENTO` int(11) NOT NULL DEFAULT '1',
+  `UNIDAD_CONSERVA` varchar(120) DEFAULT NULL,
+  PRIMARY KEY (`ID_TIPO_DOCUMENTO`),
+  UNIQUE KEY `Nombre_Script` (`DOCUMENTO`)
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8;
+
+-- REFERENCIA PARA TIPODOCUMENTO (DESCRIPTIVO TRD)
+CREATE TABLE `tipos_doc_subseries` (
+  `Id_Tipos_Doc_SubSeries` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `SubSeries_Documentales_Id_SubSeries` int(10) unsigned NOT NULL,
+  `Consecutivo_Tip_Doc` varchar(45) NOT NULL,
+  `Descripcion_Documento` varchar(100) NOT NULL,
+  `Fecha_Creacion` datetime NOT NULL,
+  `Estado_Tipo` int(10) unsigned NOT NULL,
+  `PLANTILLA` text,
+  `EXTENSION_ARCHIVO` varchar(20) NOT NULL DEFAULT '.DOCX',
+  `tipo_doc_trasversal` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`Id_Tipos_Doc_SubSeries`,`SubSeries_Documentales_Id_SubSeries`),
+  UNIQUE KEY `SubSeries_Documentales_Id_SubSeries` (`SubSeries_Documentales_Id_SubSeries`,`Descripcion_Documento`),
+  KEY `Tipos_Doc_SubSeries_FKIndex1` (`SubSeries_Documentales_Id_SubSeries`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=latin1;
+
+-- REGLAS DE HOMOLOGACION FUNCIONAL (SCRUM-200)
+-- 1) GABINETE DINAMICO (ej. CONTABIL)
+-- ID      <- IdAlmacen reservado en system1
+-- DISC    <- disco asignado por allocator
+-- PAG     <- paginas declaradas/resueltas del documento
+-- DBT     <- DA_EXTENSION.ESTADO_NORMAL por extension real
+-- IDEX    <- carpeta asignada
+-- USER    <- usuario autenticado
+-- DATE1   <- fecha transaccion
+-- TIME1   <- hora transaccion
+--
+-- 2) REGISTRO_PRODUCION_DOCUMENTAL
+-- DESCRIPCION_TIPO_DOCUMENTO <- TIPODOCUMENTO homologado (TRD/gabinete)
+-- NOMBRE_AREA_DEPARTAMENTO, SERIE_DOCUMENTO, SUBSERIE_DOCUMENTO
+--   <- request o fallback por metadata TRD (ids)
+-- UNIDADCONSERVA <- NULL cuando no exista codigo FK-compatible
+--
+-- 3) RA_CERT_INDICE_EXPEDIENTE
+-- Nombre_documento    <- nombre final fisico (DIG########.EXT)
+-- Tipologia_documental<- mismo valor de TIPODOCUMENTO homologado
+-- ruta_documento      <- ruta final de almacenamiento (no temporal)

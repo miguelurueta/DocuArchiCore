@@ -18,7 +18,9 @@ namespace TramiteDiasVencimiento.Tests
             try
             {
                 var xmlPath = Path.Combine(tempDir, "000000001.xml");
-                await File.WriteAllTextAsync(xmlPath, "<tipoIndiceContenido><tipodocumentoFoliado></tipodocumentoFoliado></tipoIndiceContenido>");
+                await File.WriteAllTextAsync(
+                    xmlPath,
+                    "<tipoIndiceContenido><tipodocumentoFoliado><DocumentoIndizado><Orden_Documento_Expediente>5</Orden_Documento_Expediente></DocumentoIndizado></tipodocumentoFoliado></tipoIndiceContenido>");
 
                 var model = new ExpedienteIndiceXmlDocumentModel
                 {
@@ -32,11 +34,11 @@ namespace TramiteDiasVencimiento.Tests
                     FechaIncorporacionDocumento = DateTime.UtcNow,
                     ValorHuella = new string('A', 64),
                     FuncionResumen = "SHA256",
-                    OrdenDocumentoExpediente = 1,
+                    OrdenDocumentoExpediente = 0,
                     PaginaInicial = 1,
                     PaginaFinal = 2,
                     Formato = ".PDF",
-                    Tamano = "1 Kb",
+                    Tamano = "1,25 Kb",
                     RutaDocumento = @"C:\storage\DIG00000011.pdf",
                     NumeroFolios = 2,
                     Origen = 9
@@ -49,6 +51,13 @@ namespace TramiteDiasVencimiento.Tests
                 var xmlText = await File.ReadAllTextAsync(xmlPath);
                 Assert.Contains("DocumentoIndizado", xmlText);
                 Assert.Contains("Nombre_Documento", xmlText);
+                Assert.Contains("DIG00000011.PDF", xmlText);
+                Assert.Contains("<Orden_Documento_Expediente>6</Orden_Documento_Expediente>", xmlText);
+                Assert.Contains("1.25 Kb", xmlText);
+                Assert.DoesNotContain("Ruta_Documento", xmlText);
+                Assert.DoesNotContain("Numero_Folios", xmlText);
+                Assert.DoesNotContain("Segundo_Nombre", xmlText);
+                Assert.DoesNotContain("Fecha_Creacion_Documento", xmlText);
             }
             finally
             {

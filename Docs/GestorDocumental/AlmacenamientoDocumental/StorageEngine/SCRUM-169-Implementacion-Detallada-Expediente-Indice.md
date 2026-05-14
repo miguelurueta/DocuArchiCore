@@ -35,3 +35,14 @@
 - Insercion de indice con `InsertBeginTrandAsync` y retorno de identidad.
 - Hash documental calculado con SHA256 deterministico sobre datos del documento/indice.
 - Fase archivistica ejecutada dentro de la misma transaccion del flujo storage.
+
+## Ajustes funcionales posteriores
+- `Nombre_documento` en `ra_cert_indice_expediente`:
+  - se persiste con el nombre final físico (`DIG########.EXT`), no con tipología ni nombre lógico.
+- `Tipologia_documental`:
+  - se homologa con el descriptivo `TIPODOCUMENTO` del flujo (gabinete/TRD resuelto);
+  - fallback controlado a `Trd.IdTipoDocumento` cuando no exista descriptivo, evitando `NA`.
+- `ruta_documento`:
+  - se persiste con ruta final de almacenamiento (`RutaFinal + NombreArchivoPrincipal`), no ruta temporal.
+- Guardas de índice lógico:
+  - solo inserta si hay `IdRegistroProduccionDocumental > 0`, expediente válido y estado electrónico habilitado.

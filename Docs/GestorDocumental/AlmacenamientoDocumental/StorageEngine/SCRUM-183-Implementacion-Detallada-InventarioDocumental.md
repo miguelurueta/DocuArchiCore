@@ -29,12 +29,14 @@
   - integra `TryInsertInventarioAsync`
   - usa `IStorageNamingService` para `SegundoNombreDocumento`
   - retorna `IdRegistroProduccionDocumental` en `StorageTransactionResult`
+  - integra homologación de descriptivos antes de persistir inventario
 
 ### Repository
 - `InventarioDocumentalRepository`:
   - cambia modelo a `InventarioDocumentalInsertModel`
   - inserta set ampliado de columnas legacy
   - valida `IdUsuarioGestion`, `IdEmpresaDocumento`, `IdDocumentoDocuarchiAlmacen`, `NumeroFolios`, `Tamano`, `Formato`, `NombreGabinete`
+  - permite `UNIDADCONSERVA = NULL` cuando no existe código compatible de unidad de conservación (evita FK inválida)
 
 ### API DI
 - `Program.cs` registra `IInventarioDocumentalBuilder`.
@@ -72,3 +74,14 @@
 - DOCUMENTO_PRODUCION_DOCUMENTAL
 - TAMANO
 - FORMATO
+
+## Homologaciones vigentes (post correcciones)
+- `DESCRIPCION_TIPO_DOCUMENTO`:
+  - se homologa con el mismo descriptivo usado en gabinete (`TIPODOCUMENTO`), con fallback a descriptor TRD resuelto.
+- `NOMBRE_AREA_DEPARTAMENTO`, `SERIE_DOCUMENTO`, `SUBSERIE_DOCUMENTO`:
+  - se llenan desde request cuando vienen en payload;
+  - si no vienen, se resuelven por metadata TRD (ids) antes del insert.
+- `EXPEDIENTE`:
+  - se conserva lógica de llenado por contexto de expediente; no se fuerza valor fijo.
+- `UNIDADCONSERVA`:
+  - se persiste `NULL` si no hay valor canónico FK-safe.
