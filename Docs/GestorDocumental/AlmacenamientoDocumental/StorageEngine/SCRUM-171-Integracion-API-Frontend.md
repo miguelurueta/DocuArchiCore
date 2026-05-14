@@ -165,3 +165,8 @@ Request mínimo ejemplo:
 - El binario solo viaja por endpoint de chunk (`octet-stream`).
 - `POST /almacenamiento` recibe JSON con referencias temporales (`RutaTemporalId`, `ArchivoTemporalId`).
 - No enviar body envuelto en `{ "request": { ... } }`; el payload va directo en la raíz.
+
+## Cambios internos recientes (sin cambio de contrato HTTP)
+- La clasificación técnica de archivo para almacenamiento usa `DA_EXTENSION` por extensión real del documento.
+- El flujo transaccional inserta gabinete dinámico + inventario + índice lógico en una sola transacción cuando aplica.
+- En caso de falla física post-commit, se mantiene compensación DB.

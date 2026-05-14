@@ -73,6 +73,7 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(0, result.Model.EstadoDocumentoArchivo);
             Assert.Equal(1, result.Model.IdTipoUnidadDocumental);
             Assert.Equal("v1\r\nv2", result.Model.FullTextDocumento);
+            Assert.Null(result.Model.UnidadConserva);
         }
 
         [Fact]
@@ -127,6 +128,105 @@ namespace TramiteDiasVencimiento.Tests
                 BuildNaming());
 
             Assert.Equal(2, result.Model!.IdTipoUnidadDocumental);
+        }
+
+        [Fact]
+        public void Build_ShouldNotFallbackToIdText_ForDescriptorFields()
+        {
+            var context = BuildContext(aplicaInventario: true);
+            context.Command = new AlmacenarDocumentoCommand
+            {
+                NombreGabinete = "gab",
+                RutaTemporalId = "tmp",
+                NombreDocumento = "doc.pdf",
+                RequestId = "req",
+                Documentos =
+                [
+                    new DocumentoEntradaDto
+                    {
+                        IdDocumento = "1",
+                        ArchivoTemporalId = "tmp-1",
+                        NumeroPaginas = 2,
+                        Extension = ".pdf"
+                    }
+                ],
+                Inventario = new InventarioDocumentalDto
+                {
+                    IdUsuarioGestion = 1,
+                    IdEmpresa = 10,
+                    FechaElaboracion = "2025-12-24",
+                    Radicado = "RAD-1"
+                },
+                Trd = new TrdStorageDto
+                {
+                    IdArea = 11,
+                    IdSerie = 22,
+                    IdSubSerie = 33,
+                    IdTipoDocumento = 44
+                },
+                Expediente = new ExpedienteStorageDto
+                {
+                    IdExpediente = 55,
+                    IdClaseDocumento = 99
+                }
+            };
+            context.ResolvedDescriptors = null;
+
+            var result = _builder.Build(
+                context,
+                new StorageIdentityModel { IdAlmacen = 106 },
+                BuildNaming());
+
+            Assert.Null(result.Model!.NombreAreaDepartamento);
+            Assert.Null(result.Model.SerieDocumento);
+            Assert.Null(result.Model.SubserieDocumento);
+            Assert.Null(result.Model.DescripcionTipoDocumento);
+        }
+
+        [Fact]
+        public void Build_ShouldHomologateDescripcionTipoDocumento_FromGabineteTipodocumentoCampo()
+        {
+            var context = BuildContext(aplicaInventario: true);
+            context.ResolvedDescriptors = null;
+            var original = context.Command!;
+            context.Command = new AlmacenarDocumentoCommand
+            {
+                NombreGabinete = original.NombreGabinete,
+                RutaTemporalId = original.RutaTemporalId,
+                NombreDocumento = original.NombreDocumento,
+                RequestId = original.RequestId,
+                Documentos = original.Documentos,
+                Inventario = original.Inventario,
+                CamposIndexacion = original.CamposIndexacion,
+                Workflow = original.Workflow,
+                FullText = original.FullText,
+                NumeroPaginasDeclaradas = original.NumeroPaginasDeclaradas,
+                TipoAlmacenamiento = original.TipoAlmacenamiento,
+                EvaluarCamposObligatorios = original.EvaluarCamposObligatorios,
+                Expediente = original.Expediente,
+                Trd = new TrdStorageDto
+                {
+                    IdArea = original.Trd!.IdArea,
+                    IdSerie = original.Trd.IdSerie,
+                    IdSubSerie = original.Trd.IdSubSerie,
+                    IdTipoDocumento = original.Trd.IdTipoDocumento,
+                    NombreArea = original.Trd.NombreArea,
+                    NombreSerie = original.Trd.NombreSerie,
+                    NombreSubSerie = original.Trd.NombreSubSerie,
+                    NombreTipoDocumento = null
+                }
+            };
+            context.EffectiveCamposIndexacion = new[]
+            {
+                new CampoIndexacionDto { NombreCampo = "TIPODOCUMENTO", Valor = "FACTURA ELECTRONICA" }
+            };
+
+            var result = _builder.Build(
+                context,
+                new StorageIdentityModel { IdAlmacen = 107 },
+                BuildNaming());
+
+            Assert.Equal("FACTURA ELECTRONICA", result.Model!.DescripcionTipoDocumento);
         }
 
         private static StorageContext BuildContext(bool aplicaInventario)

@@ -41,13 +41,15 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Equal(500, model.IdRegistroProduccionDocumental);
             Assert.Equal(100, model.IdAlmacen);
             Assert.Equal(77, model.IdExpediente);
-            Assert.Equal("DIG00000001.pdf", model.NombreDocumento);
-            Assert.Equal("SEGUNDO.pdf", model.SegundoNombreDocumento);
+            Assert.Equal("DIG00000001.PDF", model.NombreDocumento);
+            Assert.Equal("SEGUNDO.PDF", model.SegundoNombreDocumento);
             Assert.Equal("Contrato", model.TipologiaDocumental);
             Assert.Equal("SHA256", model.FuncionResumen);
             Assert.Equal(4, model.NumeroFolios);
             Assert.EndsWith("DIG00000001.pdf", model.RutaDocumento);
             Assert.Equal(64, model.ValorHuella.Length);
+            Assert.Equal(".PDF", model.Formato);
+            Assert.Equal("1 Kb", model.Tamano);
         }
 
         [Fact]
@@ -69,7 +71,31 @@ namespace TramiteDiasVencimiento.Tests
                     new StoragePhysicalPathModel { RutaFinal = @"C:\tmp" }));
         }
 
-        private static StorageContext BuildContext()
+        [Fact]
+        public void Build_ShouldFallbackToIdTipoDocumento_WhenTipologiaTextIsMissing()
+        {
+            var context = BuildContext(idTipoDocumento: 43, nombreTipoDocumento: null);
+
+            var model = _builder.Build(
+                context,
+                BuildTxResult(),
+                new StorageNamingResult
+                {
+                    NombreArchivoPrincipal = "DIG00000043.pdf",
+                    NombreXml = "FXL00000043.xml",
+                    SegundoNombre = "SEGUNDO.pdf"
+                },
+                new StoragePhysicalPathModel
+                {
+                    RutaFinal = @"C:\tmp"
+                });
+
+            Assert.Equal("43", model.TipologiaDocumental);
+        }
+
+        private static StorageContext BuildContext(
+            int idTipoDocumento = 12,
+            string? nombreTipoDocumento = "Contrato")
         {
             return new StorageContext
             {
@@ -107,8 +133,8 @@ namespace TramiteDiasVencimiento.Tests
                     ],
                     Trd = new TrdStorageDto
                     {
-                        IdTipoDocumento = 12,
-                        NombreTipoDocumento = "Contrato"
+                        IdTipoDocumento = idTipoDocumento,
+                        NombreTipoDocumento = nombreTipoDocumento
                     },
                     Expediente = new ExpedienteStorageDto
                     {

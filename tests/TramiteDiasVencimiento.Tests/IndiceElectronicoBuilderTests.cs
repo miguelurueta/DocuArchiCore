@@ -1,6 +1,7 @@
 using MiApp.DTOs.DTOs.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
+using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Physical;
 using MiApp.Services.Service.GestorDocumental.AlmacenamientoDocumental.Expediente;
 using Xunit;
 
@@ -21,42 +22,31 @@ namespace TramiteDiasVencimiento.Tests
                 PaginaFinal = 14,
                 NumeroFolios = 4
             };
+            var naming = BuildNaming();
+            var physicalPath = BuildPhysicalPath();
 
-            var first = builder.Build(context, 100, expediente, calculation);
-            var second = builder.Build(context, 100, expediente, calculation);
+            var first = builder.Build(context, 100, expediente, calculation, naming, physicalPath);
+            var second = builder.Build(context, 100, expediente, calculation, naming, physicalPath);
 
             Assert.Equal("SHA256", first.FuncionResumen);
             Assert.Equal(first.ValorHuella, second.ValorHuella);
             Assert.NotEqual(string.Empty, first.ValorHuella);
             Assert.Equal(64, first.ValorHuella.Length);
+            Assert.Equal("DIG00000100.pdf", first.NombreDocumento);
+            Assert.Equal("TIPO-TRD", first.TipologiaDocumental);
+            Assert.Equal("D:/imagenes/discos/CONTABIL7/00093/DIG00000100.pdf", first.RutaDocumento);
         }
 
         [Fact]
-        public void Build_ShouldThrow_WhenNombreDocumentoIsMissing()
+        public void Build_ShouldThrow_WhenNombreDocumentoIsMissingInNaming()
         {
             var builder = new IndiceElectronicoBuilder();
             var context = BuildContext();
-            context = new StorageContext
+            var naming = new StorageNamingResult
             {
-                DefaultDbAlias = context.DefaultDbAlias,
-                Usuario = context.Usuario,
-                UsuarioId = context.UsuarioId,
-                RequestId = context.RequestId,
-                NombreGabinete = context.NombreGabinete,
-                RutaTemporalId = context.RutaTemporalId,
-                NombreDocumento = string.Empty,
-                ArchivosTemporales = context.ArchivosTemporales,
-                Command = new AlmacenarDocumentoCommand
-                {
-                    NombreGabinete = context.Command!.NombreGabinete,
-                    RutaTemporalId = context.Command.RutaTemporalId,
-                    NombreDocumento = string.Empty,
-                    RequestId = context.Command.RequestId,
-                    NumeroPaginasDeclaradas = context.Command.NumeroPaginasDeclaradas,
-                    Trd = context.Command.Trd,
-                    Inventario = context.Command.Inventario,
-                    Documentos = context.Command.Documentos
-                }
+                NombreArchivoPrincipal = string.Empty,
+                NombreXml = "FXL00000100.xml",
+                SegundoNombre = "SEGUNDO.pdf"
             };
 
             Assert.Throws<StorageTransactionException>(() => builder.Build(
@@ -69,10 +59,41 @@ namespace TramiteDiasVencimiento.Tests
                     PaginaInicial = 11,
                     PaginaFinal = 14,
                     NumeroFolios = 4
-                }));
+                },
+                naming,
+                BuildPhysicalPath()));
         }
 
-        private static StorageContext BuildContext()
+        [Fact]
+        public void Build_ShouldFallbackToIdTipoDocumento_WhenTipologiaTextIsMissing()
+        {
+            var builder = new IndiceElectronicoBuilder();
+            var context = BuildContext(
+                resolvedTipoDocumento: null,
+                idTipoDocumento: 43,
+                nombreTipoDocumento: null);
+
+            var model = builder.Build(
+                context,
+                100,
+                BuildExpediente(),
+                new IndiceElectronicoCalculationResult
+                {
+                    NuevoOrden = 4,
+                    PaginaInicial = 11,
+                    PaginaFinal = 14,
+                    NumeroFolios = 4
+                },
+                BuildNaming(),
+                BuildPhysicalPath());
+
+            Assert.Equal("43", model.TipologiaDocumental);
+        }
+
+        private static StorageContext BuildContext(
+            string? resolvedTipoDocumento = "TIPO-TRD",
+            int idTipoDocumento = 77,
+            string? nombreTipoDocumento = null)
         {
             return new StorageContext
             {
@@ -84,6 +105,12 @@ namespace TramiteDiasVencimiento.Tests
                 RutaTemporalId = "tmp",
                 NombreDocumento = "documento.pdf",
                 ArchivosTemporales = new[] { "tmp-1" },
+                ResolvedDescriptors = resolvedTipoDocumento == null
+                    ? null
+                    : new StorageResolvedDescriptorsModel
+                    {
+                        TipoDocumento = resolvedTipoDocumento
+                    },
                 Command = new AlmacenarDocumentoCommand
                 {
                     NombreGabinete = "gab",
@@ -91,7 +118,11 @@ namespace TramiteDiasVencimiento.Tests
                     NombreDocumento = "documento.pdf",
                     RequestId = "req-1",
                     NumeroPaginasDeclaradas = 4,
-                    Trd = new TrdStorageDto { IdTipoDocumento = 77 },
+                    Trd = new TrdStorageDto
+                    {
+                        IdTipoDocumento = idTipoDocumento,
+                        NombreTipoDocumento = nombreTipoDocumento
+                    },
                     Inventario = new InventarioDocumentalDto { IdEmpresa = 1, IdUsuarioGestion = 1, Radicado = "RAD-1" },
                     Documentos = new[]
                     {
@@ -104,6 +135,30 @@ namespace TramiteDiasVencimiento.Tests
                         }
                     }
                 }
+            };
+        }
+
+        private static StorageNamingResult BuildNaming()
+        {
+            return new StorageNamingResult
+            {
+                NombreArchivoPrincipal = "DIG00000100.pdf",
+                NombreXml = "FXL00000100.xml",
+                SegundoNombre = "SEGUNDO.pdf"
+            };
+        }
+
+        private static StoragePhysicalPathModel BuildPhysicalPath()
+        {
+            return new StoragePhysicalPathModel
+            {
+                StorageRoot = "D:/imagenes/discos",
+                NombreGabinete = "CONTABIL",
+                Disco = 7,
+                Carpeta = 93,
+                RutaGabineteDisco = "D:/imagenes/discos/CONTABIL7",
+                CarpetaLegacy = "00093",
+                RutaFinal = @"D:\imagenes\discos\CONTABIL7\00093"
             };
         }
 

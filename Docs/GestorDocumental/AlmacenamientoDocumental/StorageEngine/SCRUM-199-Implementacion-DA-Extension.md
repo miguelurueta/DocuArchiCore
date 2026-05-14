@@ -17,6 +17,9 @@
   - `ESTADO_ADJUNTO`
   - `ESTADO_LINK`
   - extensión normalizada para nombre final (`.pdf`, `.tif`, etc.).
+- Compatibilidad aplicada:
+  - acepta valores en `DA_EXTENSION.ESTENSION` con y sin punto (`PDF` / `.PDF`),
+  - comparación case-insensitive sin hardcode por tipo específico.
 
 ### 2. Nuevo contrato de clasificación técnica
 - Archivo nuevo: `MiApp.Models/Models/GestorDocumental/AlmacenamientoDocumental/StorageExtensionClassificationModel.cs`
@@ -39,6 +42,7 @@
   - Si no existe fila en `DA_EXTENSION`: `EXTENSION_MAPPING_NOT_FOUND`.
 - Resultado:
   - El flujo falla en validación y no avanza a commit por esta causa.
+  - Se evita avance a fase física cuando no existe mapeo técnico de extensión.
 
 ### 5. Naming físico
 - Archivo: `MiApp.Services/Service/GestorDocumental/AlmacenamientoDocumental/Builders/StoragePlanBuilder.cs`

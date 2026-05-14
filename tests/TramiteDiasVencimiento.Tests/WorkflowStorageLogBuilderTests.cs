@@ -59,6 +59,22 @@ namespace TramiteDiasVencimiento.Tests
             Assert.Throws<InvalidOperationException>(() => builder.Build(context, identity, BuildNaming(), BuildPath()));
         }
 
+        [Fact]
+        public void Build_ShouldPreferResolvedDescriptorTipologia_WhenAvailable()
+        {
+            var builder = new WorkflowStorageLogBuilder();
+            var context = BuildContext(idTareaWorkflow: 88);
+            context.ResolvedDescriptors = new StorageResolvedDescriptorsModel
+            {
+                TipoDocumento = "TIPO-DESCRIPTOR"
+            };
+
+            var result = builder.Build(context, BuildIdentity(120), BuildNaming(), BuildPath());
+
+            Assert.True(result.ShouldInsert);
+            Assert.Equal("TIPO-DESCRIPTOR", result.Model?.TipologiaDocumental);
+        }
+
         private static StorageContext BuildContext(long idTareaWorkflow)
         {
             return new StorageContext

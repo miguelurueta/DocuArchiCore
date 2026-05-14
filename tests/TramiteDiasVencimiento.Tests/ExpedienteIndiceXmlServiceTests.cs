@@ -41,7 +41,7 @@ namespace TramiteDiasVencimiento.Tests
         public async Task ExecuteAsync_ShouldCallWriter_WhenLegacyConditionsAreMet()
         {
             var repository = new Mock<IExpedienteIndiceXmlRepository>();
-            repository.Setup(x => x.GetXmlRouteAsync(77, "db"))
+            repository.Setup(x => x.GetXmlRouteAsync(77, "db", 1))
                 .ReturnsAsync(new ExpedienteIndiceXmlRouteModel { IdExpediente = 77, RutaArchivoXml = @"C:\tmp\idx.xml" });
 
             var builder = new Mock<IExpedienteIndiceXmlBuilder>();
