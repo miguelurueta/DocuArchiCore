@@ -142,3 +142,19 @@
 - `SCRUM-189-Riesgos-Desviaciones-Aprobadas.md`
 - `SCRUM-189-Go-NoGo-StorageEngine.md`
 - `SCRUM-189-Metadata.md`
+
+## 14. Evolución SCRUM-200 (Integración gabinete dinámico + índice)
+- La secuencia transaccional consolidada queda:
+  1. reserva identidad (`system1`),
+  2. lock/update cuota (`disco_detalle`),
+  3. insert gabinete dinámico,
+  4. insert inventario,
+  5. reglas expediente/unidad,
+  6. insert índice lógico,
+  7. workflow log,
+  8. commit.
+- `DBT` se resuelve por extensión real vía `DA_EXTENSION`.
+- En índice lógico/físico se normaliza:
+  - `Nombre_documento` con nombre final (`DIG...`),
+  - `Tipologia_documental` homologada (sin `NA`),
+  - `ruta_documento` final de almacenamiento (no temporal).

@@ -33,3 +33,11 @@
 - `NO CUMPLE` críticos: **0**
 - `NO CUMPLE` altos: **1** (fallback legacy deshabilitado sin adapter)
 - Decisión técnica preliminar: **GO CONDICIONADO**
+
+## Actualización SCRUM-200 (Integración gabinete/índice)
+- Se confirma cierre de brecha transaccional del storage:
+  - inserción de gabinete dinámico dentro de la transacción principal,
+  - homologación de `DBT` por `DA_EXTENSION.ESTADO_NORMAL`,
+  - inserción de índice lógico (`ra_cert_indice_expediente`) con nombre/ruta finales,
+  - homologación de tipología para evitar `NA` y fallback controlado.
+- Se mantiene estrategia de compensación post-commit para fallos físicos.
