@@ -71,6 +71,13 @@ curl -X GET "https://localhost:7101/api/workflow/usuarios/firma-temporal/downloa
   --output firma.png
 ```
 
+## 4.2.1 Regla obligatoria para frontend (evitar 404 por token)
+- `UrlTemporal` se debe consumir tal como llega en `data.UrlTemporal`.
+- Frontend no debe extraer, reconstruir, recortar ni transformar el `token` manualmente.
+- Implementación recomendada:
+  - `downloadUrl = baseUrl + data.UrlTemporal` (si es relativa)
+  - `fetch(downloadUrl)` con el mismo JWT de la sesión.
+
 ## 4.3 Paso 3 - uso en frontend React (ejemplo completo)
 ```ts
 type FirmaTemporalDto = {
@@ -101,6 +108,7 @@ export async function cargarFirmaTemporal(baseUrl: string, jwt: string): Promise
     throw new Error(metaJson.message || "No fue posible obtener metadata de firma");
   }
 
+  // Regla: usar UrlTemporal completa; no parsear token manualmente.
   const downloadUrl = metaJson.data.UrlTemporal.startsWith("http")
     ? metaJson.data.UrlTemporal
     : `${baseUrl}${metaJson.data.UrlTemporal}`;
