@@ -29,4 +29,4 @@
 
 - [x] 5.1 Ejecutar `dotnet test` en suites impactadas.
 - [x] 5.2 Ejecutar validacion OpenSpec del cambio.
-- [ ] 5.3 Preparar flujo para `orchestrate:publish`.
+- [x] 5.3 Preparar flujo para `orchestrate:publish`.
