@@ -2,7 +2,8 @@ using System.Data;
 using Microsoft.Extensions.Logging;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental;
 using MiApp.Models.Models.GestorDocumental.AlmacenamientoDocumental.Exceptions;
-using MiApp.Repository.DataAccess;
+using MiApp.Models.Models.GestorDocumental.Common.Audit;
+using MiApp.Repository.Repositorio.GestorDocumental.Common.Audit;
 using MiApp.Repository.Repositorio.GestorDocumental.AlmacenamientoDocumental.Workflow;
 using Moq;
 using Xunit;
@@ -15,7 +16,7 @@ namespace TramiteDiasVencimiento.Tests
         public async Task InsertAsync_ShouldThrow_WhenConnectionIsClosed()
         {
             var repo = new WorkflowStorageLogRepository(
-                new Mock<IDapperCrudEngine>(MockBehavior.Strict).Object,
+                new Mock<ILogDocuarchiRepository>(MockBehavior.Strict).Object,
                 Mock.Of<ILogger<WorkflowStorageLogRepository>>());
             var connection = new Mock<IDbConnection>();
             connection.SetupGet(x => x.State).Returns(ConnectionState.Closed);
@@ -28,7 +29,7 @@ namespace TramiteDiasVencimiento.Tests
         public async Task InsertAsync_ShouldThrow_WhenModelIsInvalid()
         {
             var repo = new WorkflowStorageLogRepository(
-                new Mock<IDapperCrudEngine>(MockBehavior.Strict).Object,
+                new Mock<ILogDocuarchiRepository>(MockBehavior.Strict).Object,
                 Mock.Of<ILogger<WorkflowStorageLogRepository>>());
             var connection = new Mock<IDbConnection>();
             connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
@@ -58,23 +59,19 @@ namespace TramiteDiasVencimiento.Tests
         }
 
         [Fact]
-        public async Task InsertAsync_ShouldUseDapperCrudEngineWithLogdocuarchi()
+        public async Task InsertAsync_ShouldDelegateToGenericLogRepository()
         {
-            var dapper = new Mock<IDapperCrudEngine>();
-            QueryOptions? captured = null;
-
-            dapper.Setup(x => x.InsertBeginTrandAsync(
-                    It.IsAny<QueryOptions>(),
-                    It.IsAny<object>(),
-                    It.IsAny<string>(),
+            LogDocuarchiEntryModel? captured = null;
+            var logRepo = new Mock<ILogDocuarchiRepository>();
+            logRepo.Setup(x => x.InsertBeginTransAsync(
+                    It.IsAny<LogDocuarchiEntryModel>(),
                     It.IsAny<IDbConnection>(),
                     It.IsAny<IDbTransaction>(),
-                    It.IsAny<bool>(),
                     It.IsAny<string>()))
-                .Callback<QueryOptions, object, string, IDbConnection, IDbTransaction, bool, string>((o, _, _, _, _, _, _) => captured = o)
-                .ReturnsAsync(new QueryResult<int> { Success = true, TotalRecords = 1, ErrorMessage = "YES" });
+                .Callback<LogDocuarchiEntryModel, IDbConnection, IDbTransaction, string>((m, _, _, _) => captured = m)
+                .ReturnsAsync(1);
 
-            var repo = new WorkflowStorageLogRepository(dapper.Object, Mock.Of<ILogger<WorkflowStorageLogRepository>>());
+            var repo = new WorkflowStorageLogRepository(logRepo.Object, Mock.Of<ILogger<WorkflowStorageLogRepository>>());
             var connection = new Mock<IDbConnection>();
             connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
 
@@ -82,27 +79,23 @@ namespace TramiteDiasVencimiento.Tests
 
             Assert.Equal(1, rows);
             Assert.NotNull(captured);
-            Assert.Equal("logdocuarchi", captured!.TableName);
-            Assert.Equal(15, captured.CampoParameterRegla.Count);
-            Assert.Equal(11L, captured.ReglasValidacionCampo["id_tran"]);
-            Assert.Equal(77L, captured.ReglasValidacionCampo["ID_TAREA_WF"]);
+            Assert.Equal(11L, captured!.IdTran);
+            Assert.Equal(77L, captured.IdTareaWorkflow);
+            Assert.Equal("gab", captured.Gabinete);
         }
 
         [Fact]
-        public async Task InsertAsync_ShouldThrow_WhenRowsAreNotOne()
+        public async Task InsertAsync_ShouldPropagateError_WhenGenericLogFails()
         {
-            var dapper = new Mock<IDapperCrudEngine>();
-            dapper.Setup(x => x.InsertBeginTrandAsync(
-                    It.IsAny<QueryOptions>(),
-                    It.IsAny<object>(),
-                    It.IsAny<string>(),
+            var logRepo = new Mock<ILogDocuarchiRepository>();
+            logRepo.Setup(x => x.InsertBeginTransAsync(
+                    It.IsAny<LogDocuarchiEntryModel>(),
                     It.IsAny<IDbConnection>(),
                     It.IsAny<IDbTransaction>(),
-                    It.IsAny<bool>(),
                     It.IsAny<string>()))
-                .ReturnsAsync(new QueryResult<int> { Success = true, TotalRecords = 0, ErrorMessage = "YES" });
+                .ThrowsAsync(new StorageTransactionException("No se insertó registro en logdocuarchi"));
 
-            var repo = new WorkflowStorageLogRepository(dapper.Object, Mock.Of<ILogger<WorkflowStorageLogRepository>>());
+            var repo = new WorkflowStorageLogRepository(logRepo.Object, Mock.Of<ILogger<WorkflowStorageLogRepository>>());
             var connection = new Mock<IDbConnection>();
             connection.SetupGet(x => x.State).Returns(ConnectionState.Open);
 
