@@ -1,23 +1,38 @@
-## 1. Discovery
+## 1. Refinamiento (analysis)
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-202 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Confirmar alcance: reemplazo de PDF existente desde temporal, sin migrar versionado legacy completo.
+- [x] 1.2 Confirmar reuso obligatorio de StorageEngine (rutas físicas/temporales, validación traversal, path resolver).
+- [x] 1.3 Confirmar tabla de auditoría existente `logdocuarchi` (sin crear nueva tabla).
 
-## 2. Specs
+## 2. Design/Spec
 
-- [ ] 2.1 Completar specs/jira-scrum-202/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [x] 2.1 Refinar `design.md` con arquitectura Controller->Service->Repository y modelo híbrido DB/FS.
+- [x] 2.2 Refinar `specs/jira-scrum-202/spec.md` con requisitos funcionales medibles y escenarios testeables.
+- [x] 2.3 Definir estrategia de backup temporal en `replacement-versions/{gabinete}/{idDocumento}/{timestamp}`.
 
-## 3. Application
+## 3. Backend Implementation
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [x] 3.1 Crear endpoint `POST /api/gestor-documental/documentos/reemplazopdf` con `AppResponses` y `try/catch`.
+- [x] 3.2 Implementar service de reemplazo reutilizando resolución de ruta temporal/física existente.
+- [x] 3.3 Implementar backup previo a overwrite en root temporal existente.
+- [x] 3.4 Implementar cálculo de `hashAnterior` y `hashNuevo` sobre archivos físico/temporal.
+- [x] 3.5 Implementar repositorio de auditoría `logdocuarchi` con `DapperCrudEngine + QueryOptions`.
+- [x] 3.6 Registrar DI en `Program.cs` para controller/service/repository nuevos.
 
-## 4. Test
+## 4. Validation & Testing
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [x] 4.1 Unit tests: request inválido, extensión no PDF, backup/replace OK.
+- [ ] 4.2 Integration test: flujo completo temporal -> replace -> auditoría `logdocuarchi`.
+- [x] 4.3 Ejecutar `dotnet test` en suites impactadas y registrar evidencia.
+
+## 5. Documentation
+
+- [x] 5.1 Documentar contrato API y flujo frontend de reemplazo.
+- [x] 5.2 Documentar observabilidad y troubleshooting (fallo físico, fallo auditoría, inconsistencia híbrida).
+- [x] 5.3 Documentar runbook de recuperación manual con respaldo temporal.
+
+## 6. OpenSpec Flow
+
+- [x] 6.1 Ejecutar `openspec validate scrum-202-implementacion-api-actualiza-pdf`.
+- [ ] 6.2 Preparar `orchestrate:publish` con tasks completos.
+- [ ] 6.3 Cerrar con `orchestrate:archive` tras merge multi-repo.

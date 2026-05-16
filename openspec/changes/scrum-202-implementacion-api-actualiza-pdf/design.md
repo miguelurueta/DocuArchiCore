@@ -3,35 +3,116 @@
 - Jira issue key: SCRUM-202
 - Jira summary: IMPLEMENTACION-API-ACTUALIZA-PDF
 - Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-202
-
-## Context Reference
-
-- openspec/context/multi-repo-context.md
-- openspec/context/OPSXJ_BACKEND_RULES.md
+- Referencias:
+  - openspec/context/multi-repo-context.md
+  - openspec/context/OPSXJ_BACKEND_RULES.md
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO — Ticket BE SCRUMCORE-[ID] — Reemplazo Seguro PDF/Grafo + Auditoría Completa LogDocuArchi (ENTERPRISE FINAL — StorageEngine + DapperCrudEngine + Auditoría Legacy Completa) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto de Software Senior Backend .NET especialista en: Core Clean Architecture Controller → Service → Repository StorageEngine FileSystem seguro reemplazo documental seguro auditoría documental legacy DapperCrudEngine QueryOptions AppResponses<T> AppMetaBuilder / AppError observabilidad avanzada pruebas unitarias, integración, QT y regresión documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO DEL PROYECTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ya existe: ✔ StorageEngine ✔ resolución segura de rutas ✔ upload temporal ✔ validación traversal ✔ CryptoHelper ✔ resolución IP cliente ✔ tabla logdocuarchi NO crear infraestructura paralela. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar una API backend para: ✔ reemplazar PDF existente ✔ agregar grafo PDF/manuscrito ✔ crear respaldo previo ✔ registrar auditoría completa en logdocuarchi ✔ reutilizar StorageEngine actual ✔ reutilizar temporales existentes ✔ reutilizar CryptoHelper ✔ reutilizar lógica IP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIÓN ARQUITECTÓNICA CRÍTICA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PROHIBIDO: crear lógica paralela de rutas crear nuevo sistema de temporales duplicar traversal validation duplicar hashing duplicar resolución IP crear nueva tabla auditoría OBLIGATORIO reutilizar: StorageEngine temporales existentes path resolvers existentes CryptoHelper.cs resolución IP existente logdocuarchi ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions Ruta obligatoria: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Repository\Repositorio\DataAccess\DapperCrudEngine.cs PROHIBIDO: SQL manual ExecuteAsync directo QueryAsync directo concatenación SQL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REUTILIZACIÓN OBLIGATORIA — CRYPTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Debe reutilizar: D:\imagenesda\GestorDocumental\DocuArchiCore\MiApp.Services\Service\Crypto\CryptoHelper.cs Usos: SHA256 hashAnterior hashNuevo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REUTILIZACIÓN OBLIGATORIA — IP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Debe reutilizar el mecanismo actual del proyecto para resolver: ✔ IP_TRANS PROHIBIDO: lectura manual headers lógica IP paralela ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ARQUITECTURA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Patrón: Controller → Service → Repository → StorageEngine Services Separación: Controller → HTTP Service → orquestación Repository → DB Storage services → filesystem/pathing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: DocuArchi.Api/Controllers/GestorDocumental/Documentos/ReemplazoDocumentoController.cs Service: MiApp.Services/Service/GestorDocumental/Documentos/ServiceReemplazoDocumento.cs Repository: MiApp.Repository/Repositorio/GestorDocumental/Documentos/ReemplazoDocumentoRepository.cs DTOs: MiApp.DTOs/DTOs/GestorDocumental/Documentos/ Documentación: Docs/GestionDocumental/ReemplazoDocumento/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RUTA OFICIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ POST /api/gestordocumental/documentos/reemplazar-documento ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTO REQUEST ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ public sealed class ReemplazarContenidoDocumentoRequest { public required string NombreGabinete { get; init; } public required long IdDocumento { get; init; }
+Se necesita permitir que el frontend reemplace el PDF final de un documento ya almacenado, usando el archivo editado que llega por upload temporal, sin introducir una segunda infraestructura de rutas ni de seguridad.
 
-public required string RutaTemporalId { get; init; }
+El reemplazo debe:
+- Reusar resolución de ruta física ya existente en StorageEngine.
+- Reusar resolución de ruta temporal ya existente (`rutaTemporalId` + `archivoTemporalId`).
+- Guardar respaldo previo del archivo reemplazado en una subruta de temporales.
+- Registrar auditoría funcional/técnica en `logdocuarchi`.
 
-public required string ArchivoTemporalId { get; init; }
+No se requiere en este ticket migrar todo el flujo legacy de versionado documental completo.
 
-public required string Motivo { get; init; } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTO RESPONSE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ public sealed class ReemplazarContenidoDocumentoResponse { public long IdDocumento { get; init; } public string RutaFinal { get; init; } = string.Empty;
+## Scope
 
-public string RutaRespaldo { get; init; } = string.Empty;
+### In scope
 
-public string HashAnterior { get; init; } = string.Empty;
+- Nuevo endpoint backend de reemplazo de contenido PDF.
+- Servicio de aplicación para orquestar validación, backup, replace y auditoría.
+- Repositorio para inserción en `logdocuarchi` usando `DapperCrudEngine + QueryOptions`.
+- DTOs request/response para contrato frontend.
+- Documentación y pruebas del flujo de reemplazo.
 
-public string HashNuevo { get; init; } = string.Empty;
+### Out of scope
 
-public long TamanoAnterior { get; init; }
+- Implementación integral de versionado legacy (`ra_ver_control_version_documento`, `ra_ver_version_documento`) para cada modificación.
+- Rediseño del StorageEngine actual.
+- Tablas nuevas de auditoría.
 
-public long TamanoNuevo { get; init; } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO API ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Request: { "nombreGabinete": "contabil", "idDocumento": 15416, "rutaTemporalId": "temp_001", "archivoTemporalId": "archivo_001", "motivo": "Correccion PDF firmado" } Response success: { "success": true, "message": "YES", "data": { "idDocumento": 15416, "rutaFinal": "storage/disco1/...", "rutaRespaldo": "temp/replacement-versions/...", "hashAnterior": "sha256...", "hashNuevo": "sha256...", "tamanoAnterior": 12345, "tamanoNuevo": 12555 } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ FLUJO FUNCIONAL OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Validar request. Resolver temporal usando infraestructura existente. Validar PDF temporal. Resolver documento físico actual usando StorageEngine. Validar documento destino. Generar hashAnterior. Crear respaldo temporal. Reemplazar archivo físico. Generar hashNuevo. Registrar auditoría completa. Retornar response. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VERSIONADO / RESPALDO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Subruta: {TempRoot}\replacement-versions\{gabinete}\{idDocumento}\{yyyyMMddHHmmss}\ Ejemplo: replacement-versions/contabil/15416/20260514123000/documento.pdf Reglas: crear estructura si no existe NO sobrescribir timestamp obligatorio reutilizar raíz temporal existente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRANSACCIONALIDAD HÍBRIDA (CRÍTICA) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DB + FileSystem NO son transacción ACID única. Secuencia: validar backup replace físico auditoría DB Si falla replace: NO auditoría Si falla auditoría: NO revertir replace físico registrar error crítico retornar error controlado ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTROL DE CONCURRENCIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar lock lógico por documento. Objetivo: evitar reemplazos simultáneos evitar corrupción física ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA OBLIGATORIA — AUDITORÍA LOGDOCUARCHI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Tabla oficial: logdocuarchi Se deben registrar TODOS los campos posibles: id_tran desc_op USER_OPER DATE_TRANS RUT_DOCU GABINETE CAMPOS IP_TRANS HORA_REGISTRO MODULO_REGISTRO RADICADO ID_TAREA_WF ID_RUTA_WF USER_PROPIETARIO TIPOLOGIA_DOCUMENTAL PROHIBIDO: logs parciales omitir workflow si existe CAMPOS vacío cuando exista metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA OBLIGATORIA — DESC_OP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Valores oficiales permitidos: AGREGA GRAFO PDF AGREGAR GRAFO MANUSCRITO PROHIBIDO: REEMPLAZO_PDF_FRONT valores inventados textos libres ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CAMPOS JSON AUDITORÍA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CAMPOS debe contener: idDocumento rutaTemporalId archivoTemporalId rutaArchivoOriginal rutaRespaldo hashAnterior hashNuevo tamanoAnterior tamanoNuevo motivo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: inicio replace temporal encontrado backup creado replace OK auditoría insertada Logs Warning: documento inexistente temporal inexistente Logs Error: replace físico falló auditoría falló inconsistencia híbrida Campos: requestId gabinete idDocumento rutaRespaldo hashAnterior hashNuevo ipCliente duraciónMs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: Controller → HTTP Service → orquestación Repository → DB Storage services → filesystem CryptoHelper → hashing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Unitarias: PDF válido extensión inválida temporal inexistente documento inexistente backup creado SHA256 correcto auditoría completa auditoría falla Integración: replace completo replace + backup insert logdocuarchi reuse StorageEngine QT: traversal bloqueado no rutas directas no rompe upload actual Regresión: no rompe StorageEngine no rompe temporales no rompe auditoría existente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/GestionDocumental/ReemplazoDocumento/ Crear: SCRUM-[ID]-Arquitectura.md diagramas arquitectura híbrida DB+FS reuse StorageEngine riesgos SCRUM-[ID]-Implementacion-Detallada.md archivos backup flow replace flow auditoría hashing SCRUM-[ID]-Integracion-Frontend.md endpoint request completo response completo flujo frontend: editar → upload temporal → replace SCRUM-[ID]-Pruebas.md unitarias integración QT regresión SCRUM-[ID]-Observabilidad.md logs métricas troubleshooting SCRUM-[ID]-Seguridad.md traversal sanitización replace seguro SCRUM-[ID]-Auditoria-LogDocuArchi.md estructura completa logdocuarchi significado campos desc_op válidos ejemplos insert SCRUM-[ID]-Runbook.md restore manual troubleshooting auditoría SCRUM-[ID]-Metadata.md ticket autor fecha versión ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: Controller Service Repository DTOs DI Tests Documentación: Arquitectura Implementación Frontend Pruebas Observabilidad Seguridad Auditoría Runbook Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ Replace PDF funcional ✔ Backup previo funcional ✔ Reusa StorageEngine ✔ Reusa CryptoHelper ✔ Reusa resolución IP ✔ DapperCrudEngine obligatorio ✔ QueryOptions obligatorio ✔ Auditoría completa logdocuarchi ✔ desc_op correcto ✔ SHA256 ✔ Traversal bloqueado ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO lógica duplicada NO SQL manual NO rutas físicas frontend NO replace sin backup NO helpers crypto paralelos NO lógica IP paralela ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar reemplazo seguro PDF/grafo reutilizando: ✔ StorageEngine ✔ temporales ✔ path security ✔ CryptoHelper ✔ auditoría logdocuarchi Con arquitectura enterprise completa, observabilidad, pruebas y documentación detallada.
+## Architecture
 
-## Approach
+- Patrón obligatorio: `Controller -> Service -> Repository`.
+- Controller:
+  - validar request HTTP.
+  - resolver claims/autenticación existentes.
+  - devolver `AppResponses<T>`.
+- Service:
+  - resolver archivo temporal.
+  - resolver documento físico actual.
+  - calcular hash/tamaño anterior y nuevo (reusando `CryptoHelper`).
+  - crear backup en temporal.
+  - reemplazar archivo final.
+  - registrar auditoría.
+- Repository:
+  - operaciones DB por `DapperCrudEngine` y `QueryOptions`.
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-202-implementacion-api-actualiza-pdf.
+## Routing and Path Reuse Strategy
+
+- Reusar componentes existentes de ruta física del StorageEngine para ubicar el documento destino.
+- Reusar `StoragePathResolver` (o equivalente actual) para resolver y validar archivo temporal.
+- Reusar validaciones anti-path-traversal existentes.
+- No aceptar rutas físicas desde frontend.
+
+## Backup Strategy
+
+- Root de backup: reutilizar root temporal ya existente.
+- Subruta obligatoria:
+  - `replacement-versions/{gabinete}/{idDocumento}/{yyyyMMddHHmmss}/`
+- El backup se crea antes del replace.
+- Si falla creación de backup, no se reemplaza.
+
+## Audit Strategy (logdocuarchi)
+
+- Insertar registro con `desc_op` de reemplazo documental.
+- Persistir en `CAMPOS` un JSON con:
+  - `idDocumento`
+  - `rutaTemporalId`
+  - `archivoTemporalId`
+  - `rutaArchivoOriginal`
+  - `rutaRespaldo`
+  - `hashAnterior`
+  - `hashNuevo`
+  - `tamanoAnterior`
+  - `tamanoNuevo`
+  - `motivo`
+- Completar `IP_TRANS` reutilizando mecanismo existente del proyecto.
+
+## Error and Consistency Model
+
+- Modelo híbrido DB/FS (sin transacción ACID única).
+- Orden recomendado:
+  1) Validaciones.
+  2) Backup.
+  3) Replace físico.
+  4) Insert auditoría.
+- Si falla replace físico: retornar error, sin auditoría de éxito.
+- Si replace físico fue exitoso y falla auditoría: retornar error controlado y loggear inconsistencia para soporte.
+
+## Testing Strategy
+
+- Unit tests:
+  - request inválido.
+  - temporal inexistente.
+  - extensión no permitida.
+  - documento destino inexistente.
+  - backup exitoso.
+  - replace exitoso.
+  - error de replace.
+  - error de auditoría.
+- Integration tests:
+  - flujo completo upload temporal -> replace -> logdocuarchi.
+- Regresión:
+  - no romper flujo actual de almacenamiento.
+
+## Documentation Deliverables
+
+- Documento técnico de implementación del endpoint.
+- Contrato frontend con ejemplo completo.
+- Observabilidad/troubleshooting.
+- Runbook de recuperación ante falla en replace/auditoría.
