@@ -3,19 +3,114 @@
 - Jira issue key: SCRUM-203
 - Jira summary: IMPLEMENTACION-NUEVOS-CLAIM
 - Jira URL: https://contasoftcompany.atlassian.net/browse/SCRUM-203
+- Change: `scrum-203-implementacion-nuevos-claim`
 
 ## Context Reference
 
-- openspec/context/multi-repo-context.md
-- openspec/context/OPSXJ_BACKEND_RULES.md
+- `openspec/context/multi-repo-context.md`
+- `openspec/context/OPSXJ_BACKEND_RULES.md`
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO — Ticket BE SCRUMCORE-[ID] — Nuevos Claims JWT Workflow/Radicación (ENTERPRISE FINAL — JWT + 2FA + Mapping + Claims Contract) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto de Software Senior Backend .NET especialista en: Core JWT Authentication Claims-based security Clean Architecture AutoMapper 2FA / OTP DapperCrudEngine QueryOptions AppResponses<T> observabilidad pruebas unitarias, integración y regresión documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO DEL PROYECTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Solución: DocuArchi.Api MiApp.Services MiApp.Repository MiApp.DTOs MiApp.Models Actualmente: ✔ JWT ya existe ✔ flujo login normal ya existe ✔ flujo 2FA ya existe ✔ TokenService ya emite claims ✔ UsuarioAutenticadoDTO ya existe ✔ RemitDestInterno contiene datos origen ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Incorporar 4 nuevos claims al JWT reutilizando datos existentes de: remit_dest_interno Claims nuevos: IdUsuarioWorkflow IdUsuarioWorkflowExt IdUsuarioRadicador IdUsuarioDa La solución debe: ✔ mantener backward compatibility ✔ mantener login normal ✔ mantener login 2FA ✔ NO romper claims actuales ✔ emitir claims SIEMPRE ✔ soportar valor 0 ✔ mantener arquitectura actual ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions PROHIBIDO: SQL manual QueryAsync directo ExecuteAsync directo concatenación SQL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ HOMOLOGACIÓN OFICIAL DE CLAIMS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Claims JWT: IdUsuarioWorkflow ← remit_dest_interno.Relacion_Workflow IdUsuarioWorkflowExt ← remit_dest_interno.Relacion_Workflow_Extend IdUsuarioRadicador ← remit_dest_interno.Relacion_Id_Usuario_Radicacion IdUsuarioDa ← remit_dest_interno.Relacion_Da ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLAS CRÍTICAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO cambiar nombres de claims existentes. NO eliminar claims actuales. Claims nuevos deben emitirse SIEMPRE. Si valor DB es null: emitir "0" NO hardcodear valores. Mantener compatibilidad con frontend actual. Mantener compatibilidad 2FA. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN IMPACTADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTOs: MiApp.DTOs/DTOs/Autenticacion/UsuarioAutenticadoDTO.cs Mapping: MiApp.Services/Service/Mapping/GestorDocumental/Usuario/RemitDestInternoMapping.cs Token: MiApp.Services/Service/Autenticacion/TokenService.cs 2FA: MiApp.Services/Service/Autenticacion/Providers/EmailSecondFactorProvider.cs MiApp.Services/Service/Autenticacion/SecondFactor/SecondFactorService.cs Opcional: MiApp.Services/Service/Seguridad/Autorizacion/Claims/DocuArchiClaimTypes.cs Documentación: Docs/Autenticacion/JWTClaims/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACTUALIZACIÓN — DTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Archivo: UsuarioAutenticadoDTO.cs Agregar: public int IdUsuarioWorkflow { get; set; } public int IdUsuarioWorkflowExt { get; set; } public int IdUsuarioRadicador { get; set; } public int IdUsuarioDa { get; set; } Reglas: default = 0 mantener estilo DTO actual NO romper serialización existente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACTUALIZACIÓN — MAPPING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Archivo: RemitDestInternoMapping.cs Actualizar: CreateMap<RemitDestInterno, UsuarioAutenticadoDTO>() Agregar: .ForMember( d => d.IdUsuarioWorkflow, o => o.MapFrom(s => s.Relacion_Workflow ?? 0) ) .ForMember( d => d.IdUsuarioWorkflowExt, o => o.MapFrom(s => s.Relacion_Workflow_Extend ?? 0) ) .ForMember( d => d.IdUsuarioRadicador, o => o.MapFrom(s => s.Relacion_Id_Usuario_Radicacion ?? 0) ) .ForMember( d => d.IdUsuarioDa, o => o.MapFrom(s => s.Relacion_Da ?? 0) ) Reglas: NO alterar mappings existentes NO romper AfterMap actual null → 0 obligatorio ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACTUALIZACIÓN — TOKEN SERVICE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Archivo: TokenService.cs Método: CrearToken(...) Agregar claims: new Claim("IdUsuarioWorkflow", usuario.IdUsuarioWorkflow.ToString()), new Claim("IdUsuarioWorkflowExt", usuario.IdUsuarioWorkflowExt.ToString()), new Claim("IdUsuarioRadicador", usuario.IdUsuarioRadicador.ToString()), new Claim("IdUsuarioDa", usuario.IdUsuarioDa.ToString()) Reglas: emitir SIEMPRE inclusive si valor = 0 NO eliminar claims actuales NO modificar nombres actuales: usuarioid uid defaulalias defaulaliaswf perm etc. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN OBLIGATORIA — 2FA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Archivos: EmailSecondFactorProvider.cs SecondFactorService.cs Reglas: UserAuthContext debe conservar nuevos campos SecondFactorAuthPayload debe conservar nuevos campos serialización/deserialización debe incluir: IdUsuarioWorkflow IdUsuarioWorkflowExt IdUsuarioRadicador IdUsuarioDa NO asumir inclusión automática. Validar explícitamente. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CLAIM TYPES CENTRALIZADOS (RECOMENDADO) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Archivo opcional: DocuArchiClaimTypes.cs Agregar constantes: public const string IdUsuarioWorkflow = "IdUsuarioWorkflow"; public const string IdUsuarioWorkflowExt = "IdUsuarioWorkflowExt"; public const string IdUsuarioRadicador = "IdUsuarioRadicador"; public const string IdUsuarioDa = "IdUsuarioDa"; Objetivo: evitar typos centralizar nombres claims ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: inicio creación JWT claims workflow emitidos login normal OK login 2FA OK Logs Warning: valores workflow en 0 payload 2FA incompleto Logs Error: error serialización claims error emisión JWT Campos: requestId usuarioid uid alias IdUsuarioWorkflow IdUsuarioWorkflowExt IdUsuarioRadicador IdUsuarioDa flujo: normal 2FA NO loguear: token completo secretos JWT OTP passwords ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: DTO → datos autenticación Mapping → transformación TokenService → emisión JWT 2FA → serialización flujo OTP OCP: nuevos claims pueden agregarse LSP: providers mockeables ISP: claims separados y explícitos DIP: dependencias por interfaces ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Unitarias — DTO: serialización correcta default = 0 Unitarias — Mapping: mapea Relacion_Workflow mapea Relacion_Workflow_Extend mapea Relacion_Id_Usuario_Radicacion mapea Relacion_Da null → 0 Unitarias — TokenService: JWT contiene IdUsuarioWorkflow JWT contiene IdUsuarioWorkflowExt JWT contiene IdUsuarioRadicador JWT contiene IdUsuarioDa claims existentes permanecen valores correctos valores 0 emitidos Unitarias — 2FA: serialización payload correcta deserialización correcta token final contiene nuevos claims Integración: login normal login 2FA decode JWT claims presentes claims existentes no rotos QT / Calidad: no rompe frontend no rompe autorización actual no rompe permisos no rompe validación claims Regresión: usuarioid sigue existiendo uid sigue existiendo defaulalias sigue existiendo defaulaliaswf sigue existiendo perm sigue existiendo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO FRONTEND OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Payload JWT esperado: { "usuarioid": "1", "uid": "miguel", "defaulaliaswf": "workflow", "IdUsuarioWorkflow": "15", "IdUsuarioWorkflowExt": "20", "IdUsuarioRadicador": "5", "IdUsuarioDa": "2" } Reglas frontend: leer claims nuevos desde JWT soportar valor "0" NO asumir null mantener claims legacy ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/Autenticacion/JWTClaims/ Crear: SCRUM-[ID]-Arquitectura.md Debe incluir: flujo autenticación flujo JWT flujo 2FA diagrama clases diagrama secuencia claims emitidos validación SOLID SCRUM-[ID]-Implementacion-Detallada.md Debe incluir: archivos modificados rutas exactas DTO actualizado mapping actualizado TokenService actualizado 2FA validado decisiones técnicas SCRUM-[ID]-Integracion-Frontend.md Debe incluir: payload JWT completo claims nuevos ejemplos lectura frontend reglas compatibilidad SCRUM-[ID]-Pruebas.md Debe incluir: unitarias integración 2FA regresión decode JWT SCRUM-[ID]-Observabilidad.md Debe incluir: logs métricas troubleshooting emisión claims problemas 2FA SCRUM-[ID]-Seguridad.md Debe incluir: claims sensibles compatibilidad JWT riesgos backward compatibility SCRUM-[ID]-Metadata.md Debe incluir: ticket autor fecha versión responsable técnico ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: UsuarioAutenticadoDTO actualizado RemitDestInternoMapping actualizado TokenService actualizado 2FA validado ClaimTypes opcional Tests Documentación: Arquitectura Implementación Frontend Pruebas Observabilidad Seguridad Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ Claims nuevos emitidos ✔ Login normal OK ✔ Login 2FA OK ✔ Claims existentes intactos ✔ Valores 0 emitidos ✔ Backward compatibility ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO romper claims actuales NO cambiar nombres claims NO hardcodear valores NO omitir claims en valor 0 NO romper 2FA NO romper frontend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar los nuevos claims JWT reutilizando: ✔ DTO actual ✔ Mapping actual ✔ TokenService actual ✔ flujo 2FA actual Con compatibilidad total, observabilidad, pruebas y documentación enterprise completa.
+El sistema de autenticación emite JWT válidos para login normal y login con segundo factor, pero hoy no incluye
+los claims de relación multi-módulo que frontend y APIs workflow/radicación necesitan leer de forma consistente.
 
-## Approach
+Se requiere incorporar los claims:
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-203-implementacion-nuevos-claim.
+- `IdUsuarioWorkflow`
+- `IdUsuarioWorkflowExt`
+- `IdUsuarioRadicador`
+- `IdUsuarioDa`
+
+usando los campos existentes de `remit_dest_interno`, manteniendo compatibilidad total con claims actuales.
+
+## Scope
+
+### In Scope
+
+- Extender `UsuarioAutenticadoDTO` con 4 IDs nuevos.
+- Ajustar mapping `RemitDestInterno -> UsuarioAutenticadoDTO`.
+- Emitir los 4 claims en `TokenService.CrearToken(...)`.
+- Verificar paridad de emisión en flujo 2FA.
+- Actualizar contrato técnico/documentación de claims para frontend.
+- Pruebas unitarias y de integración focalizadas en emisión de claims.
+
+### Out of Scope
+
+- Cambios de reglas de autorización/permissions (`perm`).
+- Nuevos endpoints de autenticación.
+- Cambios de estructura en tablas de base de datos.
+- Cambio de naming de claims legacy (`usuarioid`, `uid`, `defaulalias`, `defaulaliaswf`).
+
+## Canonical Mapping
+
+- `IdUsuarioWorkflow` <- `remit_dest_interno.Relacion_Workflow`
+- `IdUsuarioWorkflowExt` <- `remit_dest_interno.Relacion_Workflow_Extend`
+- `IdUsuarioRadicador` <- `remit_dest_interno.Relacion_Id_Usuario_Radicacion`
+- `IdUsuarioDa` <- `remit_dest_interno.Relacion_Da`
+
+Regla de normalización: valores nulos/no definidos se emiten como `0`.
+
+## Architecture Decisions
+
+### AD-01: Punto único de emisión de claims
+
+Se mantiene `TokenService.CrearToken(...)` como único punto de emisión del JWT.
+El flujo 2FA debe seguir cerrando en el mismo servicio para no duplicar contratos.
+
+### AD-02: Contrato intermedio en DTO autenticado
+
+Los 4 campos se agregan a `UsuarioAutenticadoDTO` para:
+
+- transportar datos desde login/mapping,
+- serializar correctamente en payload de segundo factor,
+- mantener consistencia entre login normal y 2FA.
+
+### AD-03: Compatibilidad hacia atrás
+
+- No remover claims existentes.
+- Emitir siempre los nuevos claims (incluyendo `0`).
+- Evitar romper consumidores que aún solo usan claims legacy.
+
+## Impacted Repositories and Files
+
+- `MiApp.DTOs`
+  - `DTOs/Autenticacion/UsuarioAutenticadoDTO.cs`
+- `MiApp.Services`
+  - `Service/Mapping/GestorDocumental/Usuario/RemitDestInternoMapping.cs`
+  - `Service/Autenticacion/TokenService.cs`
+  - `Service/Autenticacion/SecondFactor/SecondFactorService.cs` (validación de continuidad de payload)
+  - `Service/Autenticacion/Providers/EmailSecondFactorProvider.cs` (validación serialización payload)
+  - opcional: `Service/Seguridad/Autorizacion/Claims/DocuArchiClaimTypes.cs`
+- `DocuArchiCore` (coordinador/documentación)
+  - `Docs/...` de contrato técnico de claims para integración frontend.
+
+## Observability
+
+Registrar logs en nivel `Information` para:
+
+- emisión de token con nuevos claims (sin exponer token),
+- flujo (normal vs 2FA),
+- IDs emitidos (enmascarando datos sensibles cuando aplique).
+
+Registrar `Warning` cuando algún ID llegue en `0` por datos de relación faltantes.
+
+## Risk Assessment
+
+- Riesgo de regresión por renombrar claims existentes: mitigado al no modificar claims legacy.
+- Riesgo de inconsistencia entre login normal y 2FA: mitigado al centralizar emisión en `TokenService`.
+- Riesgo frontend por contratos parciales: mitigado con documentación explícita y fallback `0`.
+
+## Validation Strategy
+
+- Unit tests mapping `RemitDestInterno` -> `UsuarioAutenticadoDTO`.
+- Unit tests de `TokenService` verificando presencia/valor de los 4 claims.
+- Tests de flujo 2FA confirmando que el JWT final contiene también los 4 claims.
+- Test de no regresión sobre claims legacy.
+
+## Acceptance Summary
+
+- JWT de login normal contiene los 4 nuevos claims.
+- JWT de login 2FA contiene los 4 nuevos claims.
+- Claims legacy permanecen intactos.
+- Contrato técnico/frontend actualizado con nombres exactos y fallback.
