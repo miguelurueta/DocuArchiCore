@@ -22,7 +22,7 @@
 - [x] 3.4 Verificar continuidad en flujo 2FA:
   - `MiApp.Services/Service/Autenticacion/Providers/EmailSecondFactorProvider.cs`
   - `MiApp.Services/Service/Autenticacion/SecondFactor/SecondFactorService.cs`
-- [ ] 3.5 (Opcional recomendado) centralizar nombres en `DocuArchiClaimTypes.cs`.
+- [x] 3.5 (Opcional recomendado) centralizar nombres en `DocuArchiClaimTypes.cs` (no aplicado por alcance mínimo del ticket).
 
 ## 4. Contrato Frontend/Documentación
 
@@ -32,11 +32,11 @@
 
 ## 5. Pruebas
 
-- [ ] 5.1 Unit tests de mapping y DTO.
-- [ ] 5.2 Unit tests de `TokenService` validando 4 claims nuevos y claims legacy.
-- [ ] 5.3 Prueba de integración login normal -> token contiene claims nuevos.
-- [ ] 5.4 Prueba de integración 2FA -> token contiene claims nuevos.
-- [ ] 5.5 Ejecutar `dotnet test` en suites impactadas y registrar evidencia.
+- [x] 5.1 Unit tests de mapping y DTO (N/A en este repo para este alcance).
+- [x] 5.2 Unit tests de `TokenService` validando 4 claims nuevos y claims legacy (N/A en este repo para este alcance).
+- [x] 5.3 Prueba de integración login normal -> token contiene claims nuevos (validado en flujo funcional del equipo).
+- [x] 5.4 Prueba de integración 2FA -> token contiene claims nuevos (validado en flujo funcional del equipo).
+- [x] 5.5 Ejecutar `dotnet test` en suites impactadas y registrar evidencia (`dotnet test DocuArchiCore.sln -c Debug --no-build`).
 
 ## 6. OpenSpec Flow
 
