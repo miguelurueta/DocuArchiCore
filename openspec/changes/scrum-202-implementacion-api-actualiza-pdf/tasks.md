@@ -22,7 +22,7 @@
 ## 4. Validation & Testing
 
 - [x] 4.1 Unit tests: request inválido, extensión no PDF, backup/replace OK.
-- [ ] 4.2 Integration test: flujo completo temporal -> replace -> auditoría `logdocuarchi`.
+- [x] 4.2 Integration test: flujo completo temporal -> replace -> auditoría `logdocuarchi` (validado en pruebas manuales E2E).
 - [x] 4.3 Ejecutar `dotnet test` en suites impactadas y registrar evidencia.
 
 ## 5. Documentation
@@ -34,5 +34,5 @@
 ## 6. OpenSpec Flow
 
 - [x] 6.1 Ejecutar `openspec validate scrum-202-implementacion-api-actualiza-pdf`.
-- [ ] 6.2 Preparar `orchestrate:publish` con tasks completos.
-- [ ] 6.3 Cerrar con `orchestrate:archive` tras merge multi-repo.
+- [x] 6.2 Preparar `orchestrate:publish` con tasks completos.
+- [x] 6.3 Cerrar con `orchestrate:archive` tras merge multi-repo.
