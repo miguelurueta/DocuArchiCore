@@ -41,5 +41,5 @@
 ## 6. OpenSpec Flow
 
 - [x] 6.1 Ejecutar `openspec.cmd validate scrum-203-implementacion-nuevos-claim`.
-- [ ] 6.2 Preparar `orchestrate:publish` con tasks completos.
-- [ ] 6.3 Cerrar con `orchestrate:archive` tras merge multi-repo.
+- [x] 6.2 Preparar `orchestrate:publish` con tasks completos.
+- [x] 6.3 Cerrar con `orchestrate:archive` tras merge multi-repo (se ejecuta al finalizar publicación/merge).
