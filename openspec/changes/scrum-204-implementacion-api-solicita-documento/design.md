@@ -11,11 +11,123 @@
 
 ## Problem Statement
 
-Actúa como arquitecto/desarrollador senior .NET del proyecto DocuArchiCore. Debes diseñar e implementar una nueva API para frontend basada en la función legacy VB: D:\imagenesda\GestorDocumental\Desarrollo\old\oldanterior\GestionDocumental- Docuarchi.net \Docuarchi\ClassVisualisaDocumento.vb Función: Genera_Matris_Documentos_Almacenados Referencia auxiliar: D:\imagenesda\GestorDocumental\Desarrollo\old\oldanterior\GestionDocumental- Docuarchi.net \Docuarchi\ClassDaGabinete.vb (Genera_Matriz_Documentos, Consulta_Documentos_Añadidos, Suma_Numero_Documentos_Añadidos) IMPORTANTE DE NEGOCIO: El frontend siempre consumirá UNA sola URL de documento. Si la matriz de documentos corresponde a TIF (páginas .0000, .0001 o múltiples imágenes TIF/BMP/JPG), debes unirlas en un PDF temporal y retornar URL de descarga de ese PDF. La respuesta final siempre debe representar un único documento para visualizar en frontend. ================================================== OBJETIVO FUNCIONAL ================================================== Crear endpoint(s) que: Reciban NombreGabinete + IdDocumento. Resuelvan ubicación física del documento con reglas legacy (DISC/IDEX/naming DIG########). Determinen documentos asociados (principal + añadidos si aplica). Si el resultado es TIF/multi-imagen, generen un PDF temporal consolidado. Retornen una URL temporal única para descarga/visualización en frontend. ================================================== 2) REUTILIZACIÓN OBLIGATORIA (NO DUPLICAR) Reutilizar servicios/repositorios/dto existentes del proyecto: Rutas y disco: MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StoragePhysicalPathService.cs MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StorageFolderLegacyPolicy.cs MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StoragePathResolver.cs MiApp.Repository\Repositorio\GestorDocumental\AlmacenamientoDocumental\StorageRoute\StorageRouteRepository.cs Ubicación del documento en gabinete: MiApp.Repository\Repositorio\GestorDocumental\Documentos\ReemplazoPdf\IReemplazoPdfDocumentLocationRepository.cs (ID, DISC, PAG, IDEX, DBT, TIPODOCUMENTO) Extensiones/DA_EXTENSION: MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Naming\IStorageExtensionResolver.cs MiApp.Repository\Repositorio\GestorDocumental\AlmacenamientoDocumental\Extension\IStorageExtensionRepository.cs Naming legado: MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Naming\IStorageNamingService.cs (DIG########.ext) Temporales: MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\TemporaryUpload\StorageUploadPathResolver.cs (usar temp root para archivos temporales de salida PDF) Contratos de respuesta: MiApp.DTOs DTOs de AppResponses/AppMeta/AppError existentes. Seguridad por URL temporal (patrón a replicar): Revisar patrón de firma temporal Workflow ya implementado (token + expiración + endpoint download) y reutilizar enfoque de seguridad para no exponer rutas físicas directas. ================================================== 3) DISEÑO DE API (SALIDA ÚNICA) Crear controller específico en Documentos (no mezclar con almacenamiento): Ejemplo base: GET /api/gestor-documental/documentos/visualizacion/{nombreGabinete}/{idDocumento} -> Resuelve documento y genera token/url temporal única. Ejemplo descarga: GET /api/gestor-documental/documentos/visualizacion/download/{token} -> Devuelve FileStreamResult del archivo final (original o PDF consolidado). Respuesta del primer endpoint: { "success": true, "message": "OK", "data": { "idDocumento": 15416, "nombreGabinete": "contabil", "contentType": "application/pdf", "fileName": "DIG00015416.pdf", "relativePath": "document-preview/....pdf", "urlTemporal": "/api/gestor-documental/documentos/visualizacion/download/{token}", "expiresAt": "2026-05-17T18:30:00Z", "origen": "ORIGINAL|TIF_CONSOLIDADO" }, "meta": { ... }, "errors": [] } ================================================== 4) REGLAS DE NEGOCIO A IMPLEMENTAR Validar claims requeridos (mínimo defaulalias; usuarioid según política actual). Validar nombre gabinete e idDocumento. Resolver registro del gabinete (ID, DISC, PAG, IDEX, DBT, TIPODOCUMENTO). Resolver ruta física legacy: {RutaAlmacenamiento}/{Gabinete}{DISC}/{IDEX:D5}/DIG{ID:D8}{ext} Determinar extensión real usando DA_EXTENSION + archivos físicos existentes. Si el documento corresponde a matriz TIF/multiimagen: Construir lista de páginas asociadas. Unir páginas en PDF temporal. Retornar URL del PDF temporal. Si ya existe un PDF único: Retornar URL temporal de ese archivo (sin reconversión innecesaria). Siempre retornar una sola URL final al frontend. No exponer rutas absolutas del servidor en el contrato público. ================================================== 5) REQUISITOS TÉCNICOS try/catch en Controller, Service y Repository. Logging estructurado con requestId. Sin SQL concatenado inseguro. Sanitizar nombre de gabinete (regex identificador SQL). Validar path traversal en lectura/generación de archivos. Manejar expiración y limpieza de temporales. No hardcodear extensiones ni rutas. Mantener compatibilidad con convenciones legacy de nombre/ruta. ================================================== 6) IMPLEMENTACIÓN ESPERADA (CAPAS) A) API (DocuArchi.Api) Nuevo controller en GestorDocumental/Documentos/VisualizacionDocumentoController.cs Endpoints resolve + download B) Service (MiApp.Services) Nuevo servicio de orquestación VisualizacionDocumentoService Resolver archivo principal/adjuntos y consolidación TIF->PDF temporal C) Repository (MiApp.Repository) Reusar repos existentes de ubicación/ruta/extensión Crear repositorio adicional sólo si falta consulta puntual de añadidos por DBT D) DTOs (MiApp.DTOs) Request/Response tipados para resolve/download metadata E) DI Registrar interfaces/implementaciones en Program.cs ================================================== 7) PRUEBAS (OBLIGATORIAS) Caso PDF simple: retorna URL temporal de PDF. Caso TIF multi-página: genera PDF temporal y retorna URL única. Caso archivo inexistente: error validation controlado. Claim inválido: 400 controlado. IdDocumento inexistente: 400 controlado. Test de seguridad path traversal. Test expiración token temporal download. ================================================== 8) DOCUMENTACIÓN TÉCNICA Generar documentación en Docs/GestorDocumental/Documentos/VisualizacionDocumento/ con: Arquitectura Diagrama de secuencia Contrato frontend completo Ejemplos request/response Manejo de errores Reglas TIF->PDF temporal Estrategia de limpieza de temporales ================================================== 9) CRITERIOS DE ACEPTACIÓN Front siempre recibe UNA URL temporal de un único documento. TIF/multiimagen se consolida a PDF temporal correctamente. Reutilización de componentes actuales comprobada. Sin romper endpoints existentes. Build y pruebas impactadas en verde.
+Se requiere una API de visualización de documento para frontend que reemplace el comportamiento de
+`Genera_Matris_Documentos_Almacenados` del legacy VB, manteniendo compatibilidad funcional con naming/ruta legacy,
+pero con arquitectura por capas y contrato tipado.
+
+Regla central de negocio: el frontend siempre debe recibir una única URL temporal para visualizar/descargar un único
+archivo. Si el documento físico está compuesto por matriz TIF/multi-imagen, el backend debe consolidar a PDF temporal
+y entregar esa URL.
+
+## Legacy Reference
+
+- `D:\imagenesda\GestorDocumental\Desarrollo\old\oldanterior\GestionDocumental-Docuarchi.net\Docuarchi\ClassVisualisaDocumento.vb`
+  - `Genera_Matris_Documentos_Almacenados`
+- `D:\imagenesda\GestorDocumental\Desarrollo\old\oldanterior\GestionDocumental-Docuarchi.net\Docuarchi\ClassDaGabinete.vb`
+  - `Genera_Matriz_Documentos`
+  - `Consulta_Documentos_Añadidos`
+  - `Suma_Numero_Documentos_Añadidos`
+
+## Scope
+
+### In Scope
+
+- Endpoint de resolución de documento visualizable (URL temporal única).
+- Endpoint de descarga por token temporal.
+- Resolución de documento principal y añadidos por `DBT`.
+- Consolidación TIF/multi-imagen a PDF temporal.
+- Reutilización explícita de servicios/repositorios actuales.
+- Documentación técnica y contrato frontend.
+
+### Out of Scope
+
+- Cambios en estructura de tablas legacy de gabinete.
+- Reescritura del motor de almacenamiento principal.
+- Persistencia permanente de PDF consolidado (solo temporal).
+- Cambios globales de autenticación/autorización.
+
+## Reuse Strategy
+
+Se debe reutilizar obligatoriamente:
+
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StoragePhysicalPathService.cs`
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StorageFolderLegacyPolicy.cs`
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Physical\StoragePathResolver.cs`
+- `MiApp.Repository\Repositorio\GestorDocumental\AlmacenamientoDocumental\StorageRoute\StorageRouteRepository.cs`
+- `MiApp.Repository\Repositorio\GestorDocumental\Documentos\ReemplazoPdf\IReemplazoPdfDocumentLocationRepository.cs`
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Naming\IStorageExtensionResolver.cs`
+- `MiApp.Repository\Repositorio\GestorDocumental\AlmacenamientoDocumental\Extension\IStorageExtensionRepository.cs`
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\Naming\IStorageNamingService.cs`
+- `MiApp.Services\Service\GestorDocumental\AlmacenamientoDocumental\TemporaryUpload\StorageUploadPathResolver.cs`
+- `AppResponses<T>`, `AppMeta`, `AppError`
+
+## Architecture Decisions
+
+### AD-01 Controller especializado en Documentos
+
+Crear `VisualizacionDocumentoController` en `GestorDocumental/Documentos`, separado del controller de almacenamiento.
+
+### AD-02 Servicio orquestador único de visualización
+
+Crear `VisualizacionDocumentoService` para encapsular:
+
+- validaciones
+- resolución de rutas legacy
+- decisión ORIGINAL vs TIF_CONSOLIDADO
+- emisión de token temporal
+- respuesta final para frontend
+
+### AD-03 Token temporal para descarga
+
+No exponer rutas absolutas. El endpoint de resolución devuelve `UrlTemporal` y `ExpiresAt`.
+
+### AD-04 Contrato único para frontend
+
+La respuesta de resolución siempre representa un único archivo final. Para TIF/multiimagen, el archivo final debe ser
+`application/pdf`.
+
+## Main Flow
+
+1. Validar claims (`defaulalias` y reglas de seguridad vigentes).
+2. Validar `nombreGabinete` e `idDocumento`.
+3. Obtener ubicación base (`ID`, `DISC`, `PAG`, `IDEX`, `DBT`) en gabinete.
+4. Resolver ruta física legacy del documento.
+5. Detectar origen:
+   - PDF/original único: publicar URL temporal del archivo.
+   - TIF/multiimagen: generar PDF temporal y publicar URL temporal del consolidado.
+6. Retornar `AppResponses<VisualizacionDocumentoResponseDto>`.
+
+## Risk Assessment
+
+- Riesgo de path traversal: mitigar con `StoragePathResolver` + validación root.
+- Riesgo de consumo alto en consolidación: mitigar con límites de tamaño/páginas y stream.
+- Riesgo de inconsistencia legacy de nombres: mitigar reutilizando naming y folder policies actuales.
+- Riesgo de exposición de rutas físicas: mitigar con token temporal obligatorio.
+
+## Validation Strategy
+
+- Unit tests de service:
+  - PDF original
+  - TIF consolidado
+  - archivo inexistente
+  - token expirado
+- Tests de controller:
+  - claim inválido
+  - request inválido
+  - success
+- Prueba integración E2E de descarga temporal.
+
+## Impacted Repositories
+
+- `DocuArchi.Api` (controller nuevo)
+- `MiApp.Services` (servicio visualización + consolidación PDF temporal)
+- `MiApp.Repository` (consulta añadidos por DBT si no existe)
+- `MiApp.DTOs` (DTOs request/response)
+- `DocuArchiCore` (documentación técnica/OpenSpec)
 
 ## Approach
 
 - Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-204-implementacion-api-solicita-documento.
+- Aplicar restricciones de arquitectura y pruebas de `OPSXJ_BACKEND_RULES`.
+- Definir alcance/no-alcance antes de implementar.
+- Validar con `openspec.cmd validate scrum-204-implementacion-api-solicita-documento`.
