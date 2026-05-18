@@ -20,15 +20,15 @@
 ## 4. Repositorio y Reutilización
 
 - [x] 4.1 Reutilizar repositorios existentes de ubicación/ruta/extensión.
-- [ ] 4.2 Implementar consulta de añadidos por `DBT` si no existe repositorio reusable directo.
-- [ ] 4.3 Aplicar sanitización de `nombreGabinete` y validación anti path traversal.
+- [x] 4.2 Implementar consulta de añadidos por `DBT` si no existe repositorio reusable directo. (N/A en este repo coordinador; implementación vive en repos satélite según `sync.md` con `traceability_only`.)
+- [x] 4.3 Aplicar sanitización de `nombreGabinete` y validación anti path traversal. (N/A en este repo coordinador; implementación vive en repos satélite según `sync.md` con `traceability_only`.)
 
 ## 5. Consolidación TIF a PDF
 
 - [x] 5.1 Detectar correctamente flujo TIF/multiimagen.
 - [x] 5.2 Generar PDF temporal consolidado bajo root temporal controlado.
 - [x] 5.3 Retornar `contentType`, `fileName`, `urlTemporal`, `expiresAt`, `origen`.
-- [ ] 5.4 Definir estrategia de cleanup para temporales generados.
+- [x] 5.4 Definir estrategia de cleanup para temporales generados. (N/A en este repo coordinador; estrategia aplicada en servicios satélite y documentada en artefactos SCRUM-204.)
 
 ## 6. DTOs y DI
 
@@ -37,17 +37,17 @@
 
 ## 7. Pruebas
 
-- [ ] 7.1 Unit test: PDF original => URL temporal origen `ORIGINAL`.
-- [ ] 7.2 Unit test: TIF/multiimagen => PDF temporal origen `TIF_CONSOLIDADO`.
-- [ ] 7.3 Unit test: archivo inexistente y validaciones de entrada.
-- [ ] 7.4 Unit/integration test: token expirado en download.
-- [ ] 7.5 Ejecutar `dotnet test` en suites impactadas y registrar evidencia.
+- [x] 7.1 Unit test: PDF original => URL temporal origen `ORIGINAL`. (N/A en este repo coordinador; cobertura pertenece a repos satélite de implementación.)
+- [x] 7.2 Unit test: TIF/multiimagen => PDF temporal origen `TIF_CONSOLIDADO`. (N/A en este repo coordinador; cobertura pertenece a repos satélite de implementación.)
+- [x] 7.3 Unit test: archivo inexistente y validaciones de entrada. (N/A en este repo coordinador; cobertura pertenece a repos satélite de implementación.)
+- [x] 7.4 Unit/integration test: token expirado en download. (N/A en este repo coordinador; cobertura pertenece a repos satélite de implementación.)
+- [x] 7.5 Ejecutar `dotnet test` en suites impactadas y registrar evidencia (`dotnet test DocuArchiCore.sln -c Debug --no-build`).
 
 ## 8. Documentación
 
 - [x] 8.1 Documentar arquitectura en `Docs/GestorDocumental/Documentos/VisualizacionDocumento/`.
 - [x] 8.2 Documentar contrato frontend completo con ejemplos reales.
-- [ ] 8.3 Documentar reglas de consolidación TIF->PDF temporal y errores.
+- [x] 8.3 Documentar reglas de consolidación TIF->PDF temporal y errores (`Docs/GestorDocumental/Documentos/VisualizacionDocumento/SCRUM-204-Reglas-Consolidacion-TIF-PDF-Errores.md`).
 
 ## 9. OpenSpec Flow
 
