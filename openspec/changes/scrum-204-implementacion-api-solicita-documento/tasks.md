@@ -51,6 +51,6 @@
 
 ## 9. OpenSpec Flow
 
-- [ ] 9.1 Ejecutar `openspec.cmd validate scrum-204-implementacion-api-solicita-documento`.
+- [x] 9.1 Ejecutar `openspec.cmd validate scrum-204-implementacion-api-solicita-documento`.
 - [ ] 9.2 Publicar flujo orquestado (`orchestrate:publish`) con tasks completos.
 - [ ] 9.3 Cerrar con `orchestrate:archive` tras merge multi-repo.
