@@ -52,5 +52,5 @@
 ## 9. OpenSpec Flow
 
 - [x] 9.1 Ejecutar `openspec.cmd validate scrum-204-implementacion-api-solicita-documento`.
-- [ ] 9.2 Publicar flujo orquestado (`orchestrate:publish`) con tasks completos.
+- [x] 9.2 Publicar flujo orquestado (`orchestrate:publish`) con tasks completos. (Ejecutado con `-ForceIncompleteTasks` por dependencia circular de cierre 9.x.)
 - [ ] 9.3 Cerrar con `orchestrate:archive` tras merge multi-repo.
