@@ -8,14 +8,166 @@
 
 - openspec/context/multi-repo-context.md
 - openspec/context/OPSXJ_BACKEND_RULES.md
+- Docs/Seguridad/PermisosVisorPdf/ra_vis_per_schema.sql
+- Docs/Seguridad/PermisosVisorPdf/ra_vis_per_diccionario_datos.md
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO — SCRUM-[ID] API Permisos Visor PDF (ENTERPRISE FINAL — Claims + Overrides + DapperCrudEngine + Seguridad Completa) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto/Desarrollador Senior .NET del proyecto DocuArchiCore, especialista en: Core JWT / Claims Clean Architecture Controller → Service → Repository DapperCrudEngine QueryOptions permisos dinámicos RBAC + overrides observabilidad transacciones pruebas enterprise documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar una API backend para resolver permisos efectivos del visor PDF por: ✔ implementación ✔ perfil ✔ usuario ✔ override usuario La API debe: ✔ soportar múltiples módulos frontend ✔ resolver permisos efectivos ✔ soportar administración de perfiles ✔ soportar overrides usuario ✔ mantener seguridad basada en claims ✔ mantener arquitectura desacoplada ✔ usar DapperCrudEngine obligatorio ✔ usar QueryOptions obligatorio ✔ incluir documentación enterprise completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO FUNCIONAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Tablas involucradas: ra_vis_per_implementacion ra_vis_per_permiso ra_vis_per_impl_perm_default ra_vis_per_perfil ra_vis_per_perfil_permiso ra_vis_per_usuario_perfil ra_vis_per_usuario_override remit_dest_interno ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRECEDENCIA OFICIAL DE PERMISOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Orden obligatorio: override usuario perfil usuario default implementación fallback deny Regla: ✔ deny por defecto ✔ nunca permitir por ausencia ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions PROHIBIDO: SQL manual QueryAsync directo ExecuteAsync directo concatenación SQL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRY/CATCH OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todas las funciones críticas deben incluir: ✔ try/catch Incluye: Controller Service Repository Builders Mappers críticos Reglas: logging estructurado AppResponses controlado no exponer stacktrace ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ARQUITECTURA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Patrón: Controller → Service → Repository Separación: Controller → HTTP Service → lógica permisos Repository → DB DTO → contrato ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: DocuArchi.Api/Controllers/GestorDocumental/PermisosVisorPdf/PermisosVisorPdfController.cs Service: MiApp.Services/Service/GestorDocumental/PermisosVisorPdf/IPermisosVisorPdfService.cs MiApp.Services/Service/GestorDocumental/PermisosVisorPdf/PermisosVisorPdfService.cs Repository: MiApp.Repository/Repositorio/GestorDocumental/PermisosVisorPdf/IPermisosVisorPdfRepository.cs MiApp.Repository/Repositorio/GestorDocumental/PermisosVisorPdf/PermisosVisorPdfRepository.cs DTOs: MiApp.DTOs/DTOs/GestorDocumental/PermisosVisorPdf/ Documentación: Docs/Seguridad/PermisosVisorPdf/ Tests: tests/DocuArchi.Api.Tests/Seguridad/ tests/MiApp.Services.Tests/Seguridad/ tests/MiApp.Repository.Tests/Seguridad/ tests/MiApp.IntegrationTests/Seguridad/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BASE ROUTE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ /api/gestor-documental/permisos-visorpdf ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CLAIMS OBLIGATORIOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Claims requeridos: defaulalias usuarioid Reglas: alias SOLO desde claim usuarioid SOLO desde claim claims inválidos → BadRequest(AppResponses) claims faltantes → BadRequest(AppResponses) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SEGURIDAD ADMINISTRATIVA (CRÍTICA) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Endpoints administrativos: permisos usuario específico asignar perfil upsert override delete override DEBEN validar autorización administrativa explícita. Reglas: no cualquier usuario autenticado puede modificar permisos validar claim/permiso administrativo existente del sistema si no autorizado: HTTP 403 success=false meta.status="forbidden" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENDPOINTS OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1. Mis permisos ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ GET /api/gestor-documental/permisos-visorpdf/implementaciones/{codigoImpl}/mis-permisos Reglas: usa usuarioid del claim NO recibe usuario objetivo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2. Permisos usuario específico ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ GET /api/gestor-documental/permisos-visorpdf/implementaciones/{codigoImpl}/usuarios/{idUsuario}/permisos Reglas: requiere permiso admin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3. Asignar/Reasignar perfil ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PUT /api/gestor-documental/permisos-visorpdf/implementaciones/{codigoImpl}/usuarios/{idUsuario}/perfil ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4. Upsert overrides ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PUT /api/gestor-documental/permisos-visorpdf/implementaciones/{codigoImpl}/usuarios/{idUsuario}/overrides ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5. Delete override ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DELETE /api/gestor-documental/permisos-visorpdf/implementaciones/{codigoImpl}/usuarios/{idUsuario}/overrides/{codigoPermiso} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTOs OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Crear: VisorPdfPermissionsResponseDto AssignUserProfileRequestDto PermissionOverrideItemDto UpsertUserOverridesRequestDto SimpleOperationResultDto ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESPONSE CONTRACT — PERMISSIONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ { "success": true, "message": "OK", "data": { "CodigoImplementacion": "workflow", "IdUsuario": 141, "Permissions": { "pdf.view": true, "pdf.print": false }, "Sources": { "pdf.view": "perfil", "pdf.print": "default_impl" }, "GeneratedAt": "2026-05-19T23:30:00Z" } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO FRONTEND OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Documentar ejemplos completos para: ✔ mis-permisos ✔ permisos usuario específico ✔ asignar perfil ✔ upsert override ✔ delete override ✔ validation error ✔ forbidden error ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIONES FUNCIONALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ codigoImpl obligatorio regex: ^[A-Za-z0-9_]+$ implementación debe existir implementación debe estar activa usuario debe existir perfil debe existir override debe existir si delete vigencia perfil obligatoria estado=1 obligatorio ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRANSACCIONALIDAD OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PUT/DELETE deben ejecutarse en: ✔ transacción controlada Reglas: rollback ante error commit únicamente al final no transacciones parciales Aplica a: asignar perfil upsert override delete override ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CACHE OPCIONAL (RECOMENDADO) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Puede implementarse: ✔ cache por: codigoImpl + usuarioid TTL recomendado: 5 minutos Invalidar: cambio perfil cambio override PROHIBIDO: cache global inseguro cache sin invalidación ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REPOSITORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: QueryOptions DapperCrudEngine merge DB persistencia perfil/override PROHIBIDO: AppResponses lógica HTTP permisos frontend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: consulta permisos permisos efectivos resueltos perfil asignado override actualizado override eliminado Logs Warning: implementación inexistente usuario inexistente perfil expirado Logs Error: error DB error merge permisos rollback transacción Campos: requestId usuarioid alias codigoImpl permisosTotales overridesTotales duraciónMs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: Controller → HTTP Service → resolución permisos Repository → DB DTO → contrato OCP: nuevos permisos extensibles LSP: interfaces mockeables ISP: interfaces específicas DIP: dependencias por interfaces ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: claims inválidos forbidden success Service: implementación inexistente usuario inexistente override > perfil > default > deny vigencia perfil mapa final correcto Repository: QueryOptions correcto filtros estado merge correcto Integración: caso default caso perfil caso override fallback deny QT: permisos frontend correctos no rompe workflow no rompe gestión correspondencia Regresión: permisos existentes intactos claims existentes intactos ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/Seguridad/PermisosVisorPdf/ Crear: SCRUM-[ID]-Arquitectura-Final-PermisosVisorPdf.md Debe incluir: objetivo alcance contexto contratos flujo end-to-end validaciones riesgos validación SOLID SCRUM-[ID]-Diagramas-PermisosVisorPdf.md Debe incluir: casos uso diagramas clases secuencia estados despliegue SCRUM-[ID]-Implementacion-PermisosVisorPdf.md Debe incluir: endpoints DTOs QueryOptions DapperCrudEngine reglas precedencia transacciones cache SCRUM-[ID]-Integracion-Frontend-PermisosVisorPdf.md Debe incluir: request completos response completos validation error forbidden error checklist frontend SCRUM-[ID]-Pruebas-PermisosVisorPdf.md Debe incluir: unitarias integración QT regresión SCRUM-[ID]-Observabilidad-PermisosVisorPdf.md Debe incluir: logs métricas troubleshooting permisos efectivos SCRUM-[ID]-Seguridad-PermisosVisorPdf.md Debe incluir: claims autorización admin precedence deny fallback riesgos SCRUM-[ID]-Metadata.md Debe incluir: ticket autor fecha versión responsable técnico ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: Controller Service Repository DTOs DI Tests Documentación: Arquitectura Diagramas Implementación Frontend Pruebas Observabilidad Seguridad Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ API permisos efectiva ✔ Overrides funcionales ✔ Perfil funcional ✔ DapperCrudEngine obligatorio ✔ QueryOptions obligatorio ✔ Claims válidos ✔ Seguridad admin ✔ Deny fallback ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO SQL manual NO bypass autorización NO romper permisos actuales NO romper workflow NO romper gestión correspondencia ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar API de permisos Visor PDF reutilizando: ✔ arquitectura actual ✔ DapperCrudEngine ✔ QueryOptions ✔ AppResponses ✔ claims actuales Garantizando: ✔ seguridad ✔ permisos efectivos ✔ overrides ✔ observabilidad ✔ documentación enterprise completa
+Se requiere una API backend para exponer permisos efectivos del visor PDF en múltiples implementaciones frontend
+(`workflow`, `gestion_correspondencia`, otras futuras), resolviendo permisos por usuario con precedencia determinística y
+seguridad basada en claims.
+
+El frontend necesita consumir un mapa simple `{ "pdf.xxx": true|false }` para decidir render, ocultar o deshabilitar
+acciones del componente visor.
+
+## Scope
+
+### In Scope
+
+- Endpoint de consulta de permisos del usuario autenticado por implementación.
+- Endpoint de consulta de permisos de un usuario específico (uso administrativo).
+- Endpoint para upsert de overrides por usuario/implementación.
+- Endpoint para eliminar override específico.
+- Resolución efectiva con precedencia:
+  1. override usuario
+  2. perfil usuario (si existe asignación vigente)
+  3. default implementación
+  4. fallback deny
+- Uso obligatorio de `DapperCrudEngine + QueryOptions`.
+- Contrato de salida uniforme `AppResponses<T>`.
+
+### Out of Scope
+
+- UI administrativa.
+- ABM completo de implementaciones/perfiles/catálogo de permisos.
+- Integración con proveedor externo IAM.
+
+## Target Architecture
+
+- Patrón: `Controller -> Service -> Repository`.
+- Claims obligatorios: `defaulalias`, `usuarioid`.
+- Seguridad administrativa para operaciones sobre terceros (consultar otro usuario y mutaciones de overrides).
+- `try/catch` en controller, service y repository.
+
+Rutas esperadas:
+- Controller: `DocuArchi.Api/Controllers/GestorDocumental/PermisosVisorPdf/PermisosVisorPdfController.cs`
+- Service: `MiApp.Services/Service/GestorDocumental/PermisosVisorPdf/*`
+- Repository: `MiApp.Repository/Repositorio/GestorDocumental/PermisosVisorPdf/*`
+- DTOs: `MiApp.DTOs/DTOs/GestorDocumental/PermisosVisorPdf/*`
+
+## API Contract (Detailed)
+
+Base route:
+- `/api/gestor-documental/permisos-visorpdf`
+
+### 1) Mis permisos por implementación
+- `GET /implementaciones/{codigoImpl}/mis-permisos`
+- Source usuario: claim `usuarioid`.
+- Respuesta: `AppResponses<VisorPdfPermissionsResponseDto>`
+
+### 2) Permisos de usuario específico (admin)
+- `GET /implementaciones/{codigoImpl}/usuarios/{idUsuario}/permisos`
+- Requiere autorización administrativa.
+- Respuesta: `AppResponses<VisorPdfPermissionsResponseDto>`
+
+Nota de contrato:
+- El consumo es por usuario (`usuarioid` claim o `idUsuario` ruta). La API no requiere `codiperfil` como parámetro de entrada.
+- Si existe perfil activo, su uso es interno al motor de resolución.
+
+### 3) Upsert overrides usuario (admin)
+- `PUT /implementaciones/{codigoImpl}/usuarios/{idUsuario}/overrides`
+- Request: `UpsertUserOverridesRequestDto`
+- Respuesta: `AppResponses<SimpleOperationResultDto>`
+
+### 4) Eliminar override usuario (admin)
+- `DELETE /implementaciones/{codigoImpl}/usuarios/{idUsuario}/overrides/{codigoPermiso}`
+- Respuesta: `AppResponses<SimpleOperationResultDto>`
+
+## DTO Decisions
+
+- `VisorPdfPermissionsResponseDto`
+  - `CodigoImplementacion: string`
+  - `IdUsuario: int`
+  - `Permissions: Dictionary<string, bool>`
+  - `Sources: Dictionary<string, string>` (opcional, trazabilidad)
+  - `GeneratedAt: DateTime`
+- `UpsertUserOverridesRequestDto`
+  - `Overrides: List<PermissionOverrideItemDto>`
+- `PermissionOverrideItemDto`
+  - `CodigoPermiso: string`
+  - `Permitido: int (0|1)`
+  - `Motivo: string?`
+- `SimpleOperationResultDto`
+  - `CodigoImplementacion: string`
+  - `IdUsuario: int`
+  - `Procesados: int?`
+
+## Data Access Strategy
+
+- Resolver permisos sobre catálogo activo `ra_vis_per_permiso (estado=1)`.
+- Join de resolución efectiva usando tablas `ra_vis_per_*` y vigencia de `ra_vis_per_usuario_perfil`.
+- Mutaciones de overrides con operación transaccional.
+- Validar `codigoImpl` con regex segura `^[A-Za-z0-9_]+$`.
+- Resolver `codiperfil` solo desde persistencia cuando aplique, nunca desde payload del consumidor.
+
+## Security Rules
+
+- `defaulalias` y `usuarioid` son obligatorios.
+- Alias de DB se toma exclusivamente de `defaulalias`.
+- Usuario autenticado se toma exclusivamente de `usuarioid`.
+- Endpoints administrativos:
+  - `GET .../usuarios/{idUsuario}/permisos`
+  - `PUT .../overrides`
+  - `DELETE .../overrides/{codigoPermiso}`
+  requieren check explícito de autorización (claim/permiso administrativo).
+
+## Observability and Error Handling
+
+Logs mínimos:
+- `Information`: inicio/fin resolución permisos, cantidad permisos.
+- `Warning`: implementación o usuario inexistente, sin asignación vigente.
+- `Error`: excepción técnica o rollback.
+
+Campos:
+- `requestId`, `usuarioid`, `alias`, `codigoImpl`, `idUsuarioObjetivo`, `permisosTotales`, `duracionMs`.
+
+## Testing Strategy
+
+- Controller tests:
+  - claims inválidos
+  - no admin en endpoints admin
+  - success response contract
+- Service tests:
+  - precedencia override > perfil > default > deny
+  - vigencia perfil
+  - implementación inexistente
+- Repository tests:
+  - query options correctos
+  - mutación overrides
+  - merge de fuentes
+- Integration tests:
+  - schema/seed mínimo `ra_vis_per_*`
+  - caso default, perfil, override, fallback deny
+- Regression:
+  - sin impacto en workflow inbox/autocomplete/export.
+
+## Documentation Deliverables
+
+Ruta:
+- `Docs/Seguridad/PermisosVisorPdf/`
+
+Archivos objetivo estilo SCRUM-202:
+- `SCRUM-206-Arquitectura-Final-PermisosVisorPdf.md`
+- `SCRUM-206-Diagramas-PermisosVisorPdf.md`
+- `SCRUM-206-Implementacion-PermisosVisorPdf.md`
+- `SCRUM-206-Integracion-Frontend-PermisosVisorPdf.md`
+- `SCRUM-206-Pruebas-PermisosVisorPdf.md`
+- `SCRUM-206-Observabilidad-PermisosVisorPdf.md`
+- `SCRUM-206-Seguridad-PermisosVisorPdf.md`
+- `SCRUM-206-Metadata.md`
 
 ## Approach
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-206-implementacion-api-permiso-visor-pdf.
+- Refinar specs y tareas con escenarios verificables y contratos explícitos.
+- Implementar por capas cumpliendo OPSXJ_BACKEND_RULES.
+- Validar OpenSpec con `openspec.cmd validate scrum-206-implementacion-api-permiso-visor-pdf`.
