@@ -1,23 +1,100 @@
-## 1. Discovery
+## 1. Refinamiento de OpenSpec
 
-- [ ] 1.1 Revisar el issue Jira SCRUM-205 y confirmar alcance.
-- [ ] 1.2 Confirmar repos impactados y rutas destino antes de crear Controllers/DTOs/Models/funciones.
-- [ ] 1.3 Solicitar estructura de tabla si se requiere nuevo modelo.
+- [x] 1.1 Refinar `design.md` con alcance/no alcance, decisiones arquitectónicas y política de compatibilidad.
+- [x] 1.2 Refinar `specs/jira-scrum-205/spec.md` con escenarios medibles para query/action y modos de vista.
+- [x] 1.3 Ajustar `tasks.md` a una secuencia de implementación por capas y validación.
 
-## 2. Specs
+## 2. Discovery técnico previo a código
 
-- [ ] 2.1 Completar specs/jira-scrum-205/spec.md con requisitos finales.
-- [ ] 2.2 Incluir referencia explicita a openspec/context/OPSXJ_BACKEND_RULES.md.
-- [ ] 2.3 Verificar escenarios testables por requisito.
+- [ ] 2.1 Confirmar rutas exactas de Controller/Service/Repository/DTO en repos satélite.
+- [ ] 2.2 Confirmar fuente legacy y estructura SQL base para `lista_documentos_relacionados`.
+- [ ] 2.3 Verificar contratos existentes reutilizables (`DynamicUiTableDto`, `DynamicUiRowsOnlyDto`, `AppResponses<T>`).
 
-## 3. Application
+## 3. Contratos y capa API
 
-- [ ] 3.1 Aplicar patron ApiController + Service + AutoMapper + Repository con AppResponses y try/catch.
-- [ ] 3.2 Registrar interfaces en Program.cs (Services L / Repositories R).
-- [ ] 3.3 Integrar cambios de aplicacion y verificar compilacion local.
+- [ ] 3.1 Crear/ajustar DTOs:
+  - `ListaDocumentosRadicadosTreeQueryRequestDto`
+  - `ListaDocumentosRadicadosTreeActionRequestDto`
+  - `ListaDocumentosRadicadosTreeMutationResultDto`
+  - `ListaDocumentosRadicadosResolveRequestDto`
+- [ ] 3.2 Implementar `ListaDocumentosRadicadoController` con endpoints `query` y `action`.
+- [ ] 3.3 Validar claims `defaulalias` y `usuarioid` con fallos controlados (`BadRequest`/seguridad).
 
-## 4. Test
+## 4. Capa Service
 
-- [ ] 4.1 Implementar Unit/Integration/Contract tests y documentar evidencia.
-- [ ] 4.2 Ejecutar dotnet test (o skipped explicito si Docker no disponible).
-- [ ] 4.3 Validar y archivar con OpenSpec.
+- [ ] 4.1 Implementar `SolicitaListaDocumentosRadicadosTreeAsync` con soporte `hierarchical` y `flatDocuments`.
+- [ ] 4.2 Implementar `EjecutaAccionListaDocumentosRadicadosTreeAsync` con dispatch inicial:
+  - `ver_documento`
+  - `agregar_item`
+  - `eliminar_item`
+- [ ] 4.3 Integrar acción `ver_documento` con `/api/gestor-documental/documentos/visualizacion/resolve`.
+- [ ] 4.4 Garantizar `AppResponses<T>` y `try/catch` en todos los caminos críticos.
+
+## 5. Capa Repository y migración legacy
+
+- [ ] 5.1 Implementar consulta parametrizada con `DapperCrudEngine + QueryOptions`.
+- [ ] 5.2 Migrar mapping legacy de campos `ID`, `DBT`, `PAG`, `TIPODOCUMENTO`, `ESTADO_FIRMA_DIGITAL` a `Values/Meta`.
+- [ ] 5.3 Validar que no exista SQL manual, ni contratos bootstrap-table, ni respuestas string legacy.
+
+## 6. DI, AutoMapper y observabilidad
+
+- [ ] 6.1 Registrar servicios en `Program.cs` bajo `// Services (L)`.
+- [ ] 6.2 Registrar repositorios en `Program.cs` bajo `// Repositories (R)`.
+- [ ] 6.3 Registrar perfiles de mapping requeridos y logs mínimos (`Information`, `Warning`, `Error`).
+
+## 7. Pruebas
+
+- [ ] 7.1 Controller tests: claims inválidos, query success, action success.
+- [ ] 7.2 Service unit tests: `hierarchical` raíz/hijos, `flatDocuments`, acción inválida y acciones soportadas.
+- [ ] 7.3 Repository integration tests: consulta legacy parametrizada y shape esperado.
+- [ ] 7.4 Contract/regression tests: shape `AppResponses<T>` y no regresión de inbox/autocomplete/export.
+- [ ] 7.5 Ejecutar `dotnet test` (o marcar integración `Skipped` si Docker no está disponible).
+
+## 8. Documentación técnica
+
+- [x] 8.1 Crear carpeta de documentación: `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/`.
+- [x] 8.2 Crear `SCRUM-205-Arquitectura.md` con:
+  - diagrama de capas (`Controller -> Service -> Repository`)
+  - diagrama de secuencia para `query`
+  - diagrama de secuencia para `action`
+  - matriz de decisiones (`hierarchical` vs `flatDocuments`)
+  - validación SOLID aplicada por componente
+- [x] 8.3 Crear `SCRUM-205-Implementacion-Detallada.md` con:
+  - lista de archivos creados/modificados por repo
+  - firmas finales de Controller/Service/Repository/DTOs
+  - configuración DI (`Program.cs`) y registros AutoMapper
+  - estrategia `DapperCrudEngine + QueryOptions` usada
+  - tabla de mapeo legacy -> contrato nuevo (`Values`/`Meta`)
+- [x] 8.4 Crear `SCRUM-205-Integracion-Frontend.md` con:
+  - payload completo de `query` (ejemplos `hierarchical` y `flatDocuments`)
+  - payload completo de `action` por cada `ActionId` soportado
+  - respuesta exitosa/error de `query`
+  - respuesta exitosa/error de `action`
+  - ejemplo de `DocumentResolveRequest` para `ver_documento`
+- [x] 8.5 Crear `SCRUM-205-Pruebas.md` con:
+  - plan de pruebas unitarias por capa
+  - plan de pruebas de integración (incluyendo prerequisitos Docker/Testcontainers)
+  - casos de regresión sobre inbox/autocomplete/export
+  - evidencia de ejecución (`dotnet test`, resultados y/o skips justificados)
+- [x] 8.6 Crear `SCRUM-205-Observabilidad.md` con:
+  - catálogo de logs (`Information`, `Warning`, `Error`)
+  - campos obligatorios (`requestId`, `usuarioid`, `alias`, `ViewMode`, `actionId`, `rowCount`, `duracionMs`)
+  - métricas sugeridas (latencia, tasa de error, filas por consulta)
+  - guía de troubleshooting para fallos típicos
+- [x] 8.7 Crear `SCRUM-205-Seguridad.md` con:
+  - validación de claims (`defaulalias`, `usuarioid`)
+  - controles de entrada (`ViewMode`, `ActionId`, ids y paginación)
+  - evidencia de parametrización SQL y no uso de SQL manual
+  - manejo de errores sin exponer stacktrace
+- [x] 8.8 Crear `SCRUM-205-Metadata.md` con:
+  - ticket Jira, autores, fecha, versión del documento
+  - repos impactados y estado por repo (coordinador/satélite)
+  - links a PRs relacionados
+  - estado de cumplimiento de criterios de aceptación
+- [x] 8.9 Revisar consistencia cruzada entre `design.md`, `spec.md`, `tasks.md` y documentación técnica final.
+
+## 9. Cierre OpenSpec
+
+- [x] 9.1 Ejecutar `openspec.cmd validate scrum-205-crea-api-lista-documentos-radicados`.
+- [ ] 9.2 Publicar avance multi-repo (`orchestrate:publish`) al completar implementación.
+- [ ] 9.3 Archivar (`orchestrate:archive`) después de merge multi-repo.

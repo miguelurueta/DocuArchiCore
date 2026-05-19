@@ -11,7 +11,120 @@
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO MASTER — TreeAppTable Backend SCRUMCORE-[ID] — TreeAppTable + FlatDocuments + Migración Legacy (ENTERPRISE FINAL — Dynamic Contract + Legacy Migration + DapperCrudEngine) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto/Desarrollador Senior .NET del proyecto DocuArchiCore, especialista en: Core Clean Architecture Tree structures Dynamic UI contracts Workflow inbox DapperCrudEngine QueryOptions AppResponses<T> migración legacy VB/.NET observabilidad seguridad SQL pruebas enterprise documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar backend completo para TreeAppTable con soporte: ✔ hierarchical ✔ flatDocuments ✔ migración legacy lista_documentos_relacionados ✔ contrato dinámico ✔ acciones dinámicas ✔ integración visualización documento ✔ compatibilidad AppTable actual SIN tocar frontend. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions PROHIBIDO: SQL manual QueryAsync directo ExecuteAsync directo concatenación SQL bootstrap-table legacy formatter/events/window.operateEvents ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRY/CATCH OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todas las funciones críticas deben incluir: ✔ try/catch Incluye: Controller Service Repository Builders Mappers críticos Reglas: logging estructurado AppResponses controlado no exponer stacktrace ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ COMPATIBILIDAD OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO romper: POST /api/workflowInboxgestion/inboxgestion POST /api/workflowInboxgestion/inboxgestion/autocomplete POST /api/AppTable/export AppTable actual autocomplete actual export actual ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MIGRACIÓN LEGACY OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Migrar funcionalidad legacy: SolicitaDocumentosRelacionadosRadicadoEnlace SolicitaRowDocumentosRelacionadosRadicadoEnlaceTableBoot Lista_campos_documentos_relacionados D:/imagenesda/GestorDocumental/promp/CORE-API/workflow/Legazy/lista_documentos_relacionados.txt Reglas: ✔ mantener semántica funcional ✔ eliminar bootstrap-table ✔ eliminar formatter/events ✔ eliminar retorno YES/string ✔ usar AppResponses<T> ✔ SQL parametrizado ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ARQUITECTURA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Patrón: Controller → Service → Repository Separación: Controller → HTTP Service → orquestación Repository → DB DTOs → contratos Builders → metadata dinámica ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: DocuArchi.Api/Controllers/GestorDocumental/Documentos/ListaDocumentosRadicadoController.cs Service: MiApp.Services/Service/GestorDocumental/Documentos/ListaDocumentosRadicadoService.cs Repository: MiApp.Repository/Repositorio/GestorDocumental/Documentos/ListaDocumentosRadicados DTOs: MiApp.DTOs/DTOs/GestorDocumental/Documentos/ListaDocumentosRadicados Documentación: Docs/GestorDocumental/Documentos/ListaDocumentosRadicados Tests: tests/DocuArchi.Api.Tests/ListaDocumentosRadicados/ tests/MiApp.Services.Tests/ListaDocumentosRadicados/ tests/MiApp.Repository.Tests/ListaDocumentosRadicados/ tests/MiApp.IntegrationTests/ListaDocumentosRadicados/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENDPOINTS OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Query: POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/query Action: POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/action ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CLAIMS OBLIGATORIOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ defaulalias usuarioid Reglas: claims inválidos → BadRequest usuarioid inválido → SecurityException alias SOLO desde claim ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTOs OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Crear: ListaDocumentosRadicadosTreeQueryRequestDto ListaDocumentosRadicadosTreeActionRequestDto ListaDocumentosRadicadosTreeMutationResultDto ListaDocumentosRadicadosResolveRequestDto ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ QUERY DTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ListaDocumentosRadicadosTreeQueryRequestDto: { "ColumnMode": 2, "EstadoTramite": "", "SearchType": 1, "Search": "", "SortField": "", "SortDir": "ASC", "Page": 1, "PageSize": 25, "StructuredFilters": [], "IncludeConfig": true, "ViewMode": "flatDocuments", "ParentRowId": null, "ParentNodeType": null, "Level": 1 } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACTION DTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ListaDocumentosRadicadosTreeActionRequestDto: { "TableId": "workflowInboxgestion", "ViewMode": "flatDocuments", "ActionId": "ver_documento", "RowId": "doc-1", "ParentRowId": null, "NodeType": "documento", "Payload": { "DocumentId": 12345, "NombreGabinete": "WF_DOCS" } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VIEWMODE OFICIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Valores válidos: hierarchical flatDocuments Reglas: hierarchical: soporta ParentRowId soporta Level expansión por niveles flatDocuments: ignora expansión solo documentos NodeType = documento ParentId = null HasChildren = false ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ META OBLIGATORIA POR FILA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UiRowDto.Meta: NodeType ParentId HasChildren CanAddChild CanDelete DocumentId NombreGabinete ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ACTIONID OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Iniciales: ver_documento agregar_item eliminar_item firma_digital Versionado_documento Remplaza_documento ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO ACTION RESPONSE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ListaDocumentosRadicadosTreeMutationResultDto: { "Operation": "view|added|deleted|updated", "AffectedRowId": "doc-1", "ParentRowId": null, "RequiresReloadNode": true, "Row": {}, "DocumentResolveRequest": { "NombreGabinete": "WF_DOCS", "IdDocumento": 12345 } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INTEGRACIÓN DOCUMENTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO crear endpoint nuevo de preview. Reutilizar: POST /api/gestor-documental/documentos/visualizacion/resolve ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SERVICE — QUERY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Método: Task<AppResponses<object>> SolicitaListaDocumentosRadicadosTreeAsync( ListaDocumentosRadicadosTreeQueryRequestDto req, int idUsuarioGestion, string defaultDbAlias ); Reglas: hierarchical → árbol flatDocuments → plano IncludeConfig=true → DynamicUiTableDto IncludeConfig=false → DynamicUiRowsOnlyDto mensajes: OK Sin resultados AppError controlado ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SERVICE — ACTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Método: Task<AppResponses<ListaDocumentosRadicadosTreeMutationResultDto?>> EjecutaAccionListaDocumentosRadicadosTreeAsync( ListaDocumentosRadicadosTreeActionRequestDto req, int idUsuarioGestion, string defaultDbAlias ); Dispatch: ver_documento agregar_item eliminar_item Reglas: ver_documento: retornar DocumentResolveRequest agregar_item: Operation="added" eliminar_item: Operation="deleted" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MIGRACIÓN LEGACY — FLATDOCUMENTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Migrar: SolicitaDocumentosRelacionadosRadicadoEnlace Reglas: ✔ filtro por ENLASE = Radicado ✔ SQL parametrizado ✔ mapping legacy → Values/Meta Mapeo: ID → Values.ID + Meta.DocumentId DBT → Values.DBT PAG → Values.PAG TIPODOCUMENTO → Values.TIPODOCUMENTO ESTADO_FIRMA_DIGITAL → Values.ESTADO_FIRMA_DIGITAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REPOSITORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: consultas DB QueryOptions DapperCrudEngine SQL parametrizado PROHIBIDO: lógica frontend AppResponses bootstrap-table ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DEPENDENCY INJECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Registrar: Services → Scoped Repositories → Scoped Corregir compile errors SOLO del alcance. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: query iniciada action ejecutada ViewMode cantidad filas actionId resolve documento Logs Warning: action inválida sin resultados ParentRowId inválido Logs Error: error DB error mapping error action Campos: requestId usuarioid alias ViewMode actionId rowCount duraciónMs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: Controller → HTTP Service → orquestación Repository → DB DTO → contrato Builders → metadata dinámica ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: claim inválido success query success action Service Query: hierarchical raíz hierarchical hijos flatDocuments legacy filters Service Action: action inválida ver_documento agregar_item eliminar_item Seguridad: no concatenación SQL QT: flatDocuments compatible hierarchical compatible no rompe AppTable Regresión: no rompe export no rompe autocomplete no rompe inboxgestion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/GestorDocumental/Documentos/ListaDocumentosRadicados Crear: SCRUM-[ID]-Arquitectura.md Debe incluir: diagramas clases diagramas secuencia diagramas estados ViewMode validación SOLID migración legacy SCRUM-[ID]-Implementacion-Detallada.md Debe incluir: archivos creados DTOs endpoints services mappings QueryOptions SCRUM-[ID]-Integracion-Frontend.md Debe incluir: query request completo action request completo responses completos ejemplos hierarchical ejemplos flatDocuments ejemplos ver_documento SCRUM-[ID]-Pruebas.md Debe incluir: unitarias integración QT regresión SCRUM-[ID]-Observabilidad.md Debe incluir: logs métricas troubleshooting SCRUM-[ID]-Seguridad.md Debe incluir: SQL parametrizado claims validaciones SCRUM-[ID]-Metadata.md Debe incluir: ticket autor fecha versión ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: DTOs Controller Service Repository DI Tests Documentación: Arquitectura Implementación Frontend Pruebas Observabilidad Seguridad Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ hierarchical funcional ✔ flatDocuments funcional ✔ UNA sola semántica ✔ DapperCrudEngine obligatorio ✔ QueryOptions obligatorio ✔ Legacy migrado ✔ AppTable intacto ✔ Export intacto ✔ Autocomplete intacto ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO frontend NO bootstrap-table NO SQL manual NO formatter/events NO romper AppTable ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar TreeAppTable backend reutilizando: ✔ AppResponses ✔ DynamicUiTableDto ✔ WorkflowInboxService ✔ visualizacion/resolve ✔ migración legacy segura Garantizando: ✔ contrato dinámico ✔ flatDocuments ✔ hierarchical ✔ seguridad ✔ observabilidad ✔ documentación enterprise completa
+Se requiere una API backend para listar documentos radicados en dos modos (`hierarchical` y `flatDocuments`) y ejecutar
+acciones por fila, migrando la semántica del flujo legacy `lista_documentos_relacionados` sin exponer contratos antiguos
+de bootstrap-table ni respuestas tipo string (`YES/NO`).
+
+El cambio debe mantener compatibilidad con el ecosistema actual de AppTable/workflow inbox, reutilizar contratos dinámicos
+(`DynamicUiTableDto`) y cumplir estrictamente las reglas de `OPSXJ_BACKEND_RULES` (capas, interfaces, DI, AppResponses,
+try/catch, pruebas).
+
+## Legacy Reference
+
+- `D:\imagenesda\GestorDocumental\promp\CORE-API\workflow\Legazy\lista_documentos_relacionados.txt`
+- Funciones legacy objetivo:
+  - `SolicitaDocumentosRelacionadosRadicadoEnlace`
+  - `SolicitaRowDocumentosRelacionadosRadicadoEnlaceTableBoot`
+  - `Lista_campos_documentos_relacionados`
+
+## Scope
+
+### In Scope
+
+- Endpoint `POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/query`.
+- Endpoint `POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/action`.
+- Soporte de `ViewMode`:
+  - `hierarchical` con expansión por `ParentRowId` y `Level`.
+  - `flatDocuments` con filas de documento plano.
+- Migración de consulta legacy con `DapperCrudEngine + QueryOptions` y SQL parametrizado.
+- Respuesta con `AppResponses<T>` y contrato dinámico (`DynamicUiTableDto` o `DynamicUiRowsOnlyDto`).
+- Integración de acción `ver_documento` reutilizando `/api/gestor-documental/documentos/visualizacion/resolve`.
+
+### Out of Scope
+
+- Cambios de frontend.
+- Nuevos endpoints para preview/visualización.
+- Reescritura de `workflowInboxgestion` existente.
+- Cambios de esquema de base de datos no requeridos por la migración.
+
+## Target Architecture
+
+- Patrón obligatorio: `Controller -> Service -> Repository`.
+- Claims obligatorios: `defaulalias`, `usuarioid`.
+- Repository sin lógica de presentación; solo acceso de datos.
+- Service concentra validación de modo (`hierarchical`/`flatDocuments`), dispatch de acciones y normalización de contrato.
+
+Rutas esperadas:
+
+- Controller: `DocuArchi.Api/Controllers/GestorDocumental/Documentos/ListaDocumentosRadicadoController.cs`
+- Service: `MiApp.Services/Service/GestorDocumental/Documentos/ListaDocumentosRadicadoService.cs`
+- Repository: `MiApp.Repository/Repositorio/GestorDocumental/Documentos/ListaDocumentosRadicados`
+- DTOs: `MiApp.DTOs/DTOs/GestorDocumental/Documentos/ListaDocumentosRadicados`
+
+## Contract Decisions
+
+### AD-01 Query Contract
+
+`ListaDocumentosRadicadosTreeQueryRequestDto` debe soportar paginación, sort, filtros estructurados, `IncludeConfig`,
+`ViewMode`, contexto de nodo padre (`ParentRowId`, `ParentNodeType`) y `Level`.
+
+### AD-02 Action Contract
+
+`ListaDocumentosRadicadosTreeActionRequestDto` define `ActionId` y `Payload` para operaciones por fila.
+Primer set soportado: `ver_documento`, `agregar_item`, `eliminar_item`.
+
+### AD-03 Row Metadata Normalization
+
+Cada fila debe incluir `Meta` mínimo:
+`NodeType`, `ParentId`, `HasChildren`, `CanAddChild`, `CanDelete`, `DocumentId`, `NombreGabinete`.
+
+### AD-04 Action Response Normalization
+
+`ListaDocumentosRadicadosTreeMutationResultDto` unifica resultado:
+`Operation`, `AffectedRowId`, `ParentRowId`, `RequiresReloadNode`, `Row`, `DocumentResolveRequest`.
+
+## Data Access Strategy
+
+- Todo acceso DB usa `DapperCrudEngine` y `QueryOptions`.
+- Prohibido: concatenación SQL, `QueryAsync` manual directo, `ExecuteAsync` manual directo.
+- En `flatDocuments`, la consulta migra campos legacy requeridos (`ID`, `DBT`, `PAG`, `TIPODOCUMENTO`,
+  `ESTADO_FIRMA_DIGITAL`) y los proyecta en `Values`/`Meta`.
+
+## Compatibility Rules
+
+No debe romper:
+
+- `POST /api/workflowInboxgestion/inboxgestion`
+- `POST /api/workflowInboxgestion/inboxgestion/autocomplete`
+- `POST /api/AppTable/export`
+
+## Observability and Error Handling
+
+- `try/catch` obligatorio en Controller, Service y Repository.
+- `AppResponses<T>` como contrato único de salida.
+- Logs mínimos:
+  - `Information`: inicio query/action, `ViewMode`, `ActionId`, `rowCount`.
+  - `Warning`: acción inválida, `ParentRowId` inválido, sin resultados.
+  - `Error`: excepción controlada de DB/mapping/acción.
+
+## Testing Strategy
+
+- Controller tests: claims inválidos, query success, action success.
+- Service tests:
+  - Query `hierarchical` (raíz/hijos) y `flatDocuments`.
+  - Action `ver_documento`, `agregar_item`, `eliminar_item`, acción inválida.
+- Repository integration tests: consulta parametrizada y mapping legacy esperado.
+- Contract tests: shape `AppResponses<T>` y compatibilidad de contrato dinámico.
+
+## Documentation Deliverables
+
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Arquitectura.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Implementacion-Detallada.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Integracion-Frontend.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Pruebas.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Observabilidad.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Seguridad.md`
+- `Docs/GestorDocumental/Documentos/ListaDocumentosRadicados/SCRUM-205-Metadata.md`
 
 ## Approach
 
