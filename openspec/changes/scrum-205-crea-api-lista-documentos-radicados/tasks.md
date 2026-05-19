@@ -6,41 +6,41 @@
 
 ## 2. Discovery técnico previo a código
 
-- [ ] 2.1 Confirmar rutas exactas de Controller/Service/Repository/DTO en repos satélite.
-- [ ] 2.2 Confirmar fuente legacy y estructura SQL base para `lista_documentos_relacionados`.
-- [ ] 2.3 Verificar contratos existentes reutilizables (`DynamicUiTableDto`, `DynamicUiRowsOnlyDto`, `AppResponses<T>`).
+- [x] 2.1 Confirmar rutas exactas de Controller/Service/Repository/DTO en repos satélite.
+- [x] 2.2 Confirmar fuente legacy y estructura SQL base para `lista_documentos_relacionados`.
+- [x] 2.3 Verificar contratos existentes reutilizables (`DynamicUiTableDto`, `DynamicUiRowsOnlyDto`, `AppResponses<T>`).
 
 ## 3. Contratos y capa API
 
-- [ ] 3.1 Crear/ajustar DTOs:
+- [x] 3.1 Crear/ajustar DTOs:
   - `ListaDocumentosRadicadosTreeQueryRequestDto`
   - `ListaDocumentosRadicadosTreeActionRequestDto`
   - `ListaDocumentosRadicadosTreeMutationResultDto`
   - `ListaDocumentosRadicadosResolveRequestDto`
-- [ ] 3.2 Implementar `ListaDocumentosRadicadoController` con endpoints `query` y `action`.
-- [ ] 3.3 Validar claims `defaulalias` y `usuarioid` con fallos controlados (`BadRequest`/seguridad).
+- [x] 3.2 Implementar `ListaDocumentosRadicadoController` con endpoints `query` y `action`.
+- [x] 3.3 Validar claims `defaulalias` y `usuarioid` con fallos controlados (`BadRequest`/seguridad).
 
 ## 4. Capa Service
 
-- [ ] 4.1 Implementar `SolicitaListaDocumentosRadicadosTreeAsync` con soporte `hierarchical` y `flatDocuments`.
-- [ ] 4.2 Implementar `EjecutaAccionListaDocumentosRadicadosTreeAsync` con dispatch inicial:
+- [x] 4.1 Implementar `SolicitaListaDocumentosRadicadosTreeAsync` con soporte `hierarchical` y `flatDocuments`.
+- [x] 4.2 Implementar `EjecutaAccionListaDocumentosRadicadosTreeAsync` con dispatch inicial:
   - `ver_documento`
   - `agregar_item`
   - `eliminar_item`
-- [ ] 4.3 Integrar acción `ver_documento` con `/api/gestor-documental/documentos/visualizacion/resolve`.
-- [ ] 4.4 Garantizar `AppResponses<T>` y `try/catch` en todos los caminos críticos.
+- [x] 4.3 Integrar acción `ver_documento` con `/api/gestor-documental/documentos/visualizacion/resolve`.
+- [x] 4.4 Garantizar `AppResponses<T>` y `try/catch` en todos los caminos críticos.
 
 ## 5. Capa Repository y migración legacy
 
-- [ ] 5.1 Implementar consulta parametrizada con `DapperCrudEngine + QueryOptions`.
-- [ ] 5.2 Migrar mapping legacy de campos `ID`, `DBT`, `PAG`, `TIPODOCUMENTO`, `ESTADO_FIRMA_DIGITAL` a `Values/Meta`.
-- [ ] 5.3 Validar que no exista SQL manual, ni contratos bootstrap-table, ni respuestas string legacy.
+- [x] 5.1 Implementar consulta parametrizada con `DapperCrudEngine + QueryOptions`.
+- [x] 5.2 Migrar mapping legacy de campos `ID`, `DBT`, `PAG`, `TIPODOCUMENTO`, `ESTADO_FIRMA_DIGITAL` a `Values/Meta`.
+- [x] 5.3 Validar que no exista SQL manual, ni contratos bootstrap-table, ni respuestas string legacy.
 
 ## 6. DI, AutoMapper y observabilidad
 
-- [ ] 6.1 Registrar servicios en `Program.cs` bajo `// Services (L)`.
-- [ ] 6.2 Registrar repositorios en `Program.cs` bajo `// Repositories (R)`.
-- [ ] 6.3 Registrar perfiles de mapping requeridos y logs mínimos (`Information`, `Warning`, `Error`).
+- [x] 6.1 Registrar servicios en `Program.cs` bajo `// Services (L)`.
+- [x] 6.2 Registrar repositorios en `Program.cs` bajo `// Repositories (R)`.
+- [x] 6.3 Registrar perfiles de mapping requeridos y logs mínimos (`Information`, `Warning`, `Error`).
 
 ## 7. Pruebas
 
