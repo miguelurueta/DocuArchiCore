@@ -112,5 +112,5 @@
 ## 9. Cierre OpenSpec
 
 - [x] 9.1 Ejecutar `openspec.cmd validate scrum-206-implementacion-api-permiso-visor-pdf`.
-- [ ] 9.2 Publicar estado en flujo multi-repo (`orchestrate:publish`) al completar implementación.
+- [x] 9.2 Publicar estado en flujo multi-repo (`orchestrate:publish`) al completar implementación.
 - [ ] 9.3 Archivar (`orchestrate:archive`) después de merge multi-repo.
