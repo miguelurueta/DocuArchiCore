@@ -74,3 +74,44 @@ Nota: la semantica final de `Meta.*` debe quedar alineada con reglas funcionales
 - Salida uniforme con `AppResponses<T>`.
 - Sin exponer stacktrace en respuesta publica.
 
+## 10. Ejemplo tecnico de consumo (Query)
+Endpoint:
+`POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/query`
+
+Payload de ejemplo:
+```json
+{
+  "ColumnMode": 2,
+  "EstadoTramite": "",
+  "SearchType": 1,
+  "Search": "",
+  "SortField": "ID",
+  "SortDir": "ASC",
+  "Page": 1,
+  "PageSize": 25,
+  "StructuredFilters": [
+    {
+      "Field": "TIPODOCUMENTO",
+      "Operator": "contains",
+      "Value": "Factura",
+      "ValueFrom": null,
+      "ValueTo": null
+    }
+  ],
+  "IncludeConfig": true,
+  "ViewMode": "flatDocuments",
+  "ParentRowId": null,
+  "ParentNodeType": null,
+  "Level": 1,
+  "TableId": "InboxListaDocumentosRadicado",
+  "NombreGabinete": "CORRESPO",
+  "CampoRadicado": "",
+  "Radicado": "2500466700035",
+  "AplicaTrd": 1
+}
+```
+
+Notas de implementacion para este ejemplo:
+- `CampoRadicado` vacio aplica fallback a `ENLASE`.
+- `StructuredFilters[].Operator="contains"` no se aplica en repository actual (solo `=`, `eq`, `equals`); el filtro estructurado se ignora y la consulta usa filtros validos restantes.
+- `ViewMode="flatDocuments"` mantiene salida plana y usa `Rows` con `Values`/`Meta` segun contrato actual.

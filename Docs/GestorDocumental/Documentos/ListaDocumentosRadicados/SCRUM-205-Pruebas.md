@@ -57,3 +57,52 @@ Si Docker no esta disponible para integracion:
 - Registrar cantidad de pruebas por suite y estado final.
 - Vincular evidencia a PR y a `SCRUM-205-Metadata.md`.
 
+### 7.1 Ejecucion real (2026-05-19)
+Comando (focalizado SCRUM-205):
+```powershell
+dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj --filter "FullyQualifiedName~ListaDocumentosRadicado"
+```
+Resultado:
+- Total: 7
+- Superadas: 7
+- Fallidas: 0
+- Omitidas: 0
+
+Comando (suite completa del proyecto de pruebas):
+```powershell
+dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj
+```
+Resultado:
+- Total: 606
+- Superadas: 593
+- Fallidas: 3
+- Omitidas: 10
+
+Detalle de fallas observadas en suite completa (fuera del alcance SCRUM-205):
+- `ServiceSincronizaEditorDocumentImagesTests.SincronizaAsync_CuandoRepoOk_RetornaOk`
+- `InitialContentEditorControllerTests.GetInitialContent_CuandoClaimInvalido_RetornaBadRequest`
+- `InitialContentEditorControllerTests.GetInitialContent_CuandoServiceOk_RetornaOk`
+
+Notas:
+- Se observaron pruebas de integracion marcadas como `SKIP` por dependencia de entorno Docker/Testcontainers.
+- En restauracion aparece advertencia `NU1900` por acceso al indice de vulnerabilidades de NuGet (`https://api.nuget.org/v3/index.json`).
+
+### 7.2 Cobertura adicional repository + regression (2026-05-19)
+Comando (suite focalizada con repository/contract/regression de SCRUM-205):
+```powershell
+dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj --filter "FullyQualifiedName~ListaDocumentosRadicado|FullyQualifiedName~ListaDocumentosRadicados"
+```
+Resultado:
+- Total: 15
+- Superadas: 14
+- Fallidas: 0
+- Omitidas: 1
+
+Detalle de la omitida:
+- `ListaDocumentosRadicadosRepositoryIntegrationTests.SolicitaDocumentosRelacionadosAsync_Integracion_MySqlTestcontainers_Pendiente`
+  - Motivo: requiere Docker/Testcontainers para validar tabla legacy real de gabinete.
+
+Pruebas agregadas para este bloque:
+- `ListaDocumentosRadicadosRepositoryTests`
+- `ListaDocumentosRadicadosRepositoryIntegrationTests`
+- `ListaDocumentosRadicadosContractRegressionTests`

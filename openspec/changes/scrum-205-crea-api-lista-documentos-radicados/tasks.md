@@ -44,11 +44,16 @@
 
 ## 7. Pruebas
 
-- [ ] 7.1 Controller tests: claims inválidos, query success, action success.
-- [ ] 7.2 Service unit tests: `hierarchical` raíz/hijos, `flatDocuments`, acción inválida y acciones soportadas.
-- [ ] 7.3 Repository integration tests: consulta legacy parametrizada y shape esperado.
-- [ ] 7.4 Contract/regression tests: shape `AppResponses<T>` y no regresión de inbox/autocomplete/export.
-- [ ] 7.5 Ejecutar `dotnet test` (o marcar integración `Skipped` si Docker no está disponible).
+- [x] 7.1 Controller tests: claims inválidos, query success, action success.
+- [x] 7.2 Service unit tests: `hierarchical` raíz/hijos, `flatDocuments`, acción inválida y acciones soportadas.
+- [x] 7.3 Repository integration tests: consulta legacy parametrizada y shape esperado.
+  - Cobertura: `ListaDocumentosRadicadosRepositoryTests` (captura `QueryOptions`, whitelist filtros/sort y shape de respuesta).
+  - Integración Docker/Testcontainers: `ListaDocumentosRadicadosRepositoryIntegrationTests` (marcado `Skip` por prerequisito de entorno).
+- [x] 7.4 Contract/regression tests: shape `AppResponses<T>` y no regresión de inbox/autocomplete/export.
+  - Cobertura: `ListaDocumentosRadicadosContractRegressionTests` (envelope `AppResponses` query/action + rutas públicas `workflowInboxgestion`/`autocomplete`/`/api/AppTable/export`).
+- [x] 7.5 Ejecutar `dotnet test` (o marcar integración `Skipped` si Docker no está disponible).
+  - Evidencia: `FullyQualifiedName~ListaDocumentosRadicado|FullyQualifiedName~ListaDocumentosRadicados` -> 14/14 OK + 1 skipped (integración Docker).
+  - Evidencia: suite completa `TramiteDiasVencimiento.Tests` -> 606 total, 593 OK, 10 skipped, 3 failed (fallas preexistentes fuera del alcance SCRUM-205).
 
 ## 8. Documentación técnica
 

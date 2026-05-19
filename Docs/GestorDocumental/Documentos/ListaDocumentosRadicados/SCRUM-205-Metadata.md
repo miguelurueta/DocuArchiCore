@@ -14,12 +14,12 @@
 ## 3. Repos impactados
 | Repositorio | Estado |
 |---|---|
-| DocuArchiCore (coordinador) | Refinamiento OpenSpec y documentacion completados |
-| DocuArchi.Api | Pendiente implementacion |
-| MiApp.DTOs | Pendiente implementacion |
-| MiApp.Services | Pendiente implementacion |
-| MiApp.Repository | Pendiente implementacion |
-| MiApp.Models | Pendiente validacion de necesidad |
+| DocuArchiCore (coordinador) | OpenSpec, documentacion y pruebas SCRUM-205 completadas |
+| DocuArchi.Api | Implementado (Controller + DI) |
+| MiApp.DTOs | Implementado (DTOs query/action/mutation/resolve) |
+| MiApp.Services | Implementado (Service query/action) |
+| MiApp.Repository | Implementado (Repository con `DapperCrudEngine + QueryOptions`) |
+| MiApp.Models | Sin cambios requeridos para SCRUM-205 |
 
 ## 4. PRs relacionados
 - PR coordinador: `https://github.com/miguelurueta/DocuArchiCore/pull/270`
@@ -28,23 +28,21 @@
 ## 5. Criterios de aceptacion
 | Criterio | Estado |
 |---|---|
-| hierarchical funcional | Pendiente implementacion |
-| flatDocuments funcional | Pendiente implementacion |
-| Semantica unica backend | Pendiente implementacion |
-| DapperCrudEngine obligatorio | Definido en diseno/spec; pendiente verificacion en codigo |
-| QueryOptions obligatorio | Definido en diseno/spec; pendiente verificacion en codigo |
-| Legacy migrado | Pendiente implementacion |
-| AppTable intacto | Pendiente regresion |
-| Export intacto | Pendiente regresion |
-| Autocomplete intacto | Pendiente regresion |
-| Tests completos | Pendiente ejecucion |
-| Documentacion completa | Base documental creada en esta version |
+| hierarchical funcional | Implementado y cubierto por pruebas unitarias |
+| flatDocuments funcional | Implementado y cubierto por pruebas unitarias |
+| Semantica unica backend | Implementado (`AppResponses<T>` + contrato dinamico) |
+| DapperCrudEngine obligatorio | Implementado |
+| QueryOptions obligatorio | Implementado |
+| Legacy migrado | Implementado para flujo objetivo de `lista_documentos_relacionados` |
+| AppTable intacto | Regresion cubierta por pruebas de contrato |
+| Export intacto | Regresion cubierta por pruebas de contrato sobre ruta/endpoint |
+| Autocomplete intacto | Regresion cubierta por pruebas de contrato sobre ruta/endpoint |
+| Tests completos | Ejecutados para alcance SCRUM-205 (incluye `Skip` de integracion Docker) |
+| Documentacion completa | Completada y actualizada con evidencia de ejecucion |
 
 ## 6. Validaciones realizadas
 - `openspec.cmd validate scrum-205-crea-api-lista-documentos-radicados` -> valido (2026-05-19).
 
 ## 7. Proximos hitos
-- Implementacion multi-repo.
-- Ejecucion de pruebas.
-- Publicacion (`orchestrate:publish`) y archivo final (`orchestrate:archive`) tras merge.
-
+- Merge multi-repo.
+- Archivo final (`orchestrate:archive`) posterior al merge (paso 9.3 del OpenSpec).

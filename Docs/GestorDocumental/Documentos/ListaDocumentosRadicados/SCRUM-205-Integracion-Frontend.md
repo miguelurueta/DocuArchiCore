@@ -1,7 +1,7 @@
 # SCRUM-205 Integracion Frontend ListaDocumentosRadicados
 
 ## 1. Objetivo Frontend
-Consumir listado dinamico de documentos radicados y ejecutar acciones por fila sin cambios estructurales de AppTable existente.
+Consumir la lista de documentos relacionados (query) y ejecutar acciones por fila (action) sin cambiar la estructura base de AppTable.
 
 ## 2. Seguridad
 - Header requerido: `Authorization: Bearer {jwt}`.
@@ -13,8 +13,58 @@ Consumir listado dinamico de documentos radicados y ejecutar acciones por fila s
 - `POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/query`
 - `POST /api/GestorDocumental/Documentos/ListaDocumentosRadicados/action`
 
-## 4. Query Request
-### 4.1 Ejemplo hierarchical
+## 4. Parametros de Query (lista documentos relacionados)
+### 4.1 Campos obligatorios
+| Campo | Tipo | Requerido | Valores | Default sugerido |
+|---|---|---|---|---|
+| `ViewMode` | string | Si | `hierarchical`, `flatDocuments` | `flatDocuments` |
+| `Page` | int | Si | `>= 1` | `1` |
+| `PageSize` | int | Si | `1..200` | `25` |
+| `SortDir` | string | Si | `ASC`, `DESC` | `ASC` |
+
+### 4.2 Campos opcionales recomendados
+| Campo | Tipo | Requerido | Uso |
+|---|---|---|---|
+| `ColumnMode` | int | No | Modo de columnas dinamicas. |
+| `EstadoTramite` | string | No | Filtro funcional por estado. |
+| `SearchType` | int | No | Tipo de busqueda. |
+| `Search` | string | No | Texto de busqueda libre. |
+| `SortField` | string | No | Campo para ordenamiento. |
+| `StructuredFilters` | array | No | Filtros avanzados. |
+| `IncludeConfig` | bool | No | Incluir config de tabla. |
+| `EnablePagination` | bool/null | No | Activa/desactiva paginacion del componente. Si no se envía, backend usa `true` (compatibilidad). |
+| `EnableColumnFilters` | bool/null | No | Activa/desactiva busqueda/filtros por columnas. Si no se envía, backend usa `true` (compatibilidad). |
+| `ParentRowId` | string/null | Condicional | Requerido para cargar hijos en `hierarchical`. |
+| `ParentNodeType` | string/null | Condicional | Tipo del nodo padre en `hierarchical`. |
+| `Level` | int | No | Nivel de arbol consultado. |
+
+### 4.3 Regla clave por modo de vista
+- `flatDocuments`:
+  - enviar `ViewMode: "flatDocuments"`.
+  - `ParentRowId` y `ParentNodeType` deben ir `null`.
+- `hierarchical`:
+  - para raiz usar `ParentRowId: null`, `Level: 1`.
+  - para expandir nodo usar `ParentRowId` con el `RowId` del padre y `Level` del siguiente nivel.
+
+### 4.4 Payload minimo recomendado para primera carga
+```json
+{
+  "ViewMode": "flatDocuments",
+  "Page": 1,
+  "PageSize": 25,
+  "SortDir": "ASC",
+  "Search": "",
+  "StructuredFilters": [],
+  "IncludeConfig": true,
+  "EnablePagination": false,
+  "EnableColumnFilters": false,
+  "ParentRowId": null,
+  "ParentNodeType": null,
+  "Level": 1
+}
+```
+
+### 4.5 Ejemplo hierarchical (expandir nodo)
 ```json
 {
   "ColumnMode": 2,
@@ -34,27 +84,14 @@ Consumir listado dinamico de documentos radicados y ejecutar acciones por fila s
 }
 ```
 
-### 4.2 Ejemplo flatDocuments
-```json
-{
-  "ColumnMode": 2,
-  "EstadoTramite": "",
-  "SearchType": 1,
-  "Search": "",
-  "SortField": "",
-  "SortDir": "ASC",
-  "Page": 1,
-  "PageSize": 25,
-  "StructuredFilters": [],
-  "IncludeConfig": true,
-  "ViewMode": "flatDocuments",
-  "ParentRowId": null,
-  "ParentNodeType": null,
-  "Level": 1
-}
-```
+## 5. Campos que debe leer el frontend en Query Response
+Comportamiento de compatibilidad:
+- Si `EnablePagination` no se envía: backend asume `true`.
+- Si `EnableColumnFilters` no se envía: backend asume `true`.
+- Para desactivar explícitamente:
+  - `EnablePagination=false`
+  - `EnableColumnFilters=false`
 
-## 5. Query Response
 ### 5.1 Success
 ```json
 {
@@ -88,7 +125,15 @@ Consumir listado dinamico de documentos radicados y ejecutar acciones por fila s
 }
 ```
 
-### 5.2 Error controlado
+### 5.2 Campos minimos de uso UI
+- `Rows[].RowId`: id tecnico de fila para acciones.
+- `Rows[].Values`: columnas visibles.
+- `Rows[].Meta.DocumentId`: id de documento para abrir/eliminar.
+- `Rows[].Meta.NombreGabinete`: gabinete para resolver visualizacion.
+- `Rows[].Meta.HasChildren`: controlar icono de expandir.
+- `Rows[].Meta.CanAddChild` y `Rows[].Meta.CanDelete`: habilitar botones.
+
+### 5.3 Error controlado
 ```json
 {
   "success": false,
@@ -101,54 +146,34 @@ Consumir listado dinamico de documentos radicados y ejecutar acciones por fila s
 }
 ```
 
-## 6. Action Request
-### 6.1 ver_documento
+## 6. Parametros de Action
+### 6.1 Campos obligatorios
+| Campo | Tipo | Requerido | Valores |
+|---|---|---|---|
+| `TableId` | string | Si | Id de la tabla en frontend (`InboxListaRadicados`). |
+| `ViewMode` | string | Si | `hierarchical`, `flatDocuments`. |
+| `ActionId` | string | Si | `ver_documento`, `agregar_item`, `eliminar_item`. |
+| `RowId` | string | Si | `RowId` retornado por query. |
+| `NodeType` | string | Si | Tipo de nodo (`documento`, `expediente`, etc.). |
+| `Payload.IdDocumento` | int | Si | Id numerico del documento (alineado con `/visualizacion/resolve`). |
+| `Payload.NombreGabinete` | string | Si | Gabinete del documento. |
+
+### 6.2 Ejemplo ver_documento
 ```json
 {
-  "TableId": "workflowInboxgestion",
+  "TableId": "InboxListaRadicados",
   "ViewMode": "flatDocuments",
   "ActionId": "ver_documento",
   "RowId": "doc-15416",
   "ParentRowId": null,
   "NodeType": "documento",
   "Payload": {
-    "DocumentId": 15416,
+    "IdDocumento": 15416,
     "NombreGabinete": "WF_DOCS"
   }
 }
 ```
-
-### 6.2 agregar_item
-```json
-{
-  "TableId": "workflowInboxgestion",
-  "ViewMode": "hierarchical",
-  "ActionId": "agregar_item",
-  "RowId": "node-100",
-  "ParentRowId": "node-100",
-  "NodeType": "expediente",
-  "Payload": {
-    "DocumentId": 0,
-    "NombreGabinete": "WF_DOCS"
-  }
-}
-```
-
-### 6.3 eliminar_item
-```json
-{
-  "TableId": "workflowInboxgestion",
-  "ViewMode": "flatDocuments",
-  "ActionId": "eliminar_item",
-  "RowId": "doc-15416",
-  "ParentRowId": null,
-  "NodeType": "documento",
-  "Payload": {
-    "DocumentId": 15416,
-    "NombreGabinete": "WF_DOCS"
-  }
-}
-```
+Compatibilidad: tambien se acepta `Payload.DocumentId` para clientes legacy.
 
 ## 7. Action Response
 ### 7.1 Success ver_documento
@@ -172,26 +197,29 @@ Consumir listado dinamico de documentos radicados y ejecutar acciones por fila s
 }
 ```
 
-### 7.2 Success agregar/eliminar
+### 7.2 Integracion con descarga/visualizacion (sin API->API)
+`action/ver_documento` solo devuelve el contrato de resolucion (`DocumentResolveRequest`). La llamada real de visualizacion debe hacerla el frontend directamente a:
+
+- `POST /api/gestor-documental/documentos/visualizacion/resolve`
+
+Request esperado:
 ```json
 {
-  "success": true,
-  "message": "OK",
-  "data": {
-    "Operation": "added",
-    "AffectedRowId": "doc-20001",
-    "ParentRowId": "node-100",
-    "RequiresReloadNode": true,
-    "Row": {},
-    "DocumentResolveRequest": null
-  },
-  "meta": { "Status": "success" },
-  "errors": []
+  "NombreGabinete": "WF_DOCS",
+  "IdDocumento": 15416
 }
 ```
+
+Nota de diseno: no se debe implementar consumo de API desde API para este flujo. Si en el futuro se elimina la API generica de `action`, el frontend puede usar directamente los datos de fila (`ID` y `NOMBRE_GABINETE`) para construir la solicitud a `visualizacion/resolve`.
 
 ## 8. Errores esperados
 - `400`: claims invalidos o payload invalido.
 - `200 success=false`: accion no soportada o regla funcional incumplida.
 - `500`: error tecnico controlado por `AppResponses`.
 
+## 9. Checklist rapido de consumo (frontend)
+1. En query enviar siempre `ViewMode`, `Page`, `PageSize`, `SortDir`.
+2. Para lista plana usar `ViewMode=flatDocuments` y `ParentRowId=null`.
+3. Guardar en estado de fila: `RowId`, `Meta.DocumentId`, `Meta.NombreGabinete`, `Meta.NodeType`.
+4. Para `ver_documento`, invocar desde frontend `POST /api/gestor-documental/documentos/visualizacion/resolve` con `IdDocumento` y `NombreGabinete` de la fila.
+5. Si `success=false`, mostrar `errors[0].errorMessage`.
