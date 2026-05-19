@@ -70,13 +70,47 @@
 
 ## 8. Documentación técnica
 
-- [ ] 8.1 Crear/actualizar en `Docs/Seguridad/PermisosVisorPdf/` los documentos estilo SCRUM-202.
-- [ ] 8.2 Incluir contratos request/response completos por endpoint.
-- [ ] 8.3 Incluir matriz de permisos del visor PDF (`pdf.view`, `pdf.print`, etc.) por implementación.
-- [ ] 8.4 Incluir guía de consumo frontend para implementación por usuario individual.
+- [x] 8.1 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Arquitectura-Final-PermisosVisorPdf.md` con:
+  - alcance/no alcance
+  - arquitectura por capas (`Controller -> Service -> Repository`)
+  - regla de precedencia (`override > perfil > default > deny`)
+  - decision de contrato por usuario (sin `codiperfil` en request)
+- [x] 8.2 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Implementacion-PermisosVisorPdf.md` con:
+  - lista de artefactos objetivo por repo (Controller/Service/Repository/DTO)
+  - contratos request/response completos de los 4 endpoints
+  - contrato de errores y validaciones de entrada
+  - lineamientos de DI (`Program.cs`) y politica `DapperCrudEngine + QueryOptions`
+- [x] 8.3 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Integracion-Frontend-PermisosVisorPdf.md` con:
+  - guia de consumo `mis-permisos` por implementacion
+  - matriz FE de permisos del visor (`pdf.view`, `pdf.print`, `pdf.download`, firma, rotate, zoom)
+  - pseudocodigo de aplicacion de permisos en componente
+  - checklist de integracion por modulo (`workflow`, `gestion_correspondencia`, otros)
+- [x] 8.4 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Seguridad-PermisosVisorPdf.md` con:
+  - claims obligatorios (`defaulalias`, `usuarioid`)
+  - controles de endpoints admin
+  - validaciones de `codigoImpl`, `idUsuario`, `codigoPermiso`, `permitido`
+  - mitigaciones y trazabilidad de seguridad
+- [x] 8.5 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Pruebas-PermisosVisorPdf.md` con:
+  - matriz de pruebas por capa (Controller/Service/Repository/Contract)
+  - escenarios default/perfil/override/fallback
+  - criterios de aceptacion y comando de verificacion
+  - politica de `Skipped` para integracion sin Docker
+- [x] 8.6 Crear `Docs/Seguridad/PermisosVisorPdf/SCRUM-206-Observabilidad-PermisosVisorPdf.md` con:
+  - catalogo de eventos de log (`Information`, `Warning`, `Error`)
+  - campos minimos (`requestId`, `usuarioid`, `alias`, `codigoImpl`, `idUsuarioObjetivo`)
+  - metricas sugeridas y guia de troubleshooting
+- [x] 8.7 Completar `SCRUM-206-Diagramas-PermisosVisorPdf.md` con:
+  - diagrama de secuencia `mis-permisos`
+  - diagrama de secuencia `upsert/delete override`
+  - diagrama entidad-relacion simplificado `ra_vis_per_*`
+- [x] 8.8 Completar `SCRUM-206-Metadata.md` con:
+  - trazabilidad Jira/PR/branch/commit
+  - estado multi-repo (implementation_required/traceability_only)
+  - criterio de cierre y fecha de corte
+- [x] 8.9 Revisar consistencia cruzada entre `design.md`, `spec.md`, `tasks.md` y documentos `SCRUM-206-*`.
 
 ## 9. Cierre OpenSpec
 
-- [ ] 9.1 Ejecutar `openspec.cmd validate scrum-206-implementacion-api-permiso-visor-pdf`.
+- [x] 9.1 Ejecutar `openspec.cmd validate scrum-206-implementacion-api-permiso-visor-pdf`.
 - [ ] 9.2 Publicar estado en flujo multi-repo (`orchestrate:publish`) al completar implementación.
 - [ ] 9.3 Archivar (`orchestrate:archive`) después de merge multi-repo.
