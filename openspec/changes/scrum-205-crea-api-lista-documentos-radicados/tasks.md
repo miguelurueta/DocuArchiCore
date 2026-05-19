@@ -96,5 +96,5 @@
 ## 9. Cierre OpenSpec
 
 - [x] 9.1 Ejecutar `openspec.cmd validate scrum-205-crea-api-lista-documentos-radicados`.
-- [ ] 9.2 Publicar avance multi-repo (`orchestrate:publish`) al completar implementación.
+- [x] 9.2 Publicar avance multi-repo (`orchestrate:publish`) al completar implementación.
 - [ ] 9.3 Archivar (`orchestrate:archive`) después de merge multi-repo.
