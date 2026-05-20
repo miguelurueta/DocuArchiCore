@@ -11,17 +11,164 @@
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO — SCRUM-[ID] API Workflow → Resolución Gabinete por Radicado / Tarea (ENTERPRISE FINAL — Tabla Dinámica + DapperCrudEngine + AppResponses) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto/Desarrollador Senior .NET del proyecto DocuArchiCore, especialista en: Core Clean Architecture Workflow tablas dinámicas DapperCrudEngine QueryOptions AppResponses<T> AppMetaBuilder / AppError observabilidad seguridad SQL pruebas enterprise documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Arquitectura: DocuArchi.Api MiApp.Services MiApp.Repository MiApp.DTOs MiApp.Models Legacy relacionado: ✔ SolicitaExistenciaRadicadoRutaWorkflow ✔ tablas dinámicas workflow ✔ rutas workflow activas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO FUNCIONAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar APIs nuevas para resolver información de gabinete workflow: ✔ por consecutivo radicado ✔ por id tarea workflow El backend debe: ✔ resolver internamente Nombre_Ruta ✔ consultar tabla dinámica dat_adic_tar{ruta} ✔ obtener: RADICADO INICIO_TAREAS_WORKFLOW_ID_TAREA ID_GABINETE ✔ resolver Nombre_Gabinete ✔ retornar contrato AppResponses<T> SIN romper APIs existentes. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions PROHIBIDO: SQL manual QueryAsync directo ExecuteAsync directo concatenación SQL interpolación SQL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRY/CATCH OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todas las funciones críticas deben incluir: ✔ try/catch Incluye: Controller Service Repository Reglas: logging estructurado AppResponses controlado no exponer stacktrace ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ARQUITECTURA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Patrón: Controller → Service → Repository Separación: Controller → HTTP Service → orquestación workflow Repository → DB DTO → contrato ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: DocuArchi.Api/Controllers/Radicacion/Tramite/RadicadoGabineteWorkflowController.cs Service: MiApp.Services/Service/Workflow/RutaTrabajo/IRadicadoGabineteWorkflowService.cs MiApp.Services/Service/Workflow/RutaTrabajo/RadicadoGabineteWorkflowService.cs Repository: MiApp.Repository/Repositorio/Workflow/RutaTrabajo/IRadicadoGabineteWorkflowRepository.cs MiApp.Repository/Repositorio/Workflow/RutaTrabajo/RadicadoGabineteWorkflowRepository.cs DTOs: MiApp.DTOs/DTOs/Workflow/RutaTrabajo/ Documentación: Docs/Workflow/RutaTrabajo/RadicadoGabineteWorkflow/ Tests: tests/DocuArchi.Api.Tests/Workflow/ tests/MiApp.Services.Tests/Workflow/ tests/MiApp.Repository.Tests/Workflow/ tests/MiApp.IntegrationTests/Workflow/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENDPOINTS OFICIALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Por radicado: GET /api/workflow/ruta-trabajo/radicados/{consecutivoRadicado}/gabinete Por tarea workflow: GET /api/workflow/ruta-trabajo/tareas/{idTareaWorkflow}/gabinete ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CLAIMS OBLIGATORIOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Workflow: defaulaliaswf Opcional trazabilidad: usuarioid Alias gabinete: resolver automáticamente: defaulaliaswf o defaulalias NUNCA pedir alias al frontend. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA CRÍTICA — RESOLUCIÓN ALIAS GABINETE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar validación automática: si configuracion_gabinete vive en workflow: usar defaulaliaswf si configuracion_gabinete vive en gestión: usar defaulalias Documentar decisión final. ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA CRÍTICA — TABLA DINÁMICA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Tabla objetivo: dat_adic_tar{Nombre_Ruta} Nombre_Ruta debe validarse SIEMPRE. Regex obligatoria: ^[A-Za-z0-9_]+$ PROHIBIDO: espacios puntos guiones backticks keywords SQL rutas arbitrarias ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTO OFICIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ public sealed class RadicadoGabineteWorkflowDto { public string Radicado { get; init; } = string.Empty; public long IdTareaWorkflow { get; init; }
+Se requiere exponer una API nueva para resolver metadatos de gabinete de documentos workflow con dos entradas:
 
-public long IdGabinete { get; init; }
+- `consecutivoRadicado`
+- `idTareaWorkflow`
 
-public string NombreGabinete { get; init; } = string.Empty;
+La solución no debe modificar ni romper el endpoint existente `SolicitaExistenciaRadicadoRutaWorkflow`.
 
-public string EstadoExistenciaRadicado { get; init; } = "NO"; } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO FRONTEND OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SUCCESS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ { "success": true, "message": "YES", "data": { "Radicado": "2500466700035", "IdTareaWorkflow": 98765, "IdGabinete": 12, "NombreGabinete": "CORRESPO", "EstadoExistenciaRadicado": "YES" }, "errors": [] } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO ENCONTRADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ { "success": true, "message": "YES", "data": { "Radicado": "2500466700035", "IdTareaWorkflow": 0, "IdGabinete": 0, "NombreGabinete": "", "EstadoExistenciaRadicado": "NO" }, "errors": [] } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDATION ERROR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ { "success": false, "message": "consecutivoRadicado invalido", "meta": { "status": "validation" }, "errors": [ { "field": "consecutivoRadicado", "type": "Validation", "message": "Formato invalido" } ] } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIONES FUNCIONALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ consecutivoRadicado requerido consecutivoRadicado trim obligatorio idTareaWorkflow > 0 claim defaulaliaswf obligatorio ruta activa obligatoria Nombre_Ruta válido casteos numéricos seguros null handling obligatorio ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REUTILIZACIÓN OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Reutilizar: ✔ SolicitaEstructuraRutaWorkflowService ✔ SolicitaEstructuraRutaWorkflowRepository Regla: tomar FirstOrDefault() siempre existe UNA sola ruta activa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REPOSITORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: ✔ resolver tabla dinámica ✔ consultas QueryOptions ✔ DapperCrudEngine ✔ SQL parametrizado ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ QUERYOPTIONS OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Resolver: var tableName = $"dat_adic_tar{nombreRuta}"; SOLO después de validar regex segura. Ejemplo: var options = new QueryOptions { TableName = tableName, DefaultAlias = "dt", Columns = new[] { "dt.RADICADO", "dt.INICIO_TAREAS_WORKFLOW_ID_TAREA", "dt.ID_GABINETE" }, Filters = new[] { new QueryFilter("dt.RADICADO", consecutivoRadicado) }, Limit = 1 }; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SERVICE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: resolver ruta activa validar Nombre_Ruta invocar repository resolver Nombre_Gabinete construir AppResponses manejar fallback NO encontrado Reglas: try/catch obligatorio fallback: EstadoExistenciaRadicado = "NO" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTROLLER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: validar claims validar request delegar service Ok/BadRequest Reglas: no lógica negocio no acceso DB try/catch obligatorio ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DEPENDENCY INJECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Registrar: services.AddScoped< IRadicadoGabineteWorkflowService, RadicadoGabineteWorkflowService>(); services.AddScoped< IRadicadoGabineteWorkflowRepository, RadicadoGabineteWorkflowRepository>(); ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: inicio resolución workflow ruta activa encontrada tabla dinámica resuelta gabinete encontrado resultado success Logs Warning: ruta inexistente radicado no encontrado tarea no encontrada Logs Error: error DB error tabla dinámica regex inválida Campos: requestId aliasWorkflow aliasGabinete nombreRuta tablaDinamica consecutivoRadicado idTareaWorkflow idGabinete duraciónMs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: Controller → HTTP Service → lógica workflow Repository → DB DTO → contrato OCP: nuevas tablas dinámicas extensibles LSP: interfaces mockeables ISP: interfaces específicas DIP: dependencias por interfaces ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: claim faltante success radicado success tarea validación request Service: ruta inexistente regex inválida encontrado no encontrado fallback NO Repository: QueryOptions correcto tabla dinámica correcta SQL parametrizado Integración: por radicado por tarea gabinete encontrado gabinete no encontrado alias correcto QT: no SQL manual regex segura no traversal tabla dinámica Regresión: no rompe SolicitaExistenciaRadicadoRutaWorkflow no rompe workflow actual ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/Workflow/RadicadoGabineteWorkflow/ Crear: SCRUM-[ID]-Arquitectura.md Debe incluir: objetivo flujo completo diagramas clases diagramas secuencia tabla dinámica validación SOLID riesgos SCRUM-[ID]-Diagramas.md Debe incluir: secuencia: ruta activa → tabla dinámica → configuracion_gabinete estados: encontrado/no encontrado/error SCRUM-[ID]-Implementacion-Detallada.md Debe incluir: archivos creados DTOs QueryOptions regex seguridad resolución alias tabla dinámica SCRUM-[ID]-Integracion-Frontend.md Debe incluir: endpoint radicado endpoint tarea request completos response completos success/no encontrado/error SCRUM-[ID]-Pruebas.md Debe incluir: unitarias integración QT regresión SCRUM-[ID]-Observabilidad.md Debe incluir: logs métricas troubleshooting requestId SCRUM-[ID]-Seguridad.md Debe incluir: regex Nombre_Ruta SQL parametrizado claims tabla dinámica segura SCRUM-[ID]-Metadata.md Debe incluir: ticket autor fecha versión responsable técnico ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: Controller Service Repository DTO DI Tests Documentación: Arquitectura Diagramas Implementación Frontend Pruebas Observabilidad Seguridad Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ Endpoint por radicado funcional ✔ Endpoint por tarea funcional ✔ Ruta activa resuelta ✔ Tabla dinámica segura ✔ DapperCrudEngine obligatorio ✔ QueryOptions obligatorio ✔ SQL parametrizado ✔ Fallback NO correcto ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO SQL manual NO concatenación insegura NO alias frontend NO romper workflow actual NO romper endpoint existente ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar APIs workflow gabinete reutilizando: ✔ rutas workflow activas ✔ DapperCrudEngine ✔ QueryOptions ✔ AppResponses ✔ validaciones existentes Garantizando: ✔ seguridad ✔ observabilidad ✔ compatibilidad legacy ✔ documentación enterprise completa
+## Business Decisions
 
-## Approach
+1. El sistema opera con una sola ruta workflow activa.
+2. El backend resuelve internamente `Nombre_Ruta`; el frontend no envía `nombreRuta`.
+3. La consulta principal se ejecuta sobre tabla dinámica `dat_adic_tar{Nombre_Ruta}`.
+4. El nombre de gabinete se obtiene desde `configuracion_gabinete`.
+5. Toda respuesta usa `AppResponses<T>` con semántica legacy `YES/NO`.
 
-- Convertir requerimientos del issue en deltas OpenSpec claros y testeables.
-- Aplicar restricciones de repositorio, arquitectura y pruebas de OPSXJ_BACKEND_RULES.
-- Definir alcance y no-alcance antes de implementar.
-- Validar con openspec.cmd validate scrum-207-crea-api-solicita-gabinete-radicado-idta.
+## Scope
+
+### In Scope
+
+- Endpoint GET por radicado:
+  - `/api/workflow/ruta-trabajo/radicados/{consecutivoRadicado}/gabinete`
+- Endpoint GET por tarea:
+  - `/api/workflow/ruta-trabajo/tareas/{idTareaWorkflow}/gabinete`
+- Servicio y repositorio nuevos para la consulta.
+- DTO nuevo de salida.
+- Registro DI.
+- Pruebas unitarias/contrato mínimas de control.
+
+### Out of Scope
+
+- Cambiar contratos de `SolicitaExistenciaRadicadoRutaWorkflow`.
+- Cambiar estructura de tablas workflow o gabinete.
+- Crear endpoints de administración de rutas o gabinetes.
+
+## Architecture
+
+Patrón obligatorio:
+
+- Controller -> Service -> Repository
+
+Ubicación objetivo:
+
+- Controller:
+  - `DocuArchi.Api/Controllers/Radicacion/Tramite/RadicadoGabineteWorkflowController.cs`
+- Service:
+  - `MiApp.Services/Service/Workflow/RutaTrabajo/IRadicadoGabineteWorkflowService.cs`
+  - `MiApp.Services/Service/Workflow/RutaTrabajo/RadicadoGabineteWorkflowService.cs`
+- Repository:
+  - `MiApp.Repository/Repositorio/Workflow/RutaTrabajo/IRadicadoGabineteWorkflowRepository.cs`
+  - `MiApp.Repository/Repositorio/Workflow/RutaTrabajo/RadicadoGabineteWorkflowRepository.cs`
+- DTO:
+  - `MiApp.DTOs/DTOs/Workflow/RutaTrabajo/RadicadoGabineteWorkflowDto.cs`
+
+## Reuse Strategy
+
+Se reutiliza la resolución de ruta activa ya disponible:
+
+- `ISolicitaEstructuraRutaWorkflowService`
+- `SolicitaEstructuraRutaWorkflowAsync(defaultDbAliasWf)`
+
+Regla:
+
+- Tomar `FirstOrDefault()` de rutas activas y validar `Nombre_Ruta`.
+
+## Data Access Rules
+
+1. Usar `DapperCrudEngine` + `QueryOptions` en todos los accesos.
+2. Validar `Nombre_Ruta` con regex:
+   - `^[A-Za-z0-9_]+$`
+3. Construir tabla dinámica solo después de validar regex:
+   - `dat_adic_tar{Nombre_Ruta}`
+4. No SQL manual concatenando valores de usuario.
+
+## Alias Resolution
+
+1. Workflow (`rutas_workflow` y `dat_adic_tar{ruta}`):
+   - claim obligatorio `defaulaliaswf`
+2. Gabinete (`configuracion_gabinete`):
+   - usar `defaulalias` si existe y no está vacío
+   - fallback a `defaulaliaswf` si `defaulalias` no existe
+
+## Response Contract
+
+DTO:
+
+```csharp
+public sealed class RadicadoGabineteWorkflowDto
+{
+    public string Radicado { get; init; } = string.Empty;
+    public long IdTareaWorkflow { get; init; }
+    public long IdGabinete { get; init; }
+    public string NombreGabinete { get; init; } = string.Empty;
+    public string EstadoExistenciaRadicado { get; init; } = "NO";
+}
+```
+
+Semántica:
+
+- Encontrado: `success=true`, `message="YES"`, `EstadoExistenciaRadicado="YES"`.
+- No encontrado: `success=true`, `message="YES"`, `EstadoExistenciaRadicado="NO"`.
+- Error validación/infraestructura: `success=false`, `errors[]` con `Field/Type/Message`.
+
+## Flow
+
+### Endpoint por Radicado
+
+1. Validar `consecutivoRadicado`.
+2. Obtener `defaulaliaswf`.
+3. Resolver ruta activa (`Nombre_Ruta`).
+4. Consultar `dat_adic_tar{Nombre_Ruta}` por `RADICADO`.
+5. Si existe fila, tomar `ID_GABINETE` y consultar `configuracion_gabinete`.
+6. Construir respuesta `AppResponses<RadicadoGabineteWorkflowDto>`.
+
+### Endpoint por IdTareaWorkflow
+
+1. Validar `idTareaWorkflow > 0`.
+2. Obtener `defaulaliaswf`.
+3. Resolver ruta activa (`Nombre_Ruta`).
+4. Consultar `dat_adic_tar{Nombre_Ruta}` por `INICIO_TAREAS_WORKFLOW_ID_TAREA`.
+5. Si existe fila, tomar `ID_GABINETE` y consultar `configuracion_gabinete`.
+6. Construir respuesta `AppResponses<RadicadoGabineteWorkflowDto>`.
+
+## Validation Rules
+
+- `consecutivoRadicado` requerido y `Trim()`.
+- `idTareaWorkflow` > 0.
+- claim `defaulaliaswf` obligatorio.
+- ruta activa obligatoria con `Nombre_Ruta` válido.
+- casteos numéricos seguros para `ID_GABINETE`.
+
+## Observability
+
+Registrar logs estructurados:
+
+- Inicio de solicitud.
+- Ruta activa resuelta (`Nombre_Ruta`).
+- Resultado de consulta dinámica (encontrado/no encontrado).
+- Resolución de gabinete (id/nombre).
+- Error técnico controlado.
+
+Campos mínimos sugeridos:
+
+- `requestId`, `consecutivoRadicado`, `idTareaWorkflow`, `nombreRuta`, `aliasWorkflow`, `aliasGabinete`.
+
+## Risks and Mitigations
+
+1. Riesgo: ruta activa no configurada.
+   - Mitigación: retorno controlado de validación.
+2. Riesgo: nombre de ruta inválido.
+   - Mitigación: regex estricta antes de armar nombre de tabla.
+3. Riesgo: gabinete en alias distinto.
+   - Mitigación: estrategia alias `defaulalias` con fallback.
+
+## Acceptance Criteria
+
+1. Existen los 2 endpoints nuevos y compilan.
+2. Ambos resuelven ruta activa internamente sin `nombreRuta` en request.
+3. Consulta a `dat_adic_tar{ruta}` es segura con regex y `QueryOptions`.
+4. Se resuelve `Nombre_Gabinete` desde `configuracion_gabinete`.
+5. No se altera el endpoint legacy existente.
+6. Se agregan pruebas mínimas de éxito, no encontrado y validaciones.
