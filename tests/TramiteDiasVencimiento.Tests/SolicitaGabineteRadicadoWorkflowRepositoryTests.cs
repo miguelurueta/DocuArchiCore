@@ -81,5 +81,39 @@ public sealed class SolicitaGabineteRadicadoWorkflowRepositoryTests
         Assert.Equal("YES", result.data.EstadoExistenciaRadicado);
         Assert.Equal("CORRESPO", result.data.NombreGabinete);
     }
-}
 
+    [Fact]
+    public async Task SolicitaPorRadicadoAsync_CuandoNoResuelveNombreGabinete_RetornaErrorDeValidacion()
+    {
+        var dapper = new Mock<IDapperCrudEngine>();
+        dapper.SetupSequence(d => d.GetAllAsync<RadicadoGabineteWorkflow>(It.IsAny<QueryOptions>()))
+            .ReturnsAsync(new QueryResult<RadicadoGabineteWorkflow>
+            {
+                Success = true,
+                Message = "YES",
+                Data =
+                [
+                    new RadicadoGabineteWorkflow
+                    {
+                        Radicado = "2500466700035",
+                        IdTareaWorkflow = 933,
+                        IdGabinete = 15
+                    }
+                ]
+            })
+            .ReturnsAsync(new QueryResult<RadicadoGabineteWorkflow>
+            {
+                Success = true,
+                Message = "YES",
+                Data = []
+            });
+
+        var repository = new SolicitaGabineteRadicadoWorkflowRepository(dapper.Object);
+        var result = await repository.SolicitaPorRadicadoAsync("2500466700035", "workflow", "WF", "WF");
+
+        Assert.False(result.success);
+        Assert.Equal("NombreGabinete requerido", result.message);
+        Assert.Equal("YES", result.data.EstadoExistenciaRadicado);
+        Assert.Equal(15, result.data.IdGabinete);
+    }
+}

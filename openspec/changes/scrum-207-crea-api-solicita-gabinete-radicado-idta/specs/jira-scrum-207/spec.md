@@ -68,10 +68,19 @@ The system MUST resolve aliases from claims and never from frontend.
 - **THEN** operation returns `success=false`
 - **AND** error includes `Field="defaulaliaswf"` and `Type="Validation"`
 
-#### Scenario: Gabinete alias fallback
-- **GIVEN** claim `defaulalias` is missing or empty
+#### Scenario: Gabinete query uses workflow alias
 - **WHEN** querying `configuracion_gabinete`
-- **THEN** system uses `defaulaliaswf` as fallback alias
+- **THEN** system uses `defaulaliaswf` as alias for that query
+
+### Requirement: NombreGabinete is mandatory when radicado exists
+If a workflow row exists (`EstadoExistenciaRadicado="YES"`), the system MUST return a non-empty `NombreGabinete`.
+
+#### Scenario: Gabinete name cannot be resolved
+- **GIVEN** dynamic workflow row exists and `ID_GABINETE > 0`
+- **AND** query to `configuracion_gabinete` does not resolve `Nombre_Gabinete`
+- **WHEN** endpoint resolves response
+- **THEN** operation returns `success=false`
+- **AND** error includes `Field="NombreGabinete"` and `Type="Validation"`
 
 ### Requirement: Backward compatibility with existing endpoint
 The change MUST not alter contracts or behavior of `SolicitaExistenciaRadicadoRutaWorkflow`.

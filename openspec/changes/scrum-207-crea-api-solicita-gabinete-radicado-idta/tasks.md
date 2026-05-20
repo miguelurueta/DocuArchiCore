@@ -2,7 +2,7 @@
 
 - [x] 1.1 Confirmar alcance funcional final: dos endpoints (`por radicado` y `por idTareaWorkflow`) sin `nombreRuta` en request.
 - [x] 1.2 Confirmar reutilización de `ISolicitaEstructuraRutaWorkflowService` para resolver la única ruta activa.
-- [x] 1.3 Confirmar estrategia de alias: `defaulaliaswf` obligatorio para workflow y `defaulalias` con fallback para `configuracion_gabinete`.
+- [x] 1.3 Confirmar estrategia de alias: `defaulaliaswf` obligatorio para workflow y para consulta de `configuracion_gabinete` en esta API.
 - [x] 1.4 Definir contrato de salida `RadicadoGabineteWorkflowDto` con campos: `Radicado`, `IdTareaWorkflow`, `IdGabinete`, `NombreGabinete`, `EstadoExistenciaRadicado`.
 
 ## 2. OpenSpec Refinement
@@ -36,6 +36,7 @@
 - [x] 5.3 Implementar consulta por `idTareaWorkflow` en `dat_adic_tar{ruta}` usando `QueryOptions`.
 - [x] 5.4 Implementar consulta de `Nombre_Gabinete` en `configuracion_gabinete` por `id_Gabinete`.
 - [x] 5.5 Garantizar cero SQL concatenando valores de entrada de usuario.
+- [x] 5.6 Forzar error controlado cuando `EstadoExistenciaRadicado=YES` y `NombreGabinete` no se resuelve.
 
 ## 6. Cross-cutting and Registration
 
@@ -62,5 +63,5 @@
 ## 8. Documentation and Validation
 
 - [x] 8.1 Crear documentación técnica de integración frontend con ejemplos request/response para ambos endpoints.
-- [x] 8.2 Documentar reglas de claims, alias y fallback (`YES/NO`).
+- [x] 8.2 Documentar reglas de claims, alias y validación obligatoria de `NombreGabinete`.
 - [x] 8.3 Ejecutar validación OpenSpec del change antes de cierre.

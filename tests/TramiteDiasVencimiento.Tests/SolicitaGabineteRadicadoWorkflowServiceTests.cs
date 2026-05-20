@@ -12,7 +12,7 @@ namespace TramiteDiasVencimiento.Tests;
 public sealed class SolicitaGabineteRadicadoWorkflowServiceTests
 {
     [Fact]
-    public async Task SolicitaPorRadicadoAsync_CuandoExiste_RetornaDtoMapeado()
+    public async Task SolicitaPorRadicadoAsync_CuandoExiste_UsaAliasWorkflowParaGabinete()
     {
         var repository = new Mock<ISolicitaGabineteRadicadoWorkflowRepository>();
         var rutaService = new Mock<ISolicitaEstructuraRutaWorkflowService>();
@@ -45,7 +45,7 @@ public sealed class SolicitaGabineteRadicadoWorkflowServiceTests
         };
 
         repository
-            .Setup(r => r.SolicitaPorRadicadoAsync("2500466700035", "workflow", "WF", "DA"))
+            .Setup(r => r.SolicitaPorRadicadoAsync("2500466700035", "workflow", "WF", "WF"))
             .ReturnsAsync(new AppResponses<RadicadoGabineteWorkflow>
             {
                 success = true,

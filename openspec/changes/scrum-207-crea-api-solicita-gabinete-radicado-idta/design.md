@@ -89,8 +89,8 @@ Regla:
 1. Workflow (`rutas_workflow` y `dat_adic_tar{ruta}`):
    - claim obligatorio `defaulaliaswf`
 2. Gabinete (`configuracion_gabinete`):
-   - usar `defaulalias` si existe y no está vacío
-   - fallback a `defaulaliaswf` si `defaulalias` no existe
+   - usar `defaulaliaswf`
+   - no depender de `defaulalias` para este caso de uso
 
 ## Response Contract
 
@@ -111,6 +111,7 @@ Semántica:
 
 - Encontrado: `success=true`, `message="YES"`, `EstadoExistenciaRadicado="YES"`.
 - No encontrado: `success=true`, `message="YES"`, `EstadoExistenciaRadicado="NO"`.
+- Si `EstadoExistenciaRadicado="YES"` y `NombreGabinete` vacío: `success=false`, `message="NombreGabinete requerido"`.
 - Error validación/infraestructura: `success=false`, `errors[]` con `Field/Type/Message`.
 
 ## Flow
@@ -162,7 +163,7 @@ Campos mínimos sugeridos:
 2. Riesgo: nombre de ruta inválido.
    - Mitigación: regex estricta antes de armar nombre de tabla.
 3. Riesgo: gabinete en alias distinto.
-   - Mitigación: estrategia alias `defaulalias` con fallback.
+   - Mitigación: unificar consulta en alias workflow (`defaulaliaswf`) para esta API.
 
 ## Acceptance Criteria
 
