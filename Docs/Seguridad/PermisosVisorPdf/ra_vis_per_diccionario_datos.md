@@ -113,5 +113,4 @@ Precedencia recomendada para backend:
 4. fallback denegar (`0`)
 
 Consulta base disponible en:
-- `Docs/Seguridad/PermisosVisorPdf/ra_vis_per_consulta_permisos_efectivos.sql`
-
+- `Docs/Seguridad/PermisosVisorPdf/ra_vis_per_consulta_permisos_efectivos.mysql`

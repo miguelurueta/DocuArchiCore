@@ -26,8 +26,8 @@ public sealed class PermisosVisorPdfRepositoryIntegrationTests : IAsyncLifetime
                 .Build();
 
             await _container.StartAsync();
-            await ExecuteScriptAsync("schema.sql");
-            await ExecuteScriptAsync("seed.sql");
+            await ExecuteScriptAsync("schema.mysql");
+            await ExecuteScriptAsync("seed.mysql");
         }
         catch
         {
