@@ -98,4 +98,81 @@ public sealed class PermisosVisorPdfControllerTests
         Assert.True(payload.success);
         Assert.True(payload.data.Permissions["pdf.view"]);
     }
+
+    [Fact]
+    public async Task UpsertOverrides_AdminOk_RetornaContratoOperacion()
+    {
+        var claims = new Mock<IClaimValidationService>();
+        claims.Setup(x => x.ValidateClaim<SimpleOperationResultDto>("defaulalias"))
+            .Returns(new ClaimValidationResult<SimpleOperationResultDto> { Success = true, ClaimValue = "DA" });
+
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(x => x.HasPermission("pdf.permissions.admin")).Returns(true);
+
+        var service = new Mock<IPermisosVisorPdfService>();
+        service.Setup(x => x.UpsertUserOverridesAsync("workflow", 141, It.IsAny<UpsertUserOverridesRequestDto>(), "DA"))
+            .ReturnsAsync(new AppResponses<SimpleOperationResultDto>
+            {
+                success = true,
+                message = "OK",
+                data = new SimpleOperationResultDto
+                {
+                    CodigoImplementacion = "workflow",
+                    IdUsuario = 141,
+                    Procesados = 2
+                }
+            });
+
+        var controller = new PermisosVisorPdfController(claims.Object, currentUser.Object, service.Object);
+        var request = new UpsertUserOverridesRequestDto
+        {
+            Overrides =
+            [
+                new PermissionOverrideItemDto { CodigoPermiso = "pdf.print", Permitido = 1 },
+                new PermissionOverrideItemDto { CodigoPermiso = "pdf.download", Permitido = 1 }
+            ]
+        };
+
+        var result = await controller.UpsertOverrides("workflow", 141, request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<AppResponses<SimpleOperationResultDto>>(ok.Value);
+        Assert.True(payload.success);
+        Assert.Equal(2, payload.data.Procesados);
+        Assert.Equal("workflow", payload.data.CodigoImplementacion);
+    }
+
+    [Fact]
+    public async Task DeleteOverride_AdminOk_RetornaContratoOperacion()
+    {
+        var claims = new Mock<IClaimValidationService>();
+        claims.Setup(x => x.ValidateClaim<SimpleOperationResultDto>("defaulalias"))
+            .Returns(new ClaimValidationResult<SimpleOperationResultDto> { Success = true, ClaimValue = "DA" });
+
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(x => x.HasPermission("pdf.permissions.admin")).Returns(true);
+
+        var service = new Mock<IPermisosVisorPdfService>();
+        service.Setup(x => x.DeleteUserOverrideAsync("workflow", 141, "pdf.print", "DA"))
+            .ReturnsAsync(new AppResponses<SimpleOperationResultDto>
+            {
+                success = true,
+                message = "OK",
+                data = new SimpleOperationResultDto
+                {
+                    CodigoImplementacion = "workflow",
+                    IdUsuario = 141,
+                    Procesados = 1
+                }
+            });
+
+        var controller = new PermisosVisorPdfController(claims.Object, currentUser.Object, service.Object);
+        var result = await controller.DeleteOverride("workflow", 141, "pdf.print");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<AppResponses<SimpleOperationResultDto>>(ok.Value);
+        Assert.True(payload.success);
+        Assert.Equal(1, payload.data.Procesados);
+        Assert.Equal(141, payload.data.IdUsuario);
+    }
 }

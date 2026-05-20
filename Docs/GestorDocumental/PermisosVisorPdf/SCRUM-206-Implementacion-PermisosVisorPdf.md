@@ -55,3 +55,13 @@ Se implementó una API dedicada para resolver y administrar permisos del visor P
 - Frontend consume un único mapa `Permissions` por implementación.
 - La lógica de precedencia queda centralizada en backend.
 - La administración puntual de permisos por usuario se realiza con `PUT/DELETE overrides`.
+
+## 8. Validación técnica ejecutada
+- Pruebas de contrato/controller ejecutadas:
+  - `dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj --filter "FullyQualifiedName~PermisosVisorPdfControllerTests" --no-restore`
+- Resultado:
+  - `Total: 5, Superado: 5, Con error: 0, Omitido: 0`.
+- Cobertura validada en esta corrida:
+  - `GET .../mis-permisos` (claims y shape `AppResponses<VisorPdfPermissionsResponseDto>`).
+  - `GET .../usuarios/{idUsuario}/permisos` (restricción admin).
+  - `PUT .../overrides` y `DELETE .../overrides/{codigoPermiso}` (shape `AppResponses<SimpleOperationResultDto>`).

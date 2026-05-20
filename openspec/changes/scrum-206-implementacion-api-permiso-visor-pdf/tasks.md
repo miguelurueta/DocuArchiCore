@@ -64,9 +64,10 @@
   - escenarios default/perfil/override
   - persistencia delete/upsert
   - parametrización de consultas
-- [ ] 7.4 Contract/regression tests:
+- [x] 7.4 Contract/regression tests:
   - shape de respuesta
   - no regresión en endpoints ya existentes del módulo
+  - Validado con `PermisosVisorPdfControllerTests` (GET/PUT/DELETE) sobre contrato `AppResponses<T>`.
 - [x] 7.5 Ejecutar `dotnet test` o marcar integración `Skipped` con motivo explícito si Docker no está disponible.
 
 ## 8. Documentación técnica
