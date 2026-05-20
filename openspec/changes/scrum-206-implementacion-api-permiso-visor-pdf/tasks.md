@@ -66,7 +66,7 @@
 - [ ] 7.4 Contract/regression tests:
   - shape de respuesta
   - no regresión en endpoints ya existentes del módulo
-- [ ] 7.5 Ejecutar `dotnet test` o marcar integración `Skipped` con motivo explícito si Docker no está disponible.
+- [x] 7.5 Ejecutar `dotnet test` o marcar integración `Skipped` con motivo explícito si Docker no está disponible.
 
 ## 8. Documentación técnica
 
