@@ -29,11 +29,11 @@
 - `codigoImpl` y `codigoPermiso` validados por regex segura `^[A-Za-z0-9_\.]+$`.
 
 ## 5. Estrategia de persistencia de overrides
-- `PUT overrides` procesa item a item:
+- `PUT overrides` procesa item a item dentro de una única transacción:
   - si existe registro: `update`
   - si no existe: `insert`
 - `DELETE override` elimina por clave funcional (`id_usuario`, `id_impl`, `id_perm`).
-- Implementación actual: sin transacción explícita de lote en `PUT`.
+- Tanto `PUT` como `DELETE` usan transacción y aplican `rollback` ante error.
 
 ## 6. Errores y comportamiento esperado
 - `400 Validation`:

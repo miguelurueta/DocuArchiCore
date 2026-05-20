@@ -84,8 +84,8 @@ Logs mínimos en Service:
 ## 9. Riesgos y Mitigaciones
 - Riesgo: reglas inconsistentes por módulo frontend.
   - Mitigación: backend centraliza precedencia y contrato único.
-- Riesgo: override parcial en cargas grandes.
-  - Mitigación: control por item; pendiente transacción de lote.
+- Riesgo: errores durante cargas de overrides masivas.
+  - Mitigación: `upsert` y `delete` ejecutados en transacción con rollback ante error.
 - Riesgo: sobreexposición de administración.
   - Mitigación: autorización explícita `IsAdmin()` y claims/permisos.
 

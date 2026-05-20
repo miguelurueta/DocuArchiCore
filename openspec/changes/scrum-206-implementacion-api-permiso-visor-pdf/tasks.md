@@ -37,7 +37,7 @@
 ## 5. Capa Repository
 
 - [x] 5.1 Implementar lecturas de catálogo/permisos efectivos usando `DapperCrudEngine + QueryOptions`.
-- [ ] 5.2 Implementar mutaciones de overrides con operación transaccional y parámetros seguros.
+- [x] 5.2 Implementar mutaciones de overrides con operación transaccional y parámetros seguros.
 - [x] 5.3 Resolver perfil activo del usuario de forma interna (sin `codiperfil` en API).
 - [x] 5.4 Verificar no uso de SQL manual ni concatenación insegura.
 
@@ -45,7 +45,8 @@
 
 - [x] 6.1 Registrar servicios en `Program.cs` bajo `// Services (L)`.
 - [x] 6.2 Registrar repositorios en `Program.cs` bajo `// Repositories (R)`.
-- [ ] 6.3 Registrar perfiles AutoMapper necesarios.
+- [x] 6.3 Registrar perfiles AutoMapper necesarios.
+  - N/A para esta capacidad: no hay mapeos AutoMapper nuevos en el flujo `PermisosVisorPdf` (DTOs construidos de forma directa).
 - [x] 6.4 Agregar logs mínimos (`Information`, `Warning`, `Error`) con campos de trazabilidad.
 
 ## 7. Pruebas

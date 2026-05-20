@@ -36,6 +36,7 @@ Se implementó una API dedicada para resolver y administrar permisos del visor P
 - Contrato por usuario: `codiperfil` no viaja en request.
 - `Sources` informa el origen de cada permiso.
 - Validación de códigos por regex segura `^[A-Za-z0-9_\.]+$`.
+- Mutaciones `PUT/DELETE overrides` con operación transaccional y rollback en error.
 
 ## 5. Manejo de Excepciones
 - `try/catch` en controller/service/repository nuevos.
