@@ -1,7 +1,7 @@
 # jira-scrum-207 Specification
 
 ## Purpose
-TBD - created by archiving change scrum-207-crea-api-solicita-gabinete-radicado-idta. Update Purpose after archive.
+Define and document the finalized backend behavior for resolving workflow gabinete metadata by `consecutivoRadicado` and `idTareaWorkflow`, including claim requirements, active-route resolution, fallback semantics, and response contract consistency.
 ## Requirements
 ### Requirement: Traceability to Jira issue
 The system MUST keep traceability between this OpenSpec change and Jira issue SCRUM-207.
@@ -91,4 +91,3 @@ The change MUST not alter contracts or behavior of `SolicitaExistenciaRadicadoRu
 #### Scenario: Existing endpoint remains stable
 - **WHEN** integration tests execute against existing endpoint
 - **THEN** response contract and status behavior remain unchanged
-
