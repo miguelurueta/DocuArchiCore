@@ -50,11 +50,11 @@
 
 ## 7. Pruebas
 
-- [ ] 7.1 Controller tests:
+- [x] 7.1 Controller tests:
   - claims faltantes/invalidos
   - endpoint admin sin autorización
   - contratos `AppResponses<T>` en success/error
-- [ ] 7.2 Service unit tests:
+- [x] 7.2 Service unit tests:
   - precedencia completa
   - fallback deny
   - implementación inexistente
