@@ -60,10 +60,11 @@
   - fallback deny
   - implementación inexistente
   - errores de repositorio
-- [ ] 7.3 Repository integration tests:
+- [x] 7.3 Repository integration tests:
   - escenarios default/perfil/override
   - persistencia delete/upsert
   - parametrización de consultas
+  - Implementado en `PermisosVisorPdfRepositoryIntegrationTests` con `MySQL Testcontainers` + scripts `Database/PermisosVisorPdf`.
 - [x] 7.4 Contract/regression tests:
   - shape de respuesta
   - no regresión en endpoints ya existentes del módulo

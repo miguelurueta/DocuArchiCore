@@ -65,3 +65,12 @@ Se implementó una API dedicada para resolver y administrar permisos del visor P
   - `GET .../mis-permisos` (claims y shape `AppResponses<VisorPdfPermissionsResponseDto>`).
   - `GET .../usuarios/{idUsuario}/permisos` (restricción admin).
   - `PUT .../overrides` y `DELETE .../overrides/{codigoPermiso}` (shape `AppResponses<SimpleOperationResultDto>`).
+
+- Pruebas de integración repository ejecutadas:
+  - `dotnet test tests/TramiteDiasVencimiento.Tests/TramiteDiasVencimiento.Tests.csproj --filter "FullyQualifiedName~PermisosVisorPdfRepositoryIntegrationTests" --no-restore`
+- Resultado:
+  - `Total: 5, Superado: 5, Con error: 0, Omitido: 0`.
+- Cobertura validada:
+  - Precedencia `default -> perfil -> override`.
+  - Persistencia de `PUT/DELETE` sobre `ra_vis_per_usuario_override`.
+  - Fallback `deny` cuando un permiso no existe en matrices.
