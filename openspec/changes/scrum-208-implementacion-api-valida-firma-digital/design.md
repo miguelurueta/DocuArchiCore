@@ -11,11 +11,181 @@
 
 ## Problem Statement
 
-🚀 PROMPT ARQUITECTÓNICO — SCRUM-[ID] API Firma Electrónica Documento (ENTERPRISE FINAL — Legacy Migration + DapperCrudEngine + AppResponses) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ROL ESPERADO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Actúa como Arquitecto/Desarrollador Senior .NET del proyecto DocuArchiCore, especialista en: Core Clean Architecture Controller → Service → Repository DapperCrudEngine QueryOptions AppResponses<T> AppMetaBuilder / AppError migración legacy observabilidad pruebas enterprise documentación técnica enterprise ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTEXTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Arquitectura actual: DocuArchi.Api MiApp.Services MiApp.Repository MiApp.DTOs DocuArchiCore (OpenSpec/docs/tests) Legacy origen: Function Solicita_registro_certificado_archivo_imagen_gabinete( id_imagen_archivo, nombre_gabinete, ByRef id_certificado ) Tabla principal: ra_cert_registro_certificado_archivo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBJETIVO FUNCIONAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar una API backend para determinar si un documento está firmado electrónicamente. Reglas legacy equivalentes: Buscar por: id_archivo nombre_gabinete Ordenar: id_registro_certificado_archivo DESC Tomar primer registro. Si existe: firmadoElectronico = true idCertificado = ra_cert_certificado_id_certificado Si NO existe: firmadoElectronico = false idCertificado = 0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REGLA GLOBAL OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todo acceso a datos debe usar: ✔ DapperCrudEngine ✔ QueryOptions PROHIBIDO: SQL manual QueryAsync directo ExecuteAsync directo concatenación SQL interpolación SQL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TRY/CATCH OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Todas las funciones críticas deben incluir: ✔ try/catch Incluye: Controller Service Repository Reglas: logging estructurado AppResponses controlado no exponer stacktrace ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ARQUITECTURA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Patrón: Controller → Service → Repository Separación: Controller → HTTP Service → lógica negocio Repository → DB DTO → contrato ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ UBICACIÓN ESPERADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: DocuArchi.Api/Controllers/GestorDocumental/Documentos/FirmaElectronicaDocumentoController.cs Service: MiApp.Services/Service/GestorDocumental/Documentos/FirmaElectronica/IFirmaElectronicaDocumentoService.cs MiApp.Services/Service/GestorDocumental/Documentos/FirmaElectronica/FirmaElectronicaDocumentoService.cs Repository: MiApp.Repository/Repositorio/GestorDocumental/Documentos/FirmaElectronica/IFirmaElectronicaDocumentoRepository.cs MiApp.Repository/Repositorio/GestorDocumental/Documentos/FirmaElectronica/FirmaElectronicaDocumentoRepository.cs DTOs: MiApp.DTOs/DTOs/GestorDocumental/Documentos/FirmaElectronica/ Documentación: Docs/GestorDocumental/Documentos/FirmaElectronica/ Tests: tests/DocuArchi.Api.Tests/GestorDocumental/Documentos/ tests/MiApp.Services.Tests/GestorDocumental/Documentos/ tests/MiApp.Repository.Tests/GestorDocumental/Documentos/ tests/MiApp.IntegrationTests/GestorDocumental/Documentos/ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENDPOINT OFICIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ GET /api/gestor-documental/documentos/{idArchivo}/firma-electronica?nombreGabinete={nombreGabinete} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CLAIMS OBLIGATORIOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Claim obligatorio: defaulalias Claim opcional para trazabilidad: usuarioid Reglas: alias SOLO desde claim claim inválido → BadRequest(AppResponses) no hardcodear alias ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DTO RESPONSE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ public sealed class FirmaElectronicaDocumentoResponseDto { public long IdArchivo { get; init; } public string NombreGabinete { get; init; } = string.Empty;
+Se requiere una API backend para validar si un documento tiene firma electrónica, migrando de forma compatible la lógica legacy de `Solicita_registro_certificado_archivo_imagen_gabinete`.
 
-public bool FirmadoElectronico { get; init; }
+Semántica legacy a preservar:
 
-public long IdCertificado { get; init; } } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTRATO FRONTEND OBLIGATORIO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Request: GET /api/gestor-documental/documentos/12345/firma-electronica?nombreGabinete=CORRESPO Response firmado: { "success": true, "message": "OK", "data": { "idArchivo": 12345, "nombreGabinete": "CORRESPO", "firmadoElectronico": true, "idCertificado": 9876 }, "meta": { "status": "success" }, "errors": [] } Response no firmado: { "success": true, "message": "OK", "data": { "idArchivo": 12345, "nombreGabinete": "CORRESPO", "firmadoElectronico": false, "idCertificado": 0 }, "meta": { "status": "success" }, "errors": [] } Response validation: { "success": false, "message": "nombreGabinete invalido", "meta": { "status": "validation" }, "errors": [ { "type": "Validation", "field": "nombreGabinete", "message": "Formato invalido" } ] } ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIONES FUNCIONALES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ idArchivo > 0 nombreGabinete requerido nombreGabinete trim obligatorio regex: ^[A-Za-z0-9_]+$ claim defaulalias obligatorio fallback: firmadoElectronico=false idCertificado=0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ REPOSITORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Interface: IFirmaElectronicaDocumentoRepository Método: Task<FirmaElectronicaDocumentoResponseDto?> GetFirmaElectronicaDocumentoAsync( long idArchivo, string nombreGabinete, string defaultDbAlias ); QueryOptions obligatorio: var options = new QueryOptions { TableName = "ra_cert_registro_certificado_archivo", DefaultAlias = "rc", Columns = new[] { "rc.id_registro_certificado_archivo", "rc.ra_cert_certificado_id_certificado" }, Filters = new[] { new QueryFilter("rc.id_archivo", idArchivo), new QueryFilter("rc.nombre_gabinete", nombreGabinete) }, OrderBy = "rc.id_registro_certificado_archivo DESC", Limit = 1 }; Ejecución: var rows = await _DaperCrudEngine.GetAllAsync<RegistroCertificadoRow>( defaultDbAlias, options ); Reglas: tomar FirstOrDefault() repository NO retorna AppResponses repository NO contiene lógica HTTP SQL siempre parametrizado ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SERVICE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Interface: IFirmaElectronicaDocumentoService Método: Task<AppResponses<FirmaElectronicaDocumentoResponseDto>> GetFirmaElectronicaDocumentoAsync( long idArchivo, string nombreGabinete, string defaultDbAlias ); Responsabilidad: validaciones orquestación AppResponses manejo errores logging Reglas: try/catch obligatorio null → no firmado no exponer errores internos ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CONTROLLER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Responsabilidad: validar claims validar request delegar al service Ok/BadRequest Reglas: no lógica negocio no acceso DB try/catch obligatorio ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DEPENDENCY INJECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Registrar: services.AddScoped< IFirmaElectronicaDocumentoService, FirmaElectronicaDocumentoService>(); services.AddScoped< IFirmaElectronicaDocumentoRepository, FirmaElectronicaDocumentoRepository>(); ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ OBSERVABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Logs Information: inicio consulta firma electrónica documento firmado encontrado documento no firmado Logs Warning: nombreGabinete inválido idArchivo inválido Logs Error: error DB error repository excepción inesperada Campos: requestId alias usuarioid idArchivo nombreGabinete firmadoElectronico idCertificado duraciónMs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ VALIDACIÓN SOLID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SRP: Controller → HTTP Service → lógica firma Repository → DB DTO → contrato OCP: nuevos tipos firma extensibles LSP: interfaces mockeables ISP: interfaces específicas DIP: dependencias por interfaces ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PRUEBAS OBLIGATORIAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Controller: claim faltante idArchivo inválido nombreGabinete inválido success → 200 Service: existe certificado no existe certificado error repository AppResponses correcto Repository: QueryOptions correcto SQL parametrizado último registro correcto sin registros Integración: schema + seed caso firmado caso no firmado claims válidos claims inválidos QT: no SQL concatenado no rompe AppResponses no rompe contratos Regresión: compatibilidad SCRUM-206 compatibilidad claims existentes ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DOCUMENTACIÓN TÉCNICA OBLIGATORIA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruta: Docs/GestorDocumental/Documentos/FirmaElectronica/ Crear: SCRUM-[ID]-Arquitectura.md Debe incluir: objetivo flujo completo diagramas clases diagramas secuencia validación SOLID riesgos SCRUM-[ID]-Implementacion-Detallada.md Debe incluir: archivos creados DTOs QueryOptions DapperCrudEngine fallback no firmado decisiones técnicas SCRUM-[ID]-Integracion-Frontend.md Debe incluir: endpoint request response firmado response no firmado validation errors cURL examples SCRUM-[ID]-Pruebas.md Debe incluir: unitarias integración QT regresión SCRUM-[ID]-Observabilidad.md Debe incluir: logs métricas troubleshooting requestId SCRUM-[ID]-Seguridad.md Debe incluir: SQL parametrizado regex gabinete claims protección errores SCRUM-[ID]-Metadata.md Debe incluir: ticket autor fecha versión responsable técnico ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ENTREGABLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Código: Controller Service Repository DTO DI Tests Documentación: Arquitectura Implementación Frontend Pruebas Observabilidad Seguridad Metadata ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ CRITERIOS DE ACEPTACIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ✔ Endpoint funcional ✔ DapperCrudEngine obligatorio ✔ QueryOptions obligatorio ✔ SQL parametrizado ✔ Contrato AppResponses correcto ✔ Fallback no firmado correcto ✔ Último registro correcto ✔ Tests completos ✔ Documentación completa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESTRICCIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NO SQL manual NO concatenación SQL NO exponer errores internos NO romper SCRUM-206 NO romper claims actuales ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ INSTRUCCIÓN FINAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Implementar API firma electrónica documento reutilizando: ✔ DapperCrudEngine ✔ QueryOptions ✔ AppResponses ✔ claims existentes Garantizando: ✔ compatibilidad legacy ✔ seguridad ✔ observabilidad ✔ documentación enterprise completa
+- Buscar por `id_archivo` y `nombre_gabinete` en `ra_cert_registro_certificado_archivo`.
+- Ordenar por `id_registro_certificado_archivo DESC`.
+- Tomar el primer registro.
+- Si existe: `FirmadoElectronico=true` y `IdCertificado=ra_cert_certificado_id_certificado`.
+- Si no existe: `FirmadoElectronico=false` y `IdCertificado=0`.
+
+## Legacy Reference
+
+- Function legacy: `Solicita_registro_certificado_archivo_imagen_gabinete`
+- Tabla principal: `ra_cert_registro_certificado_archivo`
+
+## Scope
+
+### In Scope
+
+- Endpoint:
+  - `GET /api/gestor-documental/documentos/{idArchivo}/firma-electronica?nombreGabinete={nombreGabinete}`
+- Controller, Service, Repository y DTO dedicados.
+- Validaciones de entrada/claims.
+- Implementación con `DapperCrudEngine + QueryOptions` (sin SQL manual).
+- Respuesta con `AppResponses<FirmaElectronicaDocumentoResponseDto>`.
+- Pruebas unitarias, de integración y de contrato.
+- Documentación técnica SCRUM-208.
+
+### Out of Scope
+
+- Cambios de esquema en base de datos.
+- Nuevos tipos de firma o validación criptográfica del certificado.
+- Cambios en contratos de SCRUM-206 u otros endpoints ya publicados.
+
+## Business Decisions
+
+1. `defaulalias` es obligatorio y se toma solo desde claims.
+2. `usuarioid` es opcional para trazabilidad/log.
+3. `idArchivo` debe ser `> 0`.
+4. `nombreGabinete` es requerido, con `Trim()`, y regex `^[A-Za-z0-9_]+$`.
+5. El repository retorna datos puros (sin `AppResponses` ni semántica HTTP).
+6. El service define fallback funcional (`no firmado`) cuando no hay fila.
+
+## Target Architecture
+
+- Patrón obligatorio: `Controller -> Service -> Repository`.
+- `try/catch` obligatorio en las tres capas.
+- `AppResponses<T>` como contrato de salida único.
+
+Ubicación objetivo:
+
+- Controller:
+  - `DocuArchi.Api/Controllers/GestorDocumental/Documentos/FirmaElectronicaDocumentoController.cs`
+- Service:
+  - `MiApp.Services/Service/GestorDocumental/Documentos/FirmaElectronica/IFirmaElectronicaDocumentoService.cs`
+  - `MiApp.Services/Service/GestorDocumental/Documentos/FirmaElectronica/FirmaElectronicaDocumentoService.cs`
+- Repository:
+  - `MiApp.Repository/Repositorio/GestorDocumental/Documentos/FirmaElectronica/IFirmaElectronicaDocumentoRepository.cs`
+  - `MiApp.Repository/Repositorio/GestorDocumental/Documentos/FirmaElectronica/FirmaElectronicaDocumentoRepository.cs`
+- DTO:
+  - `MiApp.DTOs/DTOs/GestorDocumental/Documentos/FirmaElectronica/FirmaElectronicaDocumentoResponseDto.cs`
+
+## API Contract
+
+Request:
+
+- `GET /api/gestor-documental/documentos/{idArchivo}/firma-electronica?nombreGabinete={nombreGabinete}`
+
+Response DTO:
+
+```csharp
+public sealed class FirmaElectronicaDocumentoResponseDto
+{
+    public long IdArchivo { get; init; }
+    public string NombreGabinete { get; init; } = string.Empty;
+    public bool FirmadoElectronico { get; init; }
+    public long IdCertificado { get; init; }
+}
+```
+
+Semántica:
+
+- Con registro: `success=true`, `message="OK"`, `FirmadoElectronico=true`, `IdCertificado>0`.
+- Sin registro: `success=true`, `message="OK"`, `FirmadoElectronico=false`, `IdCertificado=0`.
+- Error de validación: `success=false`, `meta.status="validation"`, `errors[]` controlado.
+
+## Data Access Strategy
+
+Reglas obligatorias:
+
+1. Solo `DapperCrudEngine` y `QueryOptions`.
+2. Cero SQL manual (`QueryAsync`/`ExecuteAsync` directos prohibidos).
+3. Filtros parametrizados por `id_archivo` y `nombre_gabinete`.
+4. Orden descendente por `id_registro_certificado_archivo` y `limit=1`.
+
+Ejemplo objetivo de `QueryOptions`:
+
+```csharp
+var options = new QueryOptions
+{
+    TableName = "ra_cert_registro_certificado_archivo",
+    DefaultAlias = "rc",
+    Columns =
+    [
+        "rc.id_registro_certificado_archivo",
+        "rc.ra_cert_certificado_id_certificado"
+    ],
+    Filters = new Dictionary<string, object?>
+    {
+        ["id_archivo"] = idArchivo,
+        ["nombre_gabinete"] = nombreGabinete
+    },
+    OrderByFields = [ new QueryOrderBy("id_registro_certificado_archivo", "DESC") ],
+    Limit = 1
+};
+```
+
+## Execution Flow
+
+1. Controller valida claim `defaulalias`.
+2. Controller valida `idArchivo` y `nombreGabinete` (entrada mínima HTTP).
+3. Service aplica reglas de negocio y sanitización final.
+4. Repository consulta tabla de certificados con `QueryOptions`.
+5. Service mapea primer registro a `FirmadoElectronico=true` o aplica fallback no firmado.
+6. Controller retorna `Ok(...)` o `BadRequest(...)` con `AppResponses`.
+
+## Security and Validation
+
+- Regex de `nombreGabinete`: `^[A-Za-z0-9_]+$`.
+- Prohibido aceptar alias por query/body.
+- No exponer stacktrace ni SQL en errores.
+- Mensajes de error controlados con `AppError { Type, Field, Message }`.
+
+## Observability
+
+Logs mínimos:
+
+- `Information`: inicio consulta, resultado firmado/no firmado, `duracionMs`.
+- `Warning`: claim faltante, `idArchivo` inválido, `nombreGabinete` inválido.
+- `Error`: excepción de repository/service/controller.
+
+Campos sugeridos:
+
+- `requestId`, `alias`, `usuarioid`, `idArchivo`, `nombreGabinete`, `firmadoElectronico`, `idCertificado`, `duracionMs`.
+
+## Testing Strategy
+
+- Controller:
+  - claim `defaulalias` faltante.
+  - `idArchivo <= 0`.
+  - `nombreGabinete` inválido.
+  - éxito (`200`) contrato correcto.
+- Service:
+  - registro existe -> firmado.
+  - registro no existe -> fallback no firmado.
+  - error de repository -> `AppResponses` controlado.
+- Repository:
+  - `QueryOptions` correcto (tabla, filtros, order, limit).
+  - consulta parametrizada sin SQL manual.
+  - selección efectiva del último registro.
+- Integración:
+  - seed/schema para caso firmado y no firmado.
+  - claim válido/inválido.
+- Regresión:
+  - no romper contratos de SCRUM-206 ni claims actuales.
+
+## Documentation Deliverables
+
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Arquitectura.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Implementacion-Detallada.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Integracion-Frontend.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Pruebas.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Observabilidad.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Seguridad.md`
+- `Docs/GestorDocumental/Documentos/FirmaElectronica/SCRUM-208-Metadata.md`
 
 ## Approach
 
